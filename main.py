@@ -26,14 +26,29 @@ app.add_middleware(
 def read_root():
     return {"status": "ok", "message": "PDF Order Analyzer backend with SQLite is running!"}
 
-# Test route: Get all orders stored in SQLite
+# Endpoint 1: Health Check PDF Upload Test
+@app.post("/api/v1/health-check-upload")
+async def health_check_upload(file: UploadFile = File(...)):
+    """Validates uploaded file format before feeding into vision pipelines."""
+    if not file.filename.endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="File must be a PDF")
+    
+    contents = await file.read()
+    
+    return {
+        "filename": file.filename,
+        "size_bytes": len(contents),
+        "status": "ready_for_processing"
+    }
+
+# Endpoint 2: Get all orders stored in SQLite
 @app.get("/api/v1/orders", response_model=List[schemas.OrderResponse])
 def get_orders(db: Session = Depends(get_db)):
     """Fetch all saved orders from SQLite database."""
     orders = db.query(models.Order).all()
     return orders
 
-# Test route: Create a mock order in SQLite
+# Endpoint 3: Create a dummy order in SQLite
 @app.post("/api/v1/orders/test-seed", response_model=schemas.OrderResponse)
 def create_test_order(db: Session = Depends(get_db)):
     """Creates a dummy order in SQLite to test database operations."""
