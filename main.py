@@ -1,10 +1,13 @@
+import io
 from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List
 
 import models, schemas
 from database import engine, get_db
+from pdf_processor import convert_pdf_page_to_image
 
 # Create SQLite tables on startup
 models.Base.metadata.create_all(bind=engine)
@@ -74,3 +77,25 @@ def create_test_order(db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_order)
     return new_order
+
+@app.post("/api/v1/convert-pdf-to-image")
+async def render_pdf_as_image(file: UploadFile = File(...), page_number: int = 0):
+    """Converts a chosen page of an uploaded PDF into a 300 DPI PNG image."""
+    if not file.filename.endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="File must be a PDF")
+    
+    try:
+        pdf_bytes = await file.read()
+        pil_image = convert_pdf_page_to_image(pdf_bytes, page_number=page_number, dpi=300)
+        
+        # Save PIL Image into an in-memory byte buffer
+        img_io = io.BytesIO()
+        pil_image.save(img_io, 'PNG')
+        img_io.seek(0)
+        
+        # Stream the rendered image back to client
+        return StreamingResponse(img_io, media_type="image/png")
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
