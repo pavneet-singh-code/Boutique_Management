@@ -8,6 +8,7 @@ from typing import List
 import models, schemas
 from database import engine, get_db
 from pdf_processor import convert_pdf_page_to_image
+from vision_service import extract_order_from_image
 
 # Create SQLite tables on startup
 models.Base.metadata.create_all(bind=engine)
@@ -97,5 +98,26 @@ async def render_pdf_as_image(file: UploadFile = File(...), page_number: int = 0
         return StreamingResponse(img_io, media_type="image/png")
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/v1/analyze-order-pdf", response_model=schemas.OrderFormExtraction)
+async def analyze_order_pdf(file: UploadFile = File(...), page_number: int = 0):
+    """Converts a PDF page to image and uses Gemini 2.5 Vision to extract form data."""
+    if not file.filename.endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="File must be a PDF")
+    
+    try:
+        # Step A: Read raw binary upload
+        pdf_bytes = await file.read()
+        
+        # Step B: Render high-resolution image via PyMuPDF (300 DPI)
+        page_image = convert_pdf_page_to_image(pdf_bytes, page_number=page_number, dpi=300)
+        
+        # Step C: Send image to Gemini API for field recognition
+        extracted_data = extract_order_from_image(page_image)
+        
+        return extracted_data
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
