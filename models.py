@@ -1,26 +1,21 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Text
-from sqlalchemy.orm import relationship
-from datetime import datetime
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text
+from sqlalchemy.sql import func
 from database import Base
 
 class Order(Base):
     __tablename__ = "orders"
 
-    id = Column(Integer, primary_key=True, index=True)
-    filename = Column(String, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    needs_review = Column(Boolean, default=False)  
-
-    fields = relationship("OrderField", back_populates="order", cascade="all, delete-orphan")
-
-class OrderField(Base):
-    __tablename__ = "order_fields"
-
-    id = Column(Integer, primary_key=True, index=True)
-    order_id = Column(Integer, ForeignKey("orders.id"))
-    field_name = Column(String, nullable=False)
-    extracted_text = Column(String, nullable=True)
-    low_confidence = Column(Boolean, default=False)
-    crop_image_path = Column(String, nullable=True)
-
-    order = relationship("Order", back_populates="fields")
+    # Fixed typo: primary_key=True (was primary_index=True)
+    id = Column(Integer, primary_key=True, index=True) 
+    filename = Column(String, nullable=True)
+    order_number = Column(String, index=True, nullable=True)
+    customer_name = Column(String, nullable=True)
+    additional_info = Column(String, nullable=True)
+    order_date = Column(String, nullable=True)
+    deliver_date = Column(String, nullable=True)
+    contact_number = Column(String, nullable=True)
+    what_to_design = Column(Text, nullable=True)
+    advance_payment = Column(String, nullable=True)
+    total_amount = Column(String, nullable=True)
+    needs_review = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
