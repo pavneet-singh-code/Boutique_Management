@@ -7,14 +7,15 @@ from typing import List
 
 import models, schemas
 from database import engine, get_db
-from pdf_processor import convert_pdf_page_to_image
+from pdf_processor import convert_all_pdf_pages_to_images, convert_pdf_page_to_image
 from vision_service import extract_order_from_image
 
+# Automatically create or sync SQLite tables on startup
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="PDF Order Analyzer API",
-    description="Backend service for processing Fab_art Studio handwritten order form PDFs."
+    description="Backend service for processing multi-page Fab_art Studio order form PDFs."
 )
 
 app.add_middleware(
@@ -35,9 +36,9 @@ async def health_check_upload(file: UploadFile = File(...)):
     """Validates uploaded file format before feeding into vision pipelines."""
     if not file.filename.endswith(".pdf"):
         raise HTTPException(status_code=400, detail="File must be a PDF")
-
+    
     contents = await file.read()
-
+    
     return {
         "filename": file.filename,
         "size_bytes": len(contents),
@@ -51,7 +52,7 @@ def get_orders(db: Session = Depends(get_db)):
     orders = db.query(models.Order).all()
     return orders
 
-# Endpoint 3: Seed dummy data into database (updated for flat schema)
+# Endpoint 3: Seed dummy data into database
 @app.post("/api/v1/orders/test-seed", response_model=schemas.OrderResponse)
 def create_test_order(db: Session = Depends(get_db)):
     """Creates a dummy order in SQLite to verify database read/write functionality."""
@@ -70,7 +71,7 @@ def create_test_order(db: Session = Depends(get_db)):
     db.refresh(new_order)
     return new_order
 
-# Endpoint 4: Render a PDF page as a high-res PNG
+# Endpoint 4: Render a single page as high-res PNG (useful for UI previews)
 @app.post("/api/v1/convert-pdf-to-image")
 async def render_pdf_as_image(file: UploadFile = File(...), page_number: int = 0):
     """Converts a chosen page of an uploaded PDF into a 300 DPI PNG image for inspection."""
@@ -91,37 +92,42 @@ async def render_pdf_as_image(file: UploadFile = File(...), page_number: int = 0
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# Endpoint 5: Core Extraction Pipeline (PDF -> 300 DPI Image -> Gemini 2.5 Flash -> SQLite)
-@app.post("/api/v1/analyze-order-pdf", response_model=schemas.OrderResponse)
+# Endpoint 5: Core Multi-Page Pipeline (Analyzes ALL pages in the uploaded PDF)
+@app.post("/api/v1/analyze-order-pdf", response_model=List[schemas.OrderResponse])
 async def analyze_and_save_order(
     file: UploadFile = File(...), 
-    page_number: int = 0,
     db: Session = Depends(get_db)
 ):
-    """Converts a PDF page to image, extracts text with Gemini, and saves to SQLite."""
+    """
+    Converts EVERY page in an uploaded PDF to high-res images,
+    runs Gemini analysis on each page, and saves every extracted order form to SQLite.
+    """
     if not file.filename.endswith(".pdf"):
         raise HTTPException(status_code=400, detail="File must be a PDF")
     
     try:
-        # Step A: Read raw binary upload
         pdf_bytes = await file.read()
         
-        # Step B: Render high-resolution image via PyMuPDF (300 DPI)
-        page_image = convert_pdf_page_to_image(pdf_bytes, page_number=page_number, dpi=300)
+        # 1. Render ALL pages to high-res images automatically
+        page_images = convert_all_pdf_pages_to_images(pdf_bytes, dpi=300)
         
-        # Step C: Send image to Gemini API for field recognition
-        extracted_data = extract_order_from_image(page_image)
+        saved_orders = []
         
-        # Step D: Unpack extracted data, attach filename, and store in SQLite
-        db_order = models.Order(
-            filename=file.filename,
-            **extracted_data.model_dump()
-        )
-        db.add(db_order)
-        db.commit()
-        db.refresh(db_order)
+        # 2. Iterate through every page and process through Gemini + DB
+        for index, image in enumerate(page_images):
+            extracted_data = extract_order_from_image(image)
+            
+            db_order = models.Order(
+                filename=f"{file.filename} (Page {index + 1})",
+                **extracted_data.model_dump()
+            )
+            db.add(db_order)
+            db.commit()
+            db.refresh(db_order)
+            
+            saved_orders.append(db_order)
         
-        return db_order
+        return saved_orders
 
     except Exception as e:
         db.rollback()
