@@ -15,6 +15,19 @@ class OrderFormExtraction(BaseModel):
     total_amount: Optional[str] = Field(None, description="Amount in TOTAL box")
     needs_review: bool = Field(False, description="Set to True if any key handwritten field is illegible or unclear")
 
+# Schema for PATCH requests (all fields optional)
+class OrderUpdate(BaseModel):
+    customer_name: Optional[str] = None
+    additional_info: Optional[str] = None
+    order_date: Optional[str] = None
+    deliver_date: Optional[str] = None
+    order_number: Optional[str] = None
+    contact_number: Optional[str] = None
+    what_to_design: Optional[str] = None
+    advance_payment: Optional[str] = None
+    total_amount: Optional[str] = None
+    needs_review: Optional[bool] = None
+
 # Schema returned to frontend after saving in SQLite
 class OrderResponse(OrderFormExtraction):
     id: int

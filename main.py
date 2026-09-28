@@ -1,5 +1,6 @@
+import csv
 import io
-from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
+from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Response
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -132,3 +133,65 @@ async def analyze_and_save_order(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+
+# 6. Export orders as CSV download
+@app.get("/api/v1/orders/export")
+def export_orders_csv(db: Session = Depends(get_db)):
+    """Exports all stored order records as a downloadable CSV file."""
+    orders = db.query(models.Order).all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    # Write CSV Header
+    writer.writerow([
+        "ID", "Filename", "Order Number", "Customer Name", "Additional Info",
+        "Order Date", "Deliver Date", "Contact Number", "What To Design",
+        "Advance Payment", "Total Amount", "Needs Review", "Created At"
+    ])
+
+    # Write Data Rows
+    for o in orders:
+        writer.writerow([
+            o.id, o.filename, o.order_number, o.customer_name, o.additional_info,
+            o.order_date, o.deliver_date, o.contact_number, o.what_to_design,
+            o.advance_payment, o.total_amount, o.needs_review, o.created_at
+        ])
+
+    output.seek(0)
+    
+    return Response(
+        content=output.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=boutique_orders.csv"}
+    )
+
+# 7. Fetch full details of a single order by ID
+@app.get("/api/v1/orders/{order_id}", response_model=schemas.OrderResponse)
+def get_order_by_id(order_id: int, db: Session = Depends(get_db)):
+    """Retrieves full details for a specific order by ID."""
+    order = db.query(models.Order).filter(models.Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail=f"Order with ID {order_id} not found")
+    return order
+
+# 8. Correct/Update fields for a specific order
+@app.patch("/api/v1/orders/{order_id}", response_model=schemas.OrderResponse)
+def update_order_field(
+    order_id: int,
+    order_update: schemas.OrderUpdate,
+    db: Session = Depends(get_db)
+):
+    """Updates one or multiple handwritten fields for a saved order."""
+    db_order = db.query(models.Order).filter(models.Order.id == order_id).first()
+    if not db_order:
+        raise HTTPException(status_code=404, detail=f"Order with ID {order_id} not found")
+
+    # Exclude unset fields so we only update fields provided in request body
+    update_data = order_update.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_order, key, value)
+
+    db.commit()
+    db.refresh(db_order)
+    return db_order
