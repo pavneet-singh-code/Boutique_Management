@@ -201,7 +201,7 @@ export default function DashboardPage() {
 
         {/* Header */}
 
-        <header className="h-[82px] border-b border-[#ded8ce] flex items-center justify-between px-6 md:px-10">
+        <header className="h-20.5 border-b border-[#ded8ce] flex items-center justify-between px-6 md:px-10">
 
 
           <div>
@@ -221,7 +221,7 @@ export default function DashboardPage() {
 
             {/* Search */}
 
-            <div className="hidden md:flex items-center gap-2 bg-white/60 border border-[#ded8ce] rounded-xl px-3 h-10 w-[230px]">
+            <div className="hidden md:flex items-center gap-2 bg-white/60 border border-[#ded8ce] rounded-xl px-3 h-10 w-57.5">
 
               <Search
                 size={16}
@@ -254,7 +254,7 @@ export default function DashboardPage() {
 
         {/* Content */}
 
-        <div className="p-6 md:p-10 max-w-[1500px]">
+        <div className="p-6 md:p-10 max-w-375">
 
 
           {/* Welcome */}
