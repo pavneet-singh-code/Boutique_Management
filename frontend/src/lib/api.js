@@ -105,3 +105,56 @@ export async function saveOrders(orders) {
 
     return data;
 }
+
+export async function getOrder(id) {
+    const token = sessionStorage.getItem("fab_art_token");
+
+    const response = await fetch(`${API_URL}/orders/${id}`, {
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+        cache: "no-store",
+    });
+
+    if (!response.ok) {
+        throw new Error("Failed to fetch order.");
+    }
+
+    return response.json();
+}
+
+export async function updateOrder(id, orderData) {
+    const token = sessionStorage.getItem("fab_art_token");
+
+    const response = await fetch(`${API_URL}/orders/${id}`, {
+        method: "PATCH",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(orderData),
+    });
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.detail || "Failed to update order.");
+    }
+
+    return response.json();
+}
+
+export async function deleteOrder(id) {
+    const token = sessionStorage.getItem("fab_art_token");
+
+    const response = await fetch(`${API_URL}/orders/${id}`, {
+        method: "DELETE",
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+    });
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.detail || "Failed to delete order.");
+    }
+}

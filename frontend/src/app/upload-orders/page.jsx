@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Save, Loader2 } from "lucide-react";
 
+import DashboardShell from "../../components/DashboardShell";
 import PdfUploader from "../../components/upload/PdfUploader";
 import UploadedFile from "../../components/upload/UploadedFile";
 import OrderPageSelector from "../../components/upload/OrderPageSelector";
@@ -182,7 +183,8 @@ export default function UploadOrdersPage() {
   const currentOrder = orders[currentPage];
 
   return (
-    <main className="min-h-screen bg-[#f5f1ea] text-[#1c1c1a] px-8 py-10">
+    <DashboardShell>
+    <main className="min-h-full">
 
       <div className="max-w-5xl mx-auto">
 
@@ -321,5 +323,6 @@ export default function UploadOrdersPage() {
       />
 
     </main>
+    </DashboardShell>
   );
 }

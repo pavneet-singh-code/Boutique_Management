@@ -40,7 +40,7 @@ export default function LoginPage() {
       );
 
       // Go to dashboard
-      router.push("/dashboard");
+      router.push("/orders");
 
     } catch (err) {
       setError(err.message || "Incorrect password.");

@@ -416,3 +416,25 @@ def update_order_field(
     db.refresh(db_order)
 
     return db_order
+
+
+# 10. Delete an order
+@app.delete("/api/v1/orders/{order_id}")
+def delete_order(
+    order_id: int,
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
+):
+    order = (
+        db.query(models.Order)
+        .filter(models.Order.id == order_id)
+        .first()
+    )
+
+    if order is None:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    db.delete(order)
+    db.commit()
+
+    return {"message": "Order deleted successfully"}
