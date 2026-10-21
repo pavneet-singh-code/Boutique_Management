@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { RefreshCw, AlertCircle, Plus } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -66,7 +73,7 @@ function getCurrentMonth() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
 
-export default function OrdersPage() {
+function OrdersPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -332,13 +339,22 @@ export default function OrdersPage() {
           <OrdersTable
             orders={filteredOrders}
             onEdit={(order) => {
-              const query = searchParams.toString();
+              const params = new URLSearchParams();
+
+              if (search) params.set("search", search);
+              if (month) params.set("month", month);
+              if (allMonths) params.set("allMonths", "true");
+              if (reviewFilter !== "all") params.set("review", reviewFilter);
+              if (sortBy !== "newest") params.set("sort", sortBy);
+              if (page > 1) params.set("page", String(page));
+
+              const query = params.toString();
               const returnTo = query ? `/orders?${query}` : "/orders";
 
               router.push(
                 `/orders/${order.id}/edit?returnTo=${encodeURIComponent(returnTo)}`
               );
-            }}    
+            }}  
             page={page}
             setPage={setPage}
             pageSize={10}
@@ -351,5 +367,19 @@ export default function OrdersPage() {
         onClose={() => setSelectedOrder(null)}
       />
     </DashboardShell>
+  );
+}
+
+export default function OrdersPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-8 text-center">
+          Loading orders...
+        </div>
+      }
+    >
+      <OrdersPageContent />
+    </Suspense>
   );
 }
