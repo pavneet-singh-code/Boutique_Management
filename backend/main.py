@@ -1,3 +1,4 @@
+import traceback
 import csv
 import io
 
@@ -225,6 +226,7 @@ async def analyze_order_pdf(
         return extracted_orders
 
     except Exception as e:
+        traceback.print_exc()
         raise HTTPException(
             status_code=500,
             detail=str(e)
