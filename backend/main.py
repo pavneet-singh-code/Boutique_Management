@@ -201,20 +201,25 @@ async def analyze_order_pdf(
         )
 
     try:
+        print("STEP 1: Reading PDF", flush=True)
         pdf_bytes = await file.read()
 
         # Convert every page
+        print("STEP 2: Converting PDF pages", flush=True)
         page_images = convert_all_pdf_pages_to_images(
             pdf_bytes,
             dpi=300
         )
 
+        print(f"STEP 3: Converted {len(page_images)} pages", flush=True)
         extracted_orders = []
 
         # Analyze every page
         for index, image in enumerate(page_images):
 
+            print(f"STEP 4: Calling Gemini for page {index + 1}", flush=True)
             extracted_data = extract_order_from_image(image)
+            print(f"STEP 5: Gemini completed page {index + 1}", flush=True)
 
             order_data = schemas.OrderCreate(
                 filename=f"{file.filename} (Page {index + 1})",
