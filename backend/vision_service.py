@@ -6,10 +6,12 @@ from google import genai
 from google.genai import types
 from schemas import OrderFormExtraction
 
-os.environ.setdefault("HTTP_PROXY", "http://proxy.server:3128")
-os.environ.setdefault("HTTPS_PROXY", "http://proxy.server:3128")
-os.environ.setdefault("http_proxy", "http://proxy.server:3128")
-os.environ.setdefault("https_proxy", "http://proxy.server:3128")
+# Configure the outbound proxy for PythonAnywhere only
+if os.getenv("PYTHONANYWHERE_SITE"):
+    os.environ.setdefault("HTTP_PROXY", "http://proxy.server:3128")
+    os.environ.setdefault("HTTPS_PROXY", "http://proxy.server:3128")
+    os.environ.setdefault("http_proxy", "http://proxy.server:3128")
+    os.environ.setdefault("https_proxy", "http://proxy.server:3128")
 
 # Load environment variables from .env file
 load_dotenv()
