@@ -214,10 +214,23 @@ async def analyze_order_pdf(
         print(f"STEP 3: Converted {len(page_images)} pages", flush=True)
         extracted_orders = []
 
+        # Check proxy environment variables
+        import os
+
+        for name in (
+            "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY",
+            "http_proxy", "https_proxy", "all_proxy", "no_proxy"
+        ):
+            print(
+                f"WEB APP {name}:",
+                "SET" if os.getenv(name) else "NOT SET",
+                flush=True
+            )
+
         # Analyze every page
         for index, image in enumerate(page_images):
-
             print(f"STEP 4: Calling Gemini for page {index + 1}", flush=True)
+
             extracted_data = extract_order_from_image(image)
             print(f"STEP 5: Gemini completed page {index + 1}", flush=True)
 
