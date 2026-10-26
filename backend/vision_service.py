@@ -1,3 +1,4 @@
+
 import io
 import os
 from dotenv import load_dotenv
@@ -6,34 +7,33 @@ from google import genai
 from google.genai import types
 from schemas import OrderFormExtraction
 
-# Configure the outbound proxy for PythonAnywhere only
-if os.getenv("PYTHONANYWHERE_SITE"):
-    os.environ.setdefault("HTTP_PROXY", "http://proxy.server:3128")
-    os.environ.setdefault("HTTPS_PROXY", "http://proxy.server:3128")
-    os.environ.setdefault("http_proxy", "http://proxy.server:3128")
-    os.environ.setdefault("https_proxy", "http://proxy.server:3128")
-
 # Load environment variables from .env file
 load_dotenv()
 
-# Retrieve key explicitly or let client pick it up after load_dotenv()
+# Configure the outbound proxy for PythonAnywhere
+os.environ["HTTP_PROXY"] = "http://proxy.server:3128"
+os.environ["HTTPS_PROXY"] = "http://proxy.server:3128"
+os.environ["http_proxy"] = "http://proxy.server:3128"
+os.environ["https_proxy"] = "http://proxy.server:3128"
+
+# Retrieve API key
 api_key = os.getenv("GEMINI_API_KEY")
 if not api_key:
     raise ValueError("GEMINI_API_KEY is not set in your .env file")
 
+# Initialize Gemini client after configuring the proxy
 client = genai.Client(api_key=api_key)
+
 
 def extract_order_from_image(pil_image: Image.Image) -> OrderFormExtraction:
     """
     Sends the 300 DPI page image to Gemini 2.5 Flash.
-    Uses Structured Outputs to extract handwritten values directly into Pydantic models.
+    Uses structured output to extract handwritten values into a Pydantic model.
     """
-    # 1. Convert PIL Image into byte stream
     buffer = io.BytesIO()
     pil_image.save(buffer, format="PNG")
     image_bytes = buffer.getvalue()
 
-    # 2. Focused prompt instructing the model to read handwritten fields
     prompt = """
     You are an expert handwritten text reader for Fab_art Studio order forms.
     Analyze the uploaded full-page order form image and extract all handwritten details into the requested JSON structure.
@@ -45,7 +45,6 @@ def extract_order_from_image(pil_image: Image.Image) -> OrderFormExtraction:
     - If any field is marked "UNCLEAR", set 'needs_review' to true.
     """
 
-    # 3. Call Gemini 2.5 Flash with structured output schema configuration
     response = client.models.generate_content(
         model="gemini-2.5-flash",
         contents=[
@@ -59,5 +58,4 @@ def extract_order_from_image(pil_image: Image.Image) -> OrderFormExtraction:
         )
     )
 
-    # 4. Parse response string directly into our Pydantic validation object
     return OrderFormExtraction.model_validate_json(response.text)
