@@ -1,160 +1,206 @@
+// All calls to the FastAPI backend go through here.
+// Errors thrown use translation keys ("error.network", "error.session")
+// when we know the cause, so the UI can show them in Hindi or English.
+
 const API_URL =
-    process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
+  process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
 
-export async function login(password) {
-    const response = await fetch(`${API_URL}/auth/login`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ password }),
-    });
+const TOKEN_KEY = "fab_art_token";
 
-    const data = await response.json();
-
-    if (!response.ok) {
-        throw new Error(data.detail || "Login failed");
-    }
-
-    return data;
+export function getToken() {
+  try {
+    return sessionStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
+  }
 }
 
-export async function getOrders() {
-    const token = sessionStorage.getItem("fab_art_token");
-
-    const response = await fetch(`${API_URL}/orders`, {
-        headers: {
-            Authorization: `Bearer ${token}`,
-        },
-    });
-
-    if (!response.ok) {
-        if (response.status === 401) {
-            sessionStorage.removeItem("fab_art_token");
-            throw new Error("Session expired. Please login again.");
-        }
-
-        throw new Error("Failed to fetch orders");
-    }
-
-    return response.json();
-}
-
-export async function analyzeOrderPdf(file) {
-    const token = sessionStorage.getItem("fab_art_token");
-
-    if (!token) {
-        throw new Error("You are not logged in.");
-    }
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const response = await fetch(`${API_URL}/analyze-order-pdf`, {
-        method: "POST",
-        headers: {
-            Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-        if (response.status === 401) {
-            sessionStorage.removeItem("fab_art_token");
-            throw new Error("Session expired. Please login again.");
-        }
-
-        throw new Error(data.detail || "Failed to analyze PDF");
-    }
-
-    return data;
+function setToken(token) {
+  try {
+    sessionStorage.setItem(TOKEN_KEY, token);
+  } catch {
+    // ignore
+  }
 }
 
 export function logout() {
-    sessionStorage.removeItem("fab_art_token");
+  try {
+    sessionStorage.removeItem(TOKEN_KEY);
+  } catch {
+    // ignore
+  }
+  invalidateOrders();
 }
 
-export async function saveOrders(orders) {
-    const token = sessionStorage.getItem("fab_art_token");
+function sessionExpired() {
+  logout();
+  if (
+    typeof window !== "undefined" &&
+    !window.location.pathname.startsWith("/login")
+  ) {
+    window.location.href = "/login?expired=1";
+  }
+  return new Error("error.session");
+}
 
-    if (!token) {
-        throw new Error("You are not logged in.");
-    }
+function detailMessage(data, status) {
+  if (typeof data?.detail === "string") return data.detail;
+  if (Array.isArray(data?.detail)) {
+    return data.detail.map((item) => item.msg || "Invalid value").join(", ");
+  }
+  return status >= 500 ? "error.generic" : `Request failed (${status})`;
+}
 
-    const response = await fetch(`${API_URL}/orders/bulk-save`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(orders),
+async function request(path, { method = "GET", body, auth = true } = {}) {
+  const headers = {};
+
+  if (auth) {
+    const token = getToken();
+    if (!token) throw sessionExpired();
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  let payload = body;
+  if (body && !(body instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
+    payload = JSON.stringify(body);
+  }
+
+  let response;
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      method,
+      headers,
+      body: payload,
+      cache: "no-store",
     });
+  } catch {
+    throw new Error("error.network");
+  }
 
-    const data = await response.json();
+  if (auth && response.status === 401) throw sessionExpired();
 
-    if (!response.ok) {
-        if (response.status === 401) {
-            sessionStorage.removeItem("fab_art_token");
-            throw new Error("Session expired. Please login again.");
-        }
-
-        throw new Error(data.detail || "Failed to save orders");
+  const text = await response.text();
+  let data = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { detail: text };
     }
+  }
 
-    return data;
+  if (!response.ok) {
+    const error = new Error(detailMessage(data, response.status));
+    error.status = response.status;
+    throw error;
+  }
+
+  return data;
+}
+
+/* ---------------- Auth ---------------- */
+
+export async function login(password) {
+  const data = await request("/auth/login", {
+    method: "POST",
+    body: { password },
+    auth: false,
+  });
+  setToken(data.access_token);
+  invalidateOrders();
+  return data;
+}
+
+/* ---------------- Orders (with a small in-memory cache) ---------------- */
+
+let ordersCache = null; // { data, time }
+let ordersPromise = null;
+const listeners = new Set();
+
+function notify() {
+  for (const listener of listeners) listener();
+}
+
+export function subscribeOrders(listener) {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+export function getCachedOrders() {
+  return ordersCache?.data ?? null;
+}
+
+export function invalidateOrders() {
+  ordersCache = null;
+}
+
+export async function getOrders({ force = false } = {}) {
+  if (!force && ordersCache && Date.now() - ordersCache.time < 30_000) {
+    return ordersCache.data;
+  }
+  if (!ordersPromise) {
+    ordersPromise = request("/orders")
+      .then((data) => {
+        const list = Array.isArray(data) ? data : [];
+        ordersCache = { data: list, time: Date.now() };
+        notify();
+        return list;
+      })
+      .finally(() => {
+        ordersPromise = null;
+      });
+  }
+  return ordersPromise;
+}
+
+function updateCache(mutator) {
+  if (!ordersCache) return;
+  ordersCache = { data: mutator(ordersCache.data), time: ordersCache.time };
+  notify();
 }
 
 export async function getOrder(id) {
-    const token = sessionStorage.getItem("fab_art_token");
-
-    const response = await fetch(`${API_URL}/orders/${id}`, {
-        headers: {
-            Authorization: `Bearer ${token}`,
-        },
-        cache: "no-store",
-    });
-
-    if (!response.ok) {
-        throw new Error("Failed to fetch order.");
-    }
-
-    return response.json();
+  return request(`/orders/${id}`);
 }
 
 export async function updateOrder(id, orderData) {
-    const token = sessionStorage.getItem("fab_art_token");
-
-    const response = await fetch(`${API_URL}/orders/${id}`, {
-        method: "PATCH",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(orderData),
-    });
-
-    if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.detail || "Failed to update order.");
-    }
-
-    return response.json();
+  const updated = await request(`/orders/${id}`, {
+    method: "PATCH",
+    body: orderData,
+  });
+  updateCache((list) => list.map((o) => (o.id === updated.id ? updated : o)));
+  return updated;
 }
 
 export async function deleteOrder(id) {
-    const token = sessionStorage.getItem("fab_art_token");
+  await request(`/orders/${id}`, { method: "DELETE" });
+  updateCache((list) => list.filter((o) => String(o.id) !== String(id)));
+}
 
-    const response = await fetch(`${API_URL}/orders/${id}`, {
-        method: "DELETE",
-        headers: {
-            Authorization: `Bearer ${token}`,
-        },
-    });
+export async function saveOrders(orders) {
+  const saved = await request("/orders/bulk-save", {
+    method: "POST",
+    body: orders,
+  });
+  updateCache((list) => [...list, ...saved]);
+  return saved;
+}
 
-    if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.detail || "Failed to delete order.");
-    }
+export async function analyzeOrderPdf(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+  return request("/analyze-order-pdf", { method: "POST", body: formData });
+}
+
+/* ---------------- Misc ---------------- */
+
+export async function pingServer() {
+  const root = API_URL.replace(/\/api\/v1\/?$/, "");
+  try {
+    const response = await fetch(`${root}/`, { cache: "no-store" });
+    return response.ok;
+  } catch {
+    return false;
+  }
 }

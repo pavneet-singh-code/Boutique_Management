@@ -1,26 +1,122 @@
 @import "tailwindcss";
 
+/*
+ * Two skins, one set of components.
+ * Phones get a WhatsApp-style look (white, green accents, chat lists).
+ * Tablets/desktops keep the warm boutique look.
+ * Components only ever use these tokens (bg-card, text-ink, ...).
+ */
 :root {
-  --background: #f5f1ea;
-  --foreground: #1c1c1a;
+  --bg: #ffffff;
+  --card: #ffffff;
+  --card-2: #f0f2f5;
+  --line: #e9edef;
+  --ink: #111b21;
+  --ink-2: #3b4a54;
+  --muted: #667781;
+  --accent: #1daa61;
+  --accent-hover: #189a57;
+  --accent-ink: #008069;
+  --accent-soft: #d9fdd3;
+  --accent-soft-ink: #0a5c36;
+  --warn-soft: #fff1de;
+  --warn-ink: #9a5a13;
+  --danger: #d92d4b;
+  --danger-soft: #fde8ec;
+  --wallpaper: #efeae2;
+  --bubble-out: #d9fdd3;
+  --bubble-in: #ffffff;
+
+  --font-stack: var(--font-geist-sans), var(--font-deva), ui-sans-serif,
+    system-ui, sans-serif;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --bg: #f5f1ea;
+    --card: #fffdf9;
+    --card-2: #f8f3ec;
+    --line: #e8dfd3;
+    --ink: #352c24;
+    --ink-2: #5a4938;
+    --muted: #8c7b69;
+    --accent: #796756;
+    --accent-hover: #665442;
+    --accent-ink: #80664b;
+    --accent-soft: #f0e7db;
+    --accent-soft-ink: #735a40;
+    --warn-soft: #f6e8dc;
+    --warn-ink: #9b5e38;
+    --danger: #b54a35;
+    --danger-soft: #fbf0eb;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-card: var(--card);
+  --color-card-2: var(--card-2);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-soft-ink: var(--accent-soft-ink);
+  --color-warn-soft: var(--warn-soft);
+  --color-warn-ink: var(--warn-ink);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-wallpaper: var(--wallpaper);
+  --color-bubble-out: var(--bubble-out);
+  --color-bubble-in: var(--bubble-in);
+  --font-sans: var(--font-stack);
 }
 
 * {
   box-sizing: border-box;
-}
-
-html {
-  scroll-behavior: smooth;
-}
-
-body {
-  margin: 0;
-  background: var(--background);
-  color: var(--foreground);
+  -webkit-tap-highlight-color: transparent;
 }
 
 html,
 body {
   margin: 0;
   padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-stack);
+}
+
+/* Devanagari needs a bit more line height to stay readable */
+html[lang="hi"] body {
+  line-height: 1.6;
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+/* Subtle doodle-free wallpaper, like a chat background */
+.chat-wallpaper {
+  background-color: var(--wallpaper);
+  background-image: radial-gradient(rgba(0, 0, 0, 0.035) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+
+/* Letter-spacing breaks Devanagari letter joins, so drop it in Hindi */
+html[lang="hi"] .uppercase,
+html[lang="hi"] [class*="tracking-"] {
+  letter-spacing: 0 !important;
 }

@@ -1,151 +1,160 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { Eye, EyeOff, ArrowLeft } from "lucide-react";
-
+import { useRouter, useSearchParams } from "next/navigation";
+import { ArrowLeft, Eye, EyeOff, Languages, LoaderCircle, Scissors } from "lucide-react";
 import { login } from "../../lib/api";
+import { useI18n } from "../../lib/i18n";
+import { Notice, cx } from "../../components/ui";
 
+function LanguageChoice() {
+  const { lang, setLang } = useI18n();
+  const options = [
+    { value: "hi", label: "हिन्दी", sub: "Hindi" },
+    { value: "en", label: "English", sub: "अंग्रेज़ी" },
+  ];
+  return (
+    <fieldset>
+      <legend className="mb-3 flex items-center gap-2 text-sm font-medium text-ink-2">
+        <Languages size={16} />
+        भाषा चुनें / Choose language
+      </legend>
+      <div className="grid grid-cols-2 gap-3">
+        {options.map((option) => {
+          const active = lang === option.value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              onClick={() => setLang(option.value)}
+              className={cx(
+                "rounded-2xl border-2 px-4 py-3 text-left transition",
+                active
+                  ? "border-accent bg-accent-soft"
+                  : "border-line bg-card hover:border-muted/40"
+              )}
+            >
+              <span className="block text-lg font-semibold text-ink">{option.label}</span>
+              <span className="block text-xs text-muted">{option.sub}</span>
+            </button>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { t, tError } = useI18n();
 
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const expired = searchParams.get("expired") === "1";
 
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setError("");
-
     if (!password) {
-      setError("Please enter your password.");
+      setError(t("login.empty"));
       return;
     }
-
+    setLoading(true);
     try {
-      setLoading(true);
-
-      const data = await login(password);
-
-      // Store JWT
-      sessionStorage.setItem(
-        "fab_art_token",
-        data.access_token
-      );
-
-      // Go to dashboard
-      router.push("/orders");
-
+      await login(password);
+      router.replace("/dashboard");
     } catch (err) {
-      setError(err.message || "Incorrect password.");
-    } finally {
+      setError(err.status === 401 ? t("login.wrong") : tError(err));
       setLoading(false);
     }
   };
 
-
   return (
-    <main className="min-h-screen bg-[#f5f1ea] text-[#1c1c1a] flex items-center justify-center px-6">
-
+    <main className="flex min-h-dvh items-center justify-center bg-bg px-5 py-10 text-ink">
       <div className="w-full max-w-md">
-
-        {/* Back */}
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-sm text-[#6f6b64] hover:text-[#1c1c1a] transition mb-12"
+          className="mb-10 inline-flex items-center gap-2 text-sm text-muted transition hover:text-ink"
         >
           <ArrowLeft size={16} />
-          Back
+          {t("common.back")}
         </Link>
 
-
-        {/* Brand */}
-        <div className="mb-12">
-          <p className="text-sm tracking-[0.3em] font-medium mb-8">
-            FAB_ART
-          </p>
-
-          <h1 className="text-4xl md:text-5xl font-light tracking-tight">
-            Studio Access
+        <div className="mb-8">
+          <span className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-accent text-white md:bg-[#eee5d8] md:text-[#725c45]">
+            <Scissors size={30} strokeWidth={1.7} />
+          </span>
+          <h1 className="text-3xl font-semibold tracking-tight md:font-serif md:text-5xl md:font-light">
+            {t("login.title")}
           </h1>
-
-          <p className="mt-4 text-[#77736c]">
-            Enter your password to access the private studio.
-          </p>
+          <p className="mt-3 text-muted">{t("login.subtitle")}</p>
         </div>
 
+        <div className="mb-8">
+          <LanguageChoice />
+        </div>
 
-        {/* Login form */}
+        {expired && !error && (
+          <Notice tone="warn" className="mb-5">
+            {t("login.expired")}
+          </Notice>
+        )}
+
         <form onSubmit={handleSubmit}>
-
-          <label
-            htmlFor="password"
-            className="block text-sm font-medium mb-3"
-          >
-            Password
+          <label htmlFor="password" className="mb-2 block text-sm font-medium text-ink-2">
+            {t("login.password")}
           </label>
-
-
           <div className="relative">
-
             <input
               id="password"
               type={showPassword ? "text" : "password"}
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter password"
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder={t("login.placeholder")}
               disabled={loading}
-              className="w-full h-14 rounded-xl border border-[#d8d1c6] bg-white/60 px-4 pr-12 outline-none transition focus:border-[#1c1c1a] disabled:opacity-60"
+              autoComplete="current-password"
+              className="h-14 w-full rounded-2xl border border-line bg-card px-4 pr-12 text-[16px] outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/15 disabled:opacity-60"
             />
-
-
             <button
               type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-[#77736c] hover:text-[#1c1c1a]"
-              aria-label={
-                showPassword
-                  ? "Hide password"
-                  : "Show password"
-              }
+              onClick={() => setShowPassword((value) => !value)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-muted hover:text-ink"
+              aria-label={showPassword ? t("login.hide") : t("login.show")}
             >
-              {showPassword ? (
-                <EyeOff size={19} />
-              ) : (
-                <Eye size={19} />
-              )}
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
-
           </div>
 
-
-          {/* Error */}
           {error && (
-            <p className="mt-3 text-sm text-red-600">
+            <p role="alert" className="mt-3 text-sm text-danger">
               {error}
             </p>
           )}
 
-
-          {/* Submit */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full h-14 mt-6 rounded-xl bg-[#1c1c1a] text-white font-medium transition hover:bg-[#30302d] disabled:opacity-60 disabled:cursor-not-allowed"
+            className="mt-6 flex h-14 w-full items-center justify-center gap-2 rounded-full bg-accent text-base font-semibold text-white transition hover:bg-accent-hover disabled:opacity-60 md:rounded-2xl"
           >
-            {loading ? "Entering Studio..." : "Enter Studio"}
+            {loading && <LoaderCircle size={18} className="animate-spin" />}
+            {loading ? t("login.loading") : t("login.submit")}
           </button>
-
         </form>
-
       </div>
-
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }

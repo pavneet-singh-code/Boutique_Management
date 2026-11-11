@@ -1,385 +1,317 @@
 "use client";
 
-import {
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { RefreshCw, AlertCircle, Plus } from "lucide-react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import {
+  ArrowUpDown,
+  ClipboardList,
+  FilePlus,
+  RefreshCw,
+  ScanLine,
+  Search,
+  Upload,
+  X,
+} from "lucide-react";
+import AppShell, { HeaderIconButton } from "../../components/AppShell";
+import { OrderChatList, OrdersTable } from "../../components/OrderList";
+import { PeriodStepper } from "../../components/PeriodPicker";
+import {
+  Button,
+  Chip,
+  EmptyState,
+  ErrorBox,
+  LinkButton,
+  PageHeading,
+  Spinner,
+  StatTile,
+} from "../../components/ui";
+import { useI18n } from "../../lib/i18n";
+import {
+  currentMonthKey,
+  formatMoney,
+  formatMonth,
+  orderDate,
+  orderMonthKey,
+  parseDate,
+  searchText,
+  shiftMonth,
+  summarise,
+} from "../../lib/orders";
+import { useOrders } from "../../lib/useOrders";
 
-import DashboardShell from "../../components/DashboardShell";
-import OrderStats from "../../components/orders/OrderStats";
-import OrderFilters from "../../components/orders/OrderFilters";
-import OrdersTable from "../../components/orders/OrdersTable";
-import OrderDetailsModal from "../../components/orders/OrderDetailsModal";
-import { getOrders } from "../../lib/api";
+const PAGE_SIZE = 15;
 
-
-function parseOrderDate(value) {
-  if (!value) return null;
-
-  const text = String(value).trim();
-
-  // YYYY-MM-DD
-  let match = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-
-  if (match) {
-    const date = new Date(
-      Number(match[1]),
-      Number(match[2]) - 1,
-      Number(match[3])
-    );
-
-    return Number.isNaN(date.getTime()) ? null : date;
-  }
-
-  // DD/MM/YYYY or DD/MM/YY
-  match = text.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2}|\d{4})$/);
-
-  if (match) {
-    let year = Number(match[3]);
-
-    if (match[3].length === 2) {
-      year += year <= 49 ? 2000 : 1900;
-    }
-
-    const date = new Date(
-      year,
-      Number(match[2]) - 1,
-      Number(match[1])
-    );
-
-    return Number.isNaN(date.getTime()) ? null : date;
-  }
-
-  return null;
-}
-
-function getMonthKey(value) {
-  const date = parseOrderDate(value);
-
-  if (!date) return null;
-
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-}
-
-function getCurrentMonth() {
-  const now = new Date();
-
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-}
-
-function OrdersPageContent() {
+function OrdersContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t, locale } = useI18n();
+  const { orders, ready, loading, error, reload } = useOrders();
 
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [search, setSearch] = useState(() => searchParams.get("search") || "");
+  const [month, setMonth] = useState(() => searchParams.get("month") || currentMonthKey());
+  const [allMonths, setAllMonths] = useState(() => searchParams.get("allMonths") === "true");
+  const [review, setReview] = useState(() => searchParams.get("review") || "all");
+  const [sortBy, setSortBy] = useState(() => searchParams.get("sort") || "newest");
+  const [page, setPage] = useState(() => Math.max(1, Number(searchParams.get("page")) || 1));
 
-  const [search, setSearch] = useState(
-    () => searchParams.get("search") || ""
-  );
+  // Any filter change goes back to page 1.
+  const update = (setter) => (value) => {
+    setter(value);
+    setPage(1);
+  };
 
-  const [month, setMonth] = useState(
-    () => searchParams.get("month") || getCurrentMonth()
-  );
-
-  const [allMonths, setAllMonths] = useState(
-    () => searchParams.get("allMonths") === "true"
-  );
-
-  const [reviewFilter, setReviewFilter] = useState(
-    () => searchParams.get("review") || "all"
-  );
-
-  const [sortBy, setSortBy] = useState(
-    () => searchParams.get("sort") || "newest"
-  );
-
-  const [page, setPage] = useState(
-    () => Math.max(1, Number(searchParams.get("page")) || 1)
-  );
-
-  const skipFirstFilterReset = useRef(true);
-
-  const loadOrders = useCallback(async () => {
-    setLoading(true);
-    setError("");
-
-    try {
-      const result = await getOrders();
-
-      const list = Array.isArray(result)
-        ? result
-        : Array.isArray(result?.orders)
-          ? result.orders
-          : Array.isArray(result?.data)
-            ? result.data
-            : null;
-
-      if (!list) {
-        throw new Error("The server returned an unexpected orders response.");
-      }
-
-      setOrders(list);
-    } catch (err) {
-      setError(err?.message || "Unable to load orders. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadOrders();
-  }, [loadOrders]);
-
-  const filteredOrders = useMemo(() => {
+  const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
-
-    const filtered = orders.filter((order) => {
-      const matchesMonth =
-        allMonths || getMonthKey(order.order_date) === month;
-
-      const searchableText = [
-        order.order_number,
-        order.customer_name,
-        order.contact_number,
-        order.what_to_design,
-        order.additional_info,
-        order.filename,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      const matchesSearch =
-        !query || searchableText.includes(query);
-
-      const matchesReview =
-        reviewFilter === "all" ||
-        (reviewFilter === "review" && Boolean(order.needs_review)) ||
-        (reviewFilter === "clear" && !Boolean(order.needs_review));
-
-      return matchesMonth && matchesSearch && matchesReview;
+    const list = orders.filter((order) => {
+      if (!allMonths && !query && orderMonthKey(order) !== month) return false;
+      if (query && !searchText(order).includes(query)) return false;
+      if (review === "review" && !order.needs_review) return false;
+      if (review === "clear" && order.needs_review) return false;
+      return true;
     });
 
-    return filtered.sort((a, b) => {
-      const dateA = parseOrderDate(a.order_date)?.getTime() ?? 0;
-      const dateB = parseOrderDate(b.order_date)?.getTime() ?? 0;
-
-      if (sortBy === "oldest") return dateA - dateB;
-
+    const time = (date, fallback) => date?.getTime() ?? fallback;
+    return list.sort((a, b) => {
+      if (sortBy === "oldest") return time(orderDate(a), 0) - time(orderDate(b), 0);
       if (sortBy === "delivery") {
-        const deliveryA = parseOrderDate(a.deliver_date)?.getTime() ?? Infinity;
-        const deliveryB = parseOrderDate(b.deliver_date)?.getTime() ?? Infinity;
-        return deliveryA - deliveryB;
-      }
-
-      if (sortBy === "customer") {
-        return String(a.customer_name || "").localeCompare(
-          String(b.customer_name || "")
+        return (
+          time(parseDate(a.deliver_date), Infinity) -
+          time(parseDate(b.deliver_date), Infinity)
         );
       }
-
-      return dateB - dateA;
+      if (sortBy === "customer") {
+        return String(a.customer_name || "").localeCompare(String(b.customer_name || ""));
+      }
+      return time(orderDate(b), 0) - time(orderDate(a), 0) || b.id - a.id;
     });
-  }, [orders, search, month, allMonths, reviewFilter, sortBy]);
+  }, [orders, search, month, allMonths, review, sortBy]);
 
-  useEffect(() => {
-    if (skipFirstFilterReset.current) {
-      skipFirstFilterReset.current = false;
-      return;
-    }
-
-    setPage(1);
-  }, [search, month, allMonths, reviewFilter, sortBy]);
-
+  // Keep the URL in sync so Back returns to the same filters.
   useEffect(() => {
     const params = new URLSearchParams();
-
     if (search) params.set("search", search);
-    if (month) params.set("month", month);
+    if (month !== currentMonthKey()) params.set("month", month);
     if (allMonths) params.set("allMonths", "true");
-    if (reviewFilter !== "all") params.set("review", reviewFilter);
+    if (review !== "all") params.set("review", review);
     if (sortBy !== "newest") params.set("sort", sortBy);
     if (page > 1) params.set("page", String(page));
-
     const query = params.toString();
-    const nextUrl = query ? `/orders?${query}` : "/orders";
-
-    const currentUrl =
-      window.location.pathname + window.location.search;
-
-    if (currentUrl !== nextUrl) {
-      router.replace(nextUrl, { scroll: false });
+    const next = query ? `/orders?${query}` : "/orders";
+    if (window.location.pathname + window.location.search !== next) {
+      router.replace(next, { scroll: false });
     }
-  }, [
-    search,
-    month,
-    allMonths,
-    reviewFilter,
-    sortBy,
-    page,
-    router,
-  ]);
+  }, [search, month, allMonths, review, sortBy, page, router]);
+
+  const stats = summarise(filtered);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const searching = search.trim().length > 0;
+  const periodLabel = allMonths || searching ? t("orders.allMonths") : formatMonth(month, locale);
+
+  const sortSelect = (
+    <label className="relative inline-flex items-center">
+      <ArrowUpDown size={15} className="pointer-events-none absolute left-3 text-muted" />
+      <select
+        value={sortBy}
+        onChange={(event) => update(setSortBy)(event.target.value)}
+        aria-label={t("orders.sort")}
+        className="h-8 appearance-none rounded-full bg-card-2 pl-8 pr-3 text-sm text-ink-2 outline-none md:h-10 md:rounded-xl md:border md:border-line md:bg-card"
+      >
+        <option value="newest">{t("orders.sortNewest")}</option>
+        <option value="oldest">{t("orders.sortOldest")}</option>
+        <option value="delivery">{t("orders.sortDelivery")}</option>
+        <option value="customer">{t("orders.sortCustomer")}</option>
+      </select>
+    </label>
+  );
 
   return (
-    <DashboardShell>
-      <div className="mx-auto w-full max-w-[1600px] space-y-6">
-        {/* Page heading */}
-        <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#9a846b]">
-              ORDER MANAGEMENT
-            </p>
+    <AppShell
+      title={t("orders.title")}
+      subtitle={t("orders.subtitle")}
+      actions={
+        <>
+          <HeaderIconButton label={t("nav.newOrder")} href="/orders/new">
+            <FilePlus size={21} />
+          </HeaderIconButton>
+          <HeaderIconButton label={t("common.refresh")} onClick={() => reload()}>
+            <RefreshCw size={20} className={loading ? "animate-spin" : ""} />
+          </HeaderIconButton>
+        </>
+      }
+      fab={{ href: "/upload-orders", label: t("nav.upload"), icon: ScanLine }}
+    >
+      <PageHeading
+        eyebrow={t("nav.ordersSection")}
+        title={t("orders.heading")}
+        subtitle={t("orders.subtitle")}
+        actions={
+          <>
+            <Button variant="secondary" onClick={() => reload()} disabled={loading}>
+              <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+              {t("common.refresh")}
+            </Button>
+            <LinkButton href="/orders/new" variant="secondary">
+              <FilePlus size={17} />
+              {t("nav.newOrder")}
+            </LinkButton>
+            <LinkButton href="/upload-orders">
+              <Upload size={17} />
+              {t("nav.upload")}
+            </LinkButton>
+          </>
+        }
+      />
 
-            <h1 className="mt-2 font-serif text-3xl tracking-tight text-[#352c24] md:text-4xl">
-              All Orders
-            </h1>
-
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#867869]">
-              Keep track of customer orders, delivery dates, payments, and
-              records that need review.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={loadOrders}
-              disabled={loading}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#e3d8ca] bg-[#fffdf9] px-4 py-2.5 text-sm font-medium text-[#6f5a44] transition hover:bg-[#f2e9dd] disabled:opacity-50"
-            >
-              <RefreshCw
-                size={16}
-                className={loading ? "animate-spin" : ""}
-              />
-              Refresh
-            </button>
-
-            <button
-              type="button"
-              onClick={() => router.push("/upload-orders")}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#796756] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[#665442]"
-            >
-              <Plus size={17} />
-              Upload orders
-            </button>
-          </div>
-        </section>
-
-        {/* Error state */}
-        {error && (
-          <div
-            role="alert"
-            className="flex flex-col gap-3 rounded-xl border border-[#ecd0c4] bg-[#fbf0eb] p-4 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <div className="flex items-start gap-3">
-              <AlertCircle
-                size={19}
-                className="mt-0.5 shrink-0 text-[#a45d46]"
-              />
-              <div>
-                <p className="text-sm font-semibold text-[#874d3a]">
-                  Couldn't load orders
-                </p>
-                <p className="mt-1 wrap-break-word text-sm text-[#956d5c]">
-                  {error}
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={loadOrders}
-              className="self-start rounded-lg border border-[#e2c4b7] px-3 py-2 text-sm text-[#874d3a] hover:bg-[#f7e4dc] sm:self-center"
-            >
-              Try again
-            </button>
-          </div>
-        )}
-
-        {/* Statistics */}
-        {!error && (
-          <OrderStats orders={filteredOrders} />
-        )}
-
-        {/* Search and filters */}
-        <OrderFilters
-          search={search}
-          setSearch={setSearch}
-          month={month}
-          setMonth={setMonth}
-          allMonths={allMonths}
-          setAllMonths={setAllMonths}
-          reviewFilter={reviewFilter}
-          setReviewFilter={setReviewFilter}
-          sortBy={sortBy}
-          setSortBy={setSortBy}
-        />
-
-        {/* Orders table */}
-        {loading ? (
-          <div className="rounded-2xl border border-[#e8dfd3] bg-[#fffdf9] px-6 py-16 text-center">
-            <RefreshCw
-              size={24}
-              className="mx-auto animate-spin text-[#92785b]"
+      {/* Filters */}
+      <div className="space-y-3 bg-card px-4 pb-3 pt-3 md:mb-6 md:rounded-2xl md:border md:border-line md:p-4 md:shadow-sm">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+          <label className="flex h-11 flex-1 items-center gap-3 rounded-full bg-card-2 px-4 md:rounded-xl md:border md:border-line md:bg-card">
+            <Search size={19} className="shrink-0 text-muted" />
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => update(setSearch)(event.target.value)}
+              placeholder={t("orders.searchPlaceholder")}
+              aria-label={t("common.search")}
+              className="w-full bg-transparent text-[16px] text-ink outline-none placeholder:text-muted md:text-sm"
             />
-            <p className="mt-4 text-sm text-[#867869]">
-              Loading your orders...
-            </p>
+            {search && (
+              <button
+                type="button"
+                onClick={() => update(setSearch)("")}
+                aria-label={t("common.close")}
+                className="text-muted hover:text-ink"
+              >
+                <X size={17} />
+              </button>
+            )}
+          </label>
+
+          <div className="flex items-center gap-2">
+            <PeriodStepper
+              className={allMonths || searching ? "flex-1 opacity-50 lg:w-64" : "flex-1 lg:w-64"}
+              label={formatMonth(month, locale)}
+              onPrev={() => {
+                update(setMonth)(shiftMonth(month, -1));
+                setAllMonths(false);
+              }}
+              onNext={() => {
+                update(setMonth)(shiftMonth(month, 1));
+                setAllMonths(false);
+              }}
+            />
           </div>
-        ) : !error ? (
-          <OrdersTable
-            orders={filteredOrders}
-            onEdit={(order) => {
-              const params = new URLSearchParams();
+        </div>
 
-              if (search) params.set("search", search);
-              if (month) params.set("month", month);
-              if (allMonths) params.set("allMonths", "true");
-              if (reviewFilter !== "all") params.set("review", reviewFilter);
-              if (sortBy !== "newest") params.set("sort", sortBy);
-              if (page > 1) params.set("page", String(page));
-
-              const query = params.toString();
-              const returnTo = query ? `/orders?${query}` : "/orders";
-
-              router.push(
-                `/orders/${order.id}/edit?returnTo=${encodeURIComponent(returnTo)}`
-              );
-            }}  
-            page={page}
-            setPage={setPage}
-            pageSize={10}
-          />
-        ) : null}
+        <div className="no-scrollbar -mx-4 flex items-center gap-2 overflow-x-auto px-4 md:mx-0 md:px-0">
+          <Chip active={allMonths} onClick={() => update(setAllMonths)(!allMonths)}>
+            {t("orders.allMonths")}
+          </Chip>
+          <span className="h-5 w-px shrink-0 bg-line" />
+          <Chip active={review === "all"} onClick={() => update(setReview)("all")}>
+            {t("common.all")}
+          </Chip>
+          <Chip active={review === "review"} onClick={() => update(setReview)("review")}>
+            {t("orders.filterReview")}
+          </Chip>
+          <Chip active={review === "clear"} onClick={() => update(setReview)("clear")}>
+            {t("orders.filterOk")}
+          </Chip>
+          <span className="ml-auto shrink-0">{sortSelect}</span>
+        </div>
       </div>
 
-      <OrderDetailsModal
-        order={selectedOrder}
-        onClose={() => setSelectedOrder(null)}
-      />
-    </DashboardShell>
+      <ErrorBox error={error} onRetry={() => reload()} className="my-4" />
+
+      {!ready && !error ? (
+        <Spinner />
+      ) : ready ? (
+        <>
+          {/* Summary */}
+          <p className="border-y border-line bg-card-2 px-4 py-2 text-[13px] text-muted md:hidden">
+            {periodLabel} ·{" "}
+            {t("orders.monthTotal", {
+              count: stats.count,
+              value: formatMoney(stats.value, locale),
+            })}
+          </p>
+          <div className="mb-6 hidden grid-cols-4 gap-4 md:grid">
+            <StatTile label={t("dash.orders")} value={stats.count} note={periodLabel} />
+            <StatTile label={t("dash.value")} value={formatMoney(stats.value, locale)} />
+            <StatTile label={t("dash.advance")} value={formatMoney(stats.advance, locale)} />
+            <StatTile label={t("dash.balance")} value={formatMoney(stats.balance, locale)} />
+          </div>
+
+          {filtered.length === 0 ? (
+            <div className="md:rounded-2xl md:border md:border-line md:bg-card">
+              <EmptyState
+                icon={ClipboardList}
+                title={t("orders.empty")}
+                help={t("orders.emptyHelp")}
+                action={
+                  !allMonths && (
+                    <Button variant="secondary" onClick={() => update(setAllMonths)(true)}>
+                      {t("orders.allMonths")}
+                    </Button>
+                  )
+                }
+              />
+            </div>
+          ) : (
+            <>
+              {/* Phones: chat list with everything */}
+              <div className="md:hidden">
+                <OrderChatList orders={filtered} />
+              </div>
+
+              {/* Desktop: paginated table */}
+              <div className="hidden md:block">
+                <OrdersTable orders={filtered.slice(start, start + PAGE_SIZE)} />
+                <div className="mt-4 flex items-center justify-between">
+                  <p className="text-sm text-muted">
+                    {t("orders.showing", {
+                      from: start + 1,
+                      to: Math.min(start + PAGE_SIZE, filtered.length),
+                      total: filtered.length,
+                    })}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={currentPage <= 1}
+                      onClick={() => setPage(currentPage - 1)}
+                    >
+                      {t("common.prev")}
+                    </Button>
+                    <span className="px-2 text-sm text-muted">
+                      {currentPage} / {totalPages}
+                    </span>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={currentPage >= totalPages}
+                      onClick={() => setPage(currentPage + 1)}
+                    >
+                      {t("common.next")}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </>
+      ) : null}
+    </AppShell>
   );
 }
 
 export default function OrdersPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="p-8 text-center">
-          Loading orders...
-        </div>
-      }
-    >
-      <OrdersPageContent />
+    <Suspense fallback={null}>
+      <OrdersContent />
     </Suspense>
   );
 }

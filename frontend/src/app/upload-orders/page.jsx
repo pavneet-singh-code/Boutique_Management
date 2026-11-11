@@ -1,328 +1,478 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { Save, Loader2 } from "lucide-react";
-
-import DashboardShell from "../../components/DashboardShell";
-import PdfUploader from "../../components/upload/PdfUploader";
-import UploadedFile from "../../components/upload/UploadedFile";
-import OrderPageSelector from "../../components/upload/OrderPageSelector";
-import ExtractedOrderDetails from "../../components/upload/ExtractedOrderDetails";
-import OrderPagination from "../../components/upload/OrderPagination";
-import DeletePageModal from "../../components/upload/DeletePageModal";
-
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  analyzeOrderPdf,
-  saveOrders,
-} from "../../lib/api";
+  ChevronLeft,
+  ChevronRight,
+  CircleCheck,
+  FileText,
+  LoaderCircle,
+  ScanLine,
+  Trash2,
+  TriangleAlert,
+  Upload,
+  X,
+} from "lucide-react";
+import AppShell from "../../components/AppShell";
+import OrderForm, { toFormValues, toPayload } from "../../components/OrderForm";
+import SaveBar from "../../components/SaveBar";
+import {
+  Button,
+  Card,
+  ConfirmDialog,
+  LinkButton,
+  Notice,
+  PageHeading,
+  cx,
+} from "../../components/ui";
+import { analyzeOrderPdf, saveOrders } from "../../lib/api";
+import { useI18n } from "../../lib/i18n";
+import { clean } from "../../lib/orders";
+import { useOrders } from "../../lib/useOrders";
+
+function Steps({ step }) {
+  const { t } = useI18n();
+  const steps = [t("upload.step1"), t("upload.step2"), t("upload.step3")];
+  return (
+    <ol className="flex items-center gap-2 px-4 py-4 md:px-0">
+      {steps.map((label, index) => {
+        const done = index < step;
+        const active = index === step;
+        return (
+          <li key={label} className="flex min-w-0 flex-1 items-center gap-2">
+            <span
+              className={cx(
+                "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
+                done || active ? "bg-accent text-white" : "bg-card-2 text-muted"
+              )}
+            >
+              {done ? <CircleCheck size={15} /> : index + 1}
+            </span>
+            <span
+              className={cx(
+                "truncate text-[13px]",
+                active ? "font-semibold text-ink" : "text-muted"
+              )}
+            >
+              {label}
+            </span>
+            {index < steps.length - 1 && <span className="h-px flex-1 bg-line" />}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+let pageId = 0;
 
 export default function UploadOrdersPage() {
-  const router = useRouter();
+  const { t, tError } = useI18n();
+  const { orders: savedOrders } = useOrders();
+  const inputRef = useRef(null);
 
-  const [file, setFile] = useState(null);
-  const [orders, setOrders] = useState([]);
-  const [currentPage, setCurrentPage] = useState(0);
-
-  const [loading, setLoading] = useState(false);
+  const [files, setFiles] = useState([]);
+  const [dragging, setDragging] = useState(false);
+  const [phase, setPhase] = useState("pick"); // pick | scanning | review | done
+  const [progress, setProgress] = useState({ current: 0, total: 0 });
+  const [pages, setPages] = useState([]);
+  const [current, setCurrent] = useState(0);
+  const [failures, setFailures] = useState([]);
+  const [notice, setNotice] = useState("");
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [savedCount, setSavedCount] = useState(0);
+  const [deleteIndex, setDeleteIndex] = useState(null);
+  const [confirmReset, setConfirmReset] = useState(false);
 
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [pageToDelete, setPageToDelete] = useState(null);
+  const existingNumbers = useMemo(
+    () => new Set(savedOrders.map((order) => clean(order.order_number)).filter(Boolean)),
+    [savedOrders]
+  );
 
-  /*
-   * Protect page
-   */
+  // Warn before leaving with scanned pages that aren't saved yet.
   useEffect(() => {
-    const token = sessionStorage.getItem("fab_art_token");
+    if (phase !== "review" && phase !== "scanning") return;
+    const handler = (event) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [phase]);
 
-    if (!token) {
-      router.replace("/login");
-    }
-  }, [router]);
-
-  /*
-   * Select PDF
-   */
-  const handleFileSelect = (selectedFile) => {
-    setFile(selectedFile);
-    setOrders([]);
-    setCurrentPage(0);
-    setError("");
-    setSuccess("");
-  };
-
-  /*
-   * Analyze PDF
-   */
-  const handleAnalyze = async () => {
-    if (!file) return;
-
-    setLoading(true);
-    setError("");
-    setSuccess("");
-
-    try {
-      const data = await analyzeOrderPdf(file);
-
-      setOrders(data);
-      setCurrentPage(0);
-
-    } catch (error) {
-      console.error(error);
-
-      if (error.message.includes("Session expired")) {
-        router.replace("/login");
-        return;
-      }
-
-      setError(
-        error.message || "Something went wrong while analyzing the PDF."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /*
-   * Edit current order
-   */
-  const handleOrderChange = (field, value) => {
-    setOrders((previousOrders) =>
-      previousOrders.map((order, index) =>
-        index === currentPage
-          ? {
-              ...order,
-              [field]: value,
-            }
-          : order
-      )
+  const addFiles = (list) => {
+    const incoming = [...(list || [])];
+    const pdfs = incoming.filter(
+      (file) => file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")
     );
-  };
-
-  /*
-   * Delete page
-   */
-  const handleDeletePage = (index) => {
-    setPageToDelete(index);
-    setDeleteModalOpen(true);
-  };
-
-  const confirmDeletePage = () => {
-    if (pageToDelete === null) return;
-
-    setOrders((previousOrders) =>
-      previousOrders.filter(
-        (_, index) => index !== pageToDelete
-      )
-    );
-
-    setCurrentPage((previousPage) => {
-      if (pageToDelete < previousPage) {
-        return previousPage - 1;
-      }
-
-      if (pageToDelete === previousPage) {
-        return Math.max(0, previousPage - 1);
-      }
-
-      return previousPage;
+    setNotice(pdfs.length < incoming.length ? t("upload.onlyPdf") : "");
+    if (pdfs.length === 0) return;
+    setFiles((previous) => {
+      const names = new Set(previous.map((file) => `${file.name}-${file.size}`));
+      return [...previous, ...pdfs.filter((file) => !names.has(`${file.name}-${file.size}`))];
     });
-
-    setPageToDelete(null);
-    setDeleteModalOpen(false);
   };
 
-  const cancelDeletePage = () => {
-    setPageToDelete(null);
-    setDeleteModalOpen(false);
-  };
+  const scan = async () => {
+    setPhase("scanning");
+    setFailures([]);
+    setSaveError("");
+    const results = [];
+    const failed = [];
 
-  /*
-   * Save all remaining orders
-   */
-  const handleSaveOrders = async () => {
-    if (orders.length === 0) return;
-
-    setSaving(true);
-    setError("");
-    setSuccess("");
-
-    try {
-      await saveOrders(orders);
-
-      setSuccess(
-        `${orders.length} ${
-          orders.length === 1 ? "order has" : "orders have"
-        } been saved successfully.`
-      );
-
-      setFile(null);
-      setOrders([]);
-      setCurrentPage(0);
-
-    } catch (error) {
-      console.error(error);
-
-      if (error.message.includes("Session expired")) {
-        router.replace("/login");
-        return;
+    for (let index = 0; index < files.length; index += 1) {
+      const file = files[index];
+      setProgress({ current: index + 1, total: files.length });
+      try {
+        const extracted = await analyzeOrderPdf(file);
+        for (const item of extracted) {
+          pageId += 1;
+          results.push({
+            id: pageId,
+            source: item.filename || file.name,
+            original: item,
+            form: toFormValues(item),
+          });
+        }
+      } catch (err) {
+        if (err.message === "error.session") return;
+        failed.push(t("upload.failed", { name: file.name, error: tError(err) }));
       }
+    }
 
-      setError(
-        error.message || "Failed to save orders."
-      );
+    setFailures(failed);
+    setPages(results);
+    setCurrent(0);
+    setPhase(results.length > 0 ? "review" : "pick");
+    window.scrollTo({ top: 0 });
+  };
+
+  const changeField = (field, value) => {
+    setPages((previous) =>
+      previous.map((page, index) =>
+        index === current ? { ...page, form: { ...page.form, [field]: value } } : page
+      )
+    );
+  };
+
+  const removePage = () => {
+    setPages((previous) => {
+      const next = previous.filter((_, index) => index !== deleteIndex);
+      if (next.length === 0) setPhase("pick");
+      return next;
+    });
+    setCurrent((value) => Math.max(0, Math.min(value, pages.length - 2)));
+    setDeleteIndex(null);
+  };
+
+  const saveAll = async () => {
+    setSaving(true);
+    setSaveError("");
+    try {
+      const payload = pages.map((page) => ({
+        ...toPayload(page.form),
+        filename: page.source,
+      }));
+      const saved = await saveOrders(payload);
+      setSavedCount(saved.length);
+      setPages([]);
+      setFiles([]);
+      setPhase("done");
+      window.scrollTo({ top: 0 });
+    } catch (err) {
+      setSaveError(tError(err));
     } finally {
       setSaving(false);
     }
   };
 
-  const currentOrder = orders[currentPage];
+  const reset = () => {
+    setFiles([]);
+    setPages([]);
+    setFailures([]);
+    setNotice("");
+    setSaveError("");
+    setPhase("pick");
+    setConfirmReset(false);
+  };
+
+  const step = phase === "pick" ? 0 : phase === "scanning" ? 1 : 2;
+  const page = pages[current];
+  const duplicate = page && existingNumbers.has(clean(page.form.order_number));
 
   return (
-    <DashboardShell>
-    <main className="min-h-full">
+    <AppShell
+      title={t("upload.title")}
+      subtitle={t("upload.subtitle")}
+      back={phase === "review" ? undefined : "/orders"}
+      hideTabs={phase === "review"}
+      actions={
+        phase === "review" ? (
+          <Button variant="ghost" size="sm" onClick={() => setConfirmReset(true)}>
+            {t("upload.startOver")}
+          </Button>
+        ) : null
+      }
+    >
+      <div className="mx-auto max-w-4xl">
+        <PageHeading
+          eyebrow={t("nav.ordersSection")}
+          title={t("upload.title")}
+          subtitle={t("upload.subtitle")}
+        />
+        <Steps step={phase === "done" ? 3 : step} />
 
-      <div className="max-w-5xl mx-auto">
+        <div className="space-y-4 px-4 md:px-0">
+          {failures.map((message) => (
+            <Notice key={message} tone="error">
+              {message}
+            </Notice>
+          ))}
+          {notice && <Notice tone="warn">{notice}</Notice>}
 
-        {/* Header */}
-        <div>
-          <p className="text-xs tracking-[0.25em] uppercase text-[#77736c]">
-            Orders
-          </p>
+          {/* ---------- 1. Pick files ---------- */}
+          {phase === "pick" && (
+            <>
+              <label
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  setDragging(true);
+                }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  setDragging(false);
+                  addFiles(event.dataTransfer.files);
+                }}
+                className={cx(
+                  "block cursor-pointer rounded-3xl border-2 border-dashed p-8 text-center transition md:p-14",
+                  dragging
+                    ? "border-accent bg-accent-soft"
+                    : "border-line bg-card hover:border-accent"
+                )}
+              >
+                <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-accent text-white">
+                  <Upload size={26} />
+                </span>
+                <span className="mt-5 block text-lg font-semibold text-ink">
+                  {t("upload.pick")}
+                </span>
+                <span className="mx-auto mt-2 block max-w-md text-sm leading-6 text-muted">
+                  {t("upload.pickHelp")}
+                </span>
+                <span className="mt-3 hidden text-xs text-muted md:block">
+                  {t("upload.drop")}
+                </span>
+                <input
+                  ref={inputRef}
+                  type="file"
+                  accept="application/pdf,.pdf"
+                  multiple
+                  className="sr-only"
+                  onChange={(event) => {
+                    addFiles(event.target.files);
+                    event.target.value = "";
+                  }}
+                />
+              </label>
 
-          <h1 className="text-4xl font-light mt-3">
-            Upload Orders
-          </h1>
+              {files.length > 0 && (
+                <Card className="overflow-hidden">
+                  <p className="border-b border-line px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-accent-ink">
+                    {t("upload.files")}
+                  </p>
+                  <ul className="divide-y divide-line">
+                    {files.map((file, index) => (
+                      <li key={`${file.name}-${file.size}`} className="flex items-center gap-3 px-4 py-3">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-danger-soft text-danger">
+                          <FileText size={19} />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[15px] font-medium text-ink">
+                            {file.name}
+                          </span>
+                          <span className="block text-xs text-muted">
+                            {(file.size / 1024 / 1024).toFixed(2)} MB
+                          </span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setFiles((list) => list.filter((_, i) => i !== index))}
+                          aria-label={`${t("upload.remove")} ${file.name}`}
+                          className="rounded-full p-2 text-muted hover:bg-card-2 hover:text-danger"
+                        >
+                          <X size={18} />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </Card>
+              )}
 
-          <p className="text-[#77736c] mt-2">
-            Upload handwritten order PDFs and review the extracted details
-            before saving them.
-          </p>
-        </div>
+              {files.length > 0 && (
+                <Button size="lg" className="w-full md:w-auto" onClick={scan}>
+                  <ScanLine size={19} />
+                  {files.length === 1
+                    ? t("upload.scanOne")
+                    : t("upload.scan", { count: files.length })}
+                </Button>
+              )}
+            </>
+          )}
 
-        {/* Upload */}
-        <div className="mt-10">
+          {/* ---------- 2. Scanning ---------- */}
+          {phase === "scanning" && (
+            <Card className="flex flex-col items-center px-6 py-14 text-center">
+              <LoaderCircle size={40} className="animate-spin text-accent" />
+              <p className="mt-5 text-lg font-semibold text-ink">
+                {t("upload.scanning", progress)}
+              </p>
+              <p className="mt-2 max-w-sm text-sm leading-6 text-muted">
+                {t("upload.scanningHelp")}
+              </p>
+              <div className="mt-6 h-2 w-full max-w-xs overflow-hidden rounded-full bg-card-2">
+                <div
+                  className="h-full rounded-full bg-accent transition-all"
+                  style={{ width: `${(progress.current / Math.max(1, progress.total)) * 100}%` }}
+                />
+              </div>
+            </Card>
+          )}
 
-          <PdfUploader
-            onFileSelect={handleFileSelect}
-          />
-
-          <UploadedFile
-            file={file}
-            onAnalyze={handleAnalyze}
-            loading={loading}
-          />
-
-        </div>
-
-        {/* Error */}
-        {error && (
-          <div className="mt-5 p-4 rounded-xl border border-red-200 bg-red-50 text-red-700 text-sm">
-            {error}
-          </div>
-        )}
-
-        {/* Success */}
-        {success && (
-          <div className="mt-5 p-4 rounded-xl border border-green-200 bg-green-50 text-green-700 text-sm">
-            {success}
-          </div>
-        )}
-
-        {/* Extracted Orders */}
-        {orders.length > 0 && (
-          <section className="mt-12">
-
-            {/* Section Header */}
-            <div className="flex items-center justify-between mb-6">
-
+          {/* ---------- 3. Review ---------- */}
+          {phase === "review" && page && (
+            <>
               <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-[#77736c]">
-                  Review Orders
-                </p>
-
-                <h2 className="text-2xl font-light mt-2">
-                  {file?.name}
+                <h2 className="text-lg font-semibold text-ink md:font-serif md:text-2xl md:font-normal">
+                  {t("upload.review")}
                 </h2>
+                <p className="text-sm text-muted">{t("upload.reviewHelp")}</p>
               </div>
 
-              <p className="text-sm text-[#77736c]">
-                {orders.length}{" "}
-                {orders.length === 1 ? "page" : "pages"} remaining
-              </p>
+              <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 md:mx-0 md:flex-wrap md:px-0">
+                {pages.map((item, index) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setCurrent(index)}
+                    aria-pressed={index === current}
+                    className={cx(
+                      "relative h-9 shrink-0 rounded-full px-4 text-sm transition",
+                      index === current
+                        ? "bg-accent font-medium text-white"
+                        : "bg-card-2 text-ink-2"
+                    )}
+                  >
+                    {t("upload.page", { n: index + 1 })}
+                    {item.form.needs_review && (
+                      <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-card bg-[#f59e0b]" />
+                    )}
+                  </button>
+                ))}
+              </div>
 
-            </div>
+              <div className="flex items-center gap-3 rounded-2xl bg-card-2 px-4 py-3">
+                <FileText size={18} className="shrink-0 text-muted" />
+                <p className="min-w-0 flex-1 truncate text-sm text-ink-2">{page.source}</p>
+                <Button variant="ghost" size="sm" onClick={() => setDeleteIndex(current)}>
+                  <Trash2 size={16} className="text-danger" />
+                  <span className="hidden sm:inline">{t("upload.deletePage")}</span>
+                </Button>
+              </div>
 
-            {/* Page Selector */}
-            <OrderPageSelector
-              orders={orders}
-              currentPage={currentPage}
-              setCurrentPage={setCurrentPage}
-              onDelete={handleDeletePage}
-            />
+              {duplicate && (
+                <Notice tone="warn">
+                  {t("upload.duplicate", { number: clean(page.form.order_number) })}
+                </Notice>
+              )}
 
-            {/* Current Order */}
-            <ExtractedOrderDetails
-              order={currentOrder}
-              currentPage={currentPage}
-              onChange={handleOrderChange}
-            />
+              <OrderForm key={page.id} value={page.form} onChange={changeField} original={page.original} />
 
-            {/* Pagination */}
-            <OrderPagination
-              currentPage={currentPage}
-              totalPages={orders.length}
-              setCurrentPage={setCurrentPage}
-            />
+              <div className="flex items-center justify-between">
+                <Button
+                  variant="secondary"
+                  disabled={current === 0}
+                  onClick={() => setCurrent(current - 1)}
+                >
+                  <ChevronLeft size={17} />
+                  {t("common.prev")}
+                </Button>
+                <span className="text-sm text-muted">
+                  {current + 1} / {pages.length}
+                </span>
+                <Button
+                  variant="secondary"
+                  disabled={current === pages.length - 1}
+                  onClick={() => setCurrent(current + 1)}
+                >
+                  {t("common.next")}
+                  <ChevronRight size={17} />
+                </Button>
+              </div>
 
-            {/* Save */}
-            <div className="mt-8 flex justify-end">
+              {saveError && <Notice tone="error">{saveError}</Notice>}
 
-              <button
-                onClick={handleSaveOrders}
-                disabled={saving || orders.length === 0}
-                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-[#1c1c1a] text-white text-sm font-medium hover:bg-[#30302d] transition disabled:opacity-50 disabled:cursor-not-allowed"
+              <form
+                id="save-upload"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  saveAll();
+                }}
               >
-                {saving ? (
-                  <>
-                    <Loader2
-                      size={17}
-                      className="animate-spin"
-                    />
-                    Saving Orders...
-                  </>
-                ) : (
-                  <>
-                    <Save size={17} />
-                    Save {orders.length}{" "}
-                    {orders.length === 1 ? "Order" : "Orders"}
-                  </>
-                )}
-              </button>
+                <SaveBar
+                  form="save-upload"
+                  saving={saving}
+                  label={
+                    pages.length === 1
+                      ? t("upload.saveOne")
+                      : t("upload.saveAll", { count: pages.length })
+                  }
+                />
+              </form>
+            </>
+          )}
 
-            </div>
-
-          </section>
-        )}
-
+          {/* ---------- Done ---------- */}
+          {phase === "done" && (
+            <Card className="flex flex-col items-center px-6 py-12 text-center">
+              <span className="flex h-16 w-16 items-center justify-center rounded-full bg-accent-soft text-accent-soft-ink">
+                <CircleCheck size={32} />
+              </span>
+              <p className="mt-5 text-lg font-semibold text-ink">
+                {savedCount === 1
+                  ? t("upload.savedOne")
+                  : t("upload.saved", { count: savedCount })}
+              </p>
+              <div className="mt-6 flex w-full max-w-sm flex-col gap-2 sm:flex-row sm:justify-center">
+                <LinkButton href="/orders?sort=newest&allMonths=true">
+                  {t("upload.viewOrders")}
+                </LinkButton>
+                <Button variant="secondary" onClick={reset}>
+                  <Upload size={17} />
+                  {t("nav.upload")}
+                </Button>
+              </div>
+            </Card>
+          )}
+        </div>
       </div>
 
-      <DeletePageModal
-        isOpen={deleteModalOpen}
-        pageNumber={
-          pageToDelete !== null
-            ? pageToDelete + 1
-            : null
-        }
-        onCancel={cancelDeletePage}
-        onConfirm={confirmDeletePage}
+      <ConfirmDialog
+        open={deleteIndex !== null}
+        title={t("upload.deleteTitle", { n: (deleteIndex ?? 0) + 1 })}
+        body={t("upload.deleteBody")}
+        confirmLabel={t("upload.deletePage")}
+        onCancel={() => setDeleteIndex(null)}
+        onConfirm={removePage}
       />
-
-    </main>
-    </DashboardShell>
+      <ConfirmDialog
+        open={confirmReset}
+        title={t("upload.discardConfirm")}
+        confirmLabel={t("upload.startOver")}
+        onCancel={() => setConfirmReset(false)}
+        onConfirm={reset}
+      />
+    </AppShell>
   );
 }
