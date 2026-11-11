@@ -10,6 +10,7 @@ import {
   parseDate,
   toISODate,
 } from "../lib/orders";
+import CustomerPicker from "./CustomerPicker";
 import { cx } from "./ui";
 
 export const ORDER_FIELDS = [
@@ -20,22 +21,34 @@ export const ORDER_FIELDS = [
   "deliver_date",
   "contact_number",
   "what_to_design",
-  "advance_payment",
-  "total_amount",
+  "advance_amount",
+  "advance_date",
+  "estimated_total",
 ];
 
-/** Turns an order from the API/scanner into form-friendly values. */
+/** Turns an order from the API or a scan into form-friendly values.
+ *  Scans use the form's box names: advance_payment / total_amount. */
 export function toFormValues(order = {}) {
-  const form = { needs_review: Boolean(order.needs_review) };
+  const form = {
+    needs_review: Boolean(order.needs_review),
+    customer_id: order.customer_id ?? null,
+  };
   for (const field of ORDER_FIELDS) form[field] = clean(order[field]);
+  if (!form.advance_amount) form.advance_amount = clean(order.advance_payment);
+  if (!form.estimated_total) form.estimated_total = clean(order.total_amount);
+  if (order.customer?.name && order.customer_id) form.customer_name = order.customer.name;
   form.order_date = toISODate(order.order_date);
   form.deliver_date = toISODate(order.deliver_date);
+  form.advance_date = toISODate(order.advance_date);
   return form;
 }
 
 /** Turns form values back into an API payload. */
 export function toPayload(form) {
-  const payload = { needs_review: Boolean(form.needs_review) };
+  const payload = {
+    needs_review: Boolean(form.needs_review),
+    customer_id: form.customer_id || null,
+  };
   for (const field of ORDER_FIELDS) {
     const value = String(form[field] ?? "").trim();
     payload[field] = value || null;
@@ -80,8 +93,9 @@ function Group({ title, children }) {
 export default function OrderForm({ value, onChange, original = {} }) {
   const { t, locale } = useI18n();
 
+  const scanName = { advance_amount: "advance_payment", estimated_total: "total_amount" };
   const warnFor = (field) => {
-    const raw = original[field];
+    const raw = original[field] ?? original[scanName[field]];
     if (isUnclear(raw)) return t("review.unclear");
     if ((field === "order_date" || field === "deliver_date") && clean(raw) && !parseDate(raw)) {
       return `${t("review.unclear")}: “${clean(raw)}”`;
@@ -99,15 +113,22 @@ export default function OrderForm({ value, onChange, original = {} }) {
     />
   );
 
-  const total = amount(value.total_amount);
-  const advance = amount(value.advance_payment) ?? 0;
-  const balance = total != null ? Math.max(0, total - advance) : null;
+  const estimate = amount(value.estimated_total);
+  const advance = amount(value.advance_amount) ?? 0;
+  const expected = estimate != null ? Math.max(0, estimate - advance) : null;
 
   return (
     <div className="space-y-4 md:space-y-5">
       <Group title={t("edit.customerSection")}>
         <Field label={t("field.customer")} warn={warnFor("customer_name")}>
-          {text("customer_name", { autoComplete: "off", required: true })}
+          <CustomerPicker
+            value={value}
+            inputClassName={cx(inputClass, "h-12 md:h-11")}
+            warn={warnFor("customer_name")}
+            onChange={(changes) => {
+              for (const [field, next] of Object.entries(changes)) onChange(field, next);
+            }}
+          />
         </Field>
         <Field label={t("field.contact")} warn={warnFor("contact_number")}>
           {text("contact_number", { type: "tel", inputMode: "tel", autoComplete: "off" })}
@@ -149,18 +170,33 @@ export default function OrderForm({ value, onChange, original = {} }) {
       </Group>
 
       <Group title={t("edit.paymentSection")}>
-        <Field label={`${t("field.total")} (₹)`} warn={warnFor("total_amount")}>
-          {text("total_amount", { inputMode: "decimal" })}
+        <Field label={`${t("pay.advance")} (₹)`} warn={warnFor("advance_amount")}>
+          {text("advance_amount", { inputMode: "decimal" })}
         </Field>
-        <Field label={`${t("field.advance")} (₹)`} warn={warnFor("advance_payment")}>
-          {text("advance_payment", { inputMode: "decimal" })}
+        <Field label={t("pay.advanceDate")} warn={warnFor("advance_date")}>
+          <input
+            type="date"
+            value={value.advance_date ?? ""}
+            onChange={(event) => onChange("advance_date", event.target.value)}
+            className={cx(inputClass, "h-12 md:h-11")}
+          />
         </Field>
-        <div className="flex items-center justify-between rounded-xl bg-card-2 px-4 py-3 sm:col-span-2">
-          <span className="text-sm text-muted">{t("field.balance")}</span>
-          <span className="text-base font-semibold text-ink">
-            {formatMoney(balance, locale)}
-          </span>
-        </div>
+        <Field
+          label={`${t("pay.estimate")} (₹)`}
+          warn={warnFor("estimated_total")}
+          hint={t("pay.estimateHelp")}
+          full
+        >
+          {text("estimated_total", { inputMode: "decimal" })}
+        </Field>
+        {expected != null && (
+          <div className="flex items-center justify-between rounded-xl bg-card-2 px-4 py-3 sm:col-span-2">
+            <span className="text-sm text-muted">
+              {t("pay.estimate")} − {t("pay.advance")}
+            </span>
+            <span className="text-base font-semibold text-ink">{formatMoney(expected, locale)}</span>
+          </div>
+        )}
       </Group>
 
       <label className="flex cursor-pointer items-center justify-between gap-4 rounded-2xl border border-line bg-card p-4 md:p-5">

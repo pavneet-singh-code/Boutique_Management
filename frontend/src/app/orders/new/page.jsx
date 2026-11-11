@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import AppShell from "../../../components/AppShell";
 import OrderForm, { toFormValues, toPayload } from "../../../components/OrderForm";
 import { Notice, PageHeading } from "../../../components/ui";
-import { saveOrders } from "../../../lib/api";
+import { orderPath, saveOrders } from "../../../lib/api";
 import { useI18n } from "../../../lib/i18n";
 import { clean, toISODate } from "../../../lib/orders";
 import SaveBar from "../../../components/SaveBar";
@@ -18,6 +18,7 @@ function NewOrderContent() {
   const [form, setForm] = useState(() => ({
     ...toFormValues({}),
     customer_name: searchParams.get("customer") || "",
+    customer_id: Number(searchParams.get("customerId")) || null,
     contact_number: searchParams.get("phone") || "",
     order_date: toISODate(new Date()),
   }));
@@ -35,10 +36,14 @@ function NewOrderContent() {
       setSaveError(t("new.needName"));
       return;
     }
+    if (!clean(form.order_number)) {
+      setSaveError(t("number.required"));
+      return;
+    }
     setSaving(true);
     try {
       const [saved] = await saveOrders([{ ...toPayload(form), filename: null }]);
-      router.replace(`/orders/${saved.id}`);
+      router.replace(orderPath(saved));
     } catch (err) {
       setSaveError(tError(err));
       setSaving(false);

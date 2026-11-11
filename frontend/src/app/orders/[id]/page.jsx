@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   CalendarDays,
   ChevronRight,
@@ -17,6 +17,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import AppShell, { HeaderIconButton } from "../../../components/AppShell";
+import { PaymentSteps } from "../../../components/Bills";
 import {
   Avatar,
   Button,
@@ -30,15 +31,15 @@ import {
   Spinner,
   cx,
 } from "../../../components/ui";
-import { deleteOrder, updateOrder } from "../../../lib/api";
+import { deleteOrder, findOrder, orderEditPath, updateOrder } from "../../../lib/api";
 import { useI18n } from "../../../lib/i18n";
 import {
-  amount,
-  balanceOf,
+  avatarSeed,
+  customerPhone,
   clean,
-  customerKey,
   daysBetween,
   displayName,
+  rawName,
   formatDate,
   formatMoney,
   parseDate,
@@ -104,8 +105,9 @@ function ActionButton({ icon: Icon, label, href, onClick, disabled, external }) 
   );
 }
 
-export default function OrderDetailPage() {
+function OrderDetailContent() {
   const { id } = useParams();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const { t, locale, tError } = useI18n();
   const { orders, ready, error, reload } = useOrders();
@@ -114,7 +116,7 @@ export default function OrderDetailPage() {
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState("");
 
-  const order = orders.find((item) => String(item.id) === String(id));
+  const order = findOrder(orders, id, searchParams.get("id"));
 
   const markChecked = async () => {
     setBusy(true);
@@ -159,12 +161,11 @@ export default function OrderDetailPage() {
   }
 
   const name = displayName(order, t);
-  const phone = phoneForLinks(order.contact_number);
+  const phone = phoneForLinks(customerPhone(order));
   const number = clean(order.order_number) || `#${order.id}`;
   const waText = encodeURIComponent(t("order.waMessage", { name, number }));
   const delivery = parseDate(order.deliver_date);
   const daysLeft = delivery ? daysBetween(new Date(), delivery) : null;
-  const total = amount(order.total_amount);
 
   let deliveryNote = null;
   if (daysLeft === 0) deliveryNote = t("order.dueToday");
@@ -178,7 +179,7 @@ export default function OrderDetailPage() {
       hideTabs
       actions={
         <>
-          <HeaderIconButton label={t("common.edit")} href={`/orders/${order.id}/edit`}>
+          <HeaderIconButton label={t("common.edit")} href={orderEditPath(order)}>
             <Pencil size={20} />
           </HeaderIconButton>
           <HeaderIconButton label={t("common.delete")} onClick={() => setConfirmDelete(true)}>
@@ -190,7 +191,7 @@ export default function OrderDetailPage() {
       <div className="mx-auto max-w-3xl space-y-4 pb-6 md:space-y-5">
         {/* Profile header, like a WhatsApp contact card */}
         <div className="flex flex-col items-center bg-card px-4 pb-5 pt-6 text-center md:rounded-2xl md:border md:border-line md:shadow-sm">
-          <Avatar name={clean(order.customer_name)} seed={customerKey(order.customer_name)} size={88} />
+          <Avatar name={rawName(order)} seed={avatarSeed(order)} size={88} />
           <h1 className="mt-3 text-2xl font-semibold text-ink md:font-serif md:font-normal">
             {name}
           </h1>
@@ -198,7 +199,7 @@ export default function OrderDetailPage() {
             <p className="text-[15px] text-muted">{clean(order.additional_info)}</p>
           )}
           <p className="mt-1 text-[15px] text-muted">
-            {clean(order.contact_number) || t("order.noPhone")}
+            {customerPhone(order) || t("order.noPhone")}
           </p>
           <div className="mt-2 flex items-center gap-2">
             <span className="rounded-full bg-card-2 px-2.5 py-0.5 text-xs font-medium text-ink-2">
@@ -224,7 +225,7 @@ export default function OrderDetailPage() {
             <ActionButton
               icon={Pencil}
               label={t("common.edit")}
-              onClick={() => router.push(`/orders/${order.id}/edit`)}
+              onClick={() => router.push(orderEditPath(order))}
             />
           </div>
         </div>
@@ -240,7 +241,7 @@ export default function OrderDetailPage() {
             <TriangleAlert size={20} className="shrink-0 text-warn-ink" />
             <p className="flex-1 text-sm text-warn-ink">{t("dash.reviewHelp")}</p>
             <div className="flex gap-2">
-              <LinkButton href={`/orders/${order.id}/edit`} variant="secondary" size="sm">
+              <LinkButton href={orderEditPath(order)} variant="secondary" size="sm">
                 {t("common.edit")}
               </LinkButton>
               <Button size="sm" onClick={markChecked} disabled={busy}>
@@ -281,26 +282,26 @@ export default function OrderDetailPage() {
         </Section>
 
         <Section icon={IndianRupee} title={t("order.payment")}>
-          <Row label={t("field.total")} value={formatMoney(total, locale)} strong />
-          <Row
-            label={t("field.advance")}
-            value={formatMoney(amount(order.advance_payment), locale)}
-          />
-          <Row label={t("field.balance")} value={formatMoney(balanceOf(order), locale)} strong />
+          <PaymentSteps order={order} />
         </Section>
 
         <Section icon={FileText} title={t("order.other")}>
           <Row label={t("field.source")} value={clean(order.filename) || "—"} />
           <Row label={t("field.createdAt")} value={formatDate(order.created_at, locale)} />
+          {order.import_notes && (
+            <Row label={t("order.cleanupNote")} value={order.import_notes} />
+          )}
         </Section>
 
+        {order.customer_id && (
         <Link
-          href={`/customers/${encodeURIComponent(customerKey(order.customer_name) || "unknown")}`}
+          href={`/customers/${order.customer_id}`}
           className="mx-4 flex items-center justify-between rounded-2xl border border-line bg-card px-4 py-4 text-[15px] font-medium text-accent-ink transition hover:bg-card-2 md:mx-0"
         >
           {t("order.allFromCustomer")}
           <ChevronRight size={18} />
         </Link>
+        )}
       </div>
 
       <ConfirmDialog
@@ -312,5 +313,13 @@ export default function OrderDetailPage() {
         onConfirm={remove}
       />
     </AppShell>
+  );
+}
+
+export default function OrderDetailPage() {
+  return (
+    <Suspense fallback={null}>
+      <OrderDetailContent />
+    </Suspense>
   );
 }

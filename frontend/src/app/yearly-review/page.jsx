@@ -17,7 +17,16 @@ import {
   StatTile,
 } from "../../components/ui";
 import { useI18n } from "../../lib/i18n";
-import { formatMoney, formatMonth, groupCustomers, orderDate, pad, summarise } from "../../lib/orders";
+import {
+  formatMoney,
+  formatMonth,
+  groupCustomers,
+  monthRange,
+  orderDate,
+  pad,
+  receivedBetween,
+  summarise,
+} from "../../lib/orders";
 import { useOrders } from "../../lib/useOrders";
 
 export default function YearlyReviewPage() {
@@ -31,7 +40,9 @@ export default function YearlyReviewPage() {
     const months = Array.from({ length: 12 }, (_, index) => {
       const key = `${year}-${pad(index + 1)}`;
       const list = inYear.filter((order) => orderDate(order).getMonth() === index);
-      return { key, list, stats: summarise(list) };
+      // Money received in this month (by payment dates), whatever the order date.
+      const received = receivedBetween(orders, ...monthRange(key));
+      return { key, list, stats: summarise(list), received };
     });
     const best = months.reduce(
       (top, month) => (month.stats.value > (top?.stats.value ?? 0) ? month : top),
@@ -40,6 +51,7 @@ export default function YearlyReviewPage() {
     return {
       inYear,
       stats: summarise(inYear),
+      received: receivedBetween(orders, new Date(year, 0, 1), new Date(year, 11, 31, 23, 59, 59)),
       customers: groupCustomers(inYear).length,
       months,
       best,
@@ -94,7 +106,7 @@ export default function YearlyReviewPage() {
           <div className="grid grid-cols-2 gap-3 px-4 md:gap-4 md:px-0 lg:grid-cols-3 xl:grid-cols-6">
             <StatTile tone="accent" label={t("dash.orders")} value={stats.count} />
             <StatTile label={t("dash.value")} value={formatMoney(stats.value, locale)} />
-            <StatTile label={t("dash.advance")} value={formatMoney(stats.advance, locale)} />
+            <StatTile label={t("pay.received")} value={formatMoney(report.received, locale)} />
             <StatTile label={t("dash.balance")} value={formatMoney(stats.balance, locale)} />
             <StatTile label={t("yearly.customers")} value={report.customers} />
             <StatTile
@@ -145,7 +157,7 @@ export default function YearlyReviewPage() {
                           <th className="px-4 py-2.5 font-medium md:px-5">{t("reports.month")}</th>
                           <th className="px-3 py-2.5 text-right font-medium">{t("dash.orders")}</th>
                           <th className="px-3 py-2.5 text-right font-medium">{t("dash.value")}</th>
-                          <th className="px-4 py-2.5 text-right font-medium md:px-5">{t("dash.advance")}</th>
+                          <th className="px-4 py-2.5 text-right font-medium md:px-5">{t("pay.received")}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-line">
@@ -165,7 +177,7 @@ export default function YearlyReviewPage() {
                               {formatMoney(m.stats.value, locale)}
                             </td>
                             <td className="px-4 py-2.5 text-right tabular-nums md:px-5">
-                              {formatMoney(m.stats.advance, locale)}
+                              {formatMoney(m.received, locale)}
                             </td>
                           </tr>
                         ))}

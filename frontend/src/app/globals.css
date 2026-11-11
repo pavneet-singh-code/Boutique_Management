@@ -120,3 +120,20 @@ html[lang="hi"] .uppercase,
 html[lang="hi"] [class*="tracking-"] {
   letter-spacing: 0 !important;
 }
+
+/* Printing a bill: only the bill itself is printed */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+  .print-area {
+    position: absolute;
+    inset: 0 0 auto 0;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+}

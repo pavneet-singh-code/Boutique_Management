@@ -7,17 +7,21 @@ import {
   ChevronRight,
   CircleHelp,
   Database,
+  DatabaseBackup,
   Download,
+  Hash,
   Languages,
   LogOut,
+  ReceiptIndianRupee,
   Scissors,
   Smartphone,
   Wifi,
   WifiOff,
 } from "lucide-react";
 import AppShell from "../../components/AppShell";
+import BoutiqueDetails from "../../components/BoutiqueDetails";
 import { Card, LanguageToggle, PageHeading, cx } from "../../components/ui";
-import { logout, pingServer } from "../../lib/api";
+import { downloadBackup, logout, pingServer } from "../../lib/api";
 import { useI18n } from "../../lib/i18n";
 import { groupCustomers } from "../../lib/orders";
 import { useOrders } from "../../lib/useOrders";
@@ -63,9 +67,20 @@ function Row({ icon: Icon, title, help, children, href, onClick, danger }) {
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { t } = useI18n();
+  const { t, tError } = useI18n();
   const { orders, ready } = useOrders();
   const [online, setOnline] = useState(null);
+  const [backup, setBackup] = useState({ busy: false, message: "", error: false });
+
+  const saveBackup = async () => {
+    setBackup({ busy: true, message: t("backup.downloading"), error: false });
+    try {
+      const name = await downloadBackup();
+      setBackup({ busy: false, message: t("backup.done", { name }), error: false });
+    } catch (err) {
+      setBackup({ busy: false, message: tError(err), error: true });
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -109,12 +124,33 @@ export default function SettingsPage() {
           </div>
         </Card>
 
+        <BoutiqueDetails />
+
         <Card className="divide-y divide-line overflow-hidden rounded-none border-x-0 md:rounded-2xl md:border-x">
+          <Row
+            icon={ReceiptIndianRupee}
+            title={t("nav.bills")}
+            help={t("bills.subtitle")}
+            href="/bills"
+          />
           <Row
             icon={Download}
             title={t("nav.export")}
             help={t("export.subtitle")}
             href="/export-orders"
+          />
+          <Row
+            icon={Hash}
+            title={t("check.title")}
+            help={t("check.navHelp")}
+            href="/orders/data-check"
+          />
+          <Row
+            icon={DatabaseBackup}
+            title={t("backup.title")}
+            help={backup.message || t("backup.help")}
+            onClick={backup.busy ? undefined : saveBackup}
+            danger={backup.error}
           />
           <Row
             icon={Database}

@@ -27,6 +27,8 @@ import {
   orderDate,
   orderMonthKey,
   shiftMonth,
+  monthRange,
+  receivedBetween,
   summarise,
 } from "../../lib/orders";
 import { useOrders } from "../../lib/useOrders";
@@ -63,6 +65,8 @@ function MonthlyContent() {
       list: inMonth,
       stats: summarise(inMonth),
       prev: summarise(previous),
+      received: receivedBetween(orders, ...monthRange(month)),
+      prevReceived: receivedBetween(orders, ...monthRange(shiftMonth(month, -1))),
       perDay,
     };
   }, [orders, month, locale]);
@@ -112,7 +116,11 @@ function MonthlyContent() {
               value={formatMoney(stats.value, locale)}
               note={<Change now={stats.value} before={prev.value} />}
             />
-            <StatTile label={t("dash.advance")} value={formatMoney(stats.advance, locale)} />
+            <StatTile
+              label={t("pay.received")}
+              value={formatMoney(report.received, locale)}
+              note={<Change now={report.received} before={report.prevReceived} />}
+            />
             <StatTile label={t("dash.balance")} value={formatMoney(stats.balance, locale)} />
             <StatTile
               label={t("monthly.avgOrder")}

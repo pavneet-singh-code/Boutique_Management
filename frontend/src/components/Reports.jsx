@@ -36,7 +36,7 @@ export function TopCustomers({ orders, limit = 5 }) {
         {top.map((customer) => (
           <li key={customer.key}>
             <Link
-              href={`/customers/${encodeURIComponent(customer.key)}`}
+              href={`/customers/${customer.id}`}
               className="flex items-center gap-3 px-4 py-3 transition hover:bg-card-2 md:px-5"
             >
               <Avatar name={customer.name} seed={customer.key} size={38} />

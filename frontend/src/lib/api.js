@@ -45,6 +45,7 @@ function sessionExpired() {
 
 function detailMessage(data, status) {
   if (typeof data?.detail === "string") return data.detail;
+  if (typeof data?.detail?.message === "string") return data.detail.message;
   if (Array.isArray(data?.detail)) {
     return data.detail.map((item) => item.msg || "Invalid value").join(", ");
   }
@@ -93,10 +94,33 @@ async function request(path, { method = "GET", body, auth = true } = {}) {
   if (!response.ok) {
     const error = new Error(detailMessage(data, response.status));
     error.status = response.status;
+    // e.g. { code: "duplicate_order_numbers", numbers: ["261023"] }
+    error.code = data?.detail?.code;
+    error.numbers = data?.detail?.numbers ?? [];
     throw error;
   }
 
   return data;
+}
+
+async function requestFile(path) {
+  const token = getToken();
+  if (!token) throw sessionExpired();
+  let response;
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+  } catch {
+    throw new Error("error.network");
+  }
+  if (response.status === 401) throw sessionExpired();
+  if (!response.ok) throw new Error("error.generic");
+  const disposition = response.headers.get("content-disposition") || "";
+  const fallback = `boutique-backup-${new Date().toISOString().slice(0, 10)}.db`;
+  const name = disposition.match(/filename="?([^";]+)"?/)?.[1] || fallback;
+  return { blob: await response.blob(), name };
 }
 
 /* ---------------- Auth ---------------- */
@@ -170,6 +194,7 @@ export async function updateOrder(id, orderData) {
     body: orderData,
   });
   updateCache((list) => list.map((o) => (o.id === updated.id ? updated : o)));
+  customersCache = null;
   return updated;
 }
 
@@ -184,6 +209,7 @@ export async function saveOrders(orders) {
     body: orders,
   });
   updateCache((list) => [...list, ...saved]);
+  customersCache = null; // saving orders can create customers
   return saved;
 }
 
@@ -191,6 +217,121 @@ export async function analyzeOrderPdf(file) {
   const formData = new FormData();
   formData.append("file", file);
   return request("/analyze-order-pdf", { method: "POST", body: formData });
+}
+
+/** Problems that block unique order numbers (duplicates, missing numbers…). */
+export async function getDataCheck() {
+  return request("/orders/data-check");
+}
+
+/** Path for an order: its order number when that's unambiguous, else its id. */
+export function orderPath(order) {
+  const number = order?.order_number;
+  if (!number) return `/orders/${order.id}`;
+  const list = getCachedOrders() || [];
+  const shared = list.filter((item) => item.order_number === number).length > 1;
+  return shared
+    ? `/orders/${encodeURIComponent(number)}?id=${order.id}`
+    : `/orders/${encodeURIComponent(number)}`;
+}
+
+/** Edit page path for an order. */
+export function orderEditPath(order) {
+  const [path, query] = orderPath(order).split("?");
+  return query ? `${path}/edit?${query}` : `${path}/edit`;
+}
+
+/** Finds the order for a /orders/<key> URL (order number first, then id). */
+export function findOrder(orders, key, idParam) {
+  if (idParam) return orders.find((o) => String(o.id) === String(idParam));
+  const decoded = decodeURIComponent(String(key));
+  return (
+    orders.find((o) => o.order_number === decoded) ||
+    orders.find((o) => String(o.id) === decoded)
+  );
+}
+
+/* ---------------- Customers ---------------- */
+
+// Customer and bill changes also change orders (customer links, payment
+// state), so the orders list is refreshed after each of them.
+async function thenRefreshOrders(promise) {
+  const result = await promise;
+  customersCache = null;
+  getOrders({ force: true }).catch(() => {});
+  return result;
+}
+
+let customersCache = null; // { data, time }
+
+/** All customers with order totals. Cached for 30 seconds. */
+export async function getCustomers({ force = false } = {}) {
+  if (!force && customersCache && Date.now() - customersCache.time < 30_000) {
+    return customersCache.data;
+  }
+  const data = await request("/customers");
+  customersCache = { data, time: Date.now() };
+  return data;
+}
+
+export function forgetCustomers() {
+  customersCache = null;
+}
+export const getCustomer = (id) => request(`/customers/${id}`);
+export const createCustomer = (data) =>
+  thenRefreshOrders(request("/customers", { method: "POST", body: data }));
+export const updateCustomer = (id, data) =>
+  thenRefreshOrders(request(`/customers/${id}`, { method: "PATCH", body: data }));
+export const mergeCustomers = (keepId, otherId) =>
+  thenRefreshOrders(
+    request(`/customers/${keepId}/merge`, { method: "POST", body: { other_id: otherId } })
+  );
+export const deleteCustomer = (id) => request(`/customers/${id}`, { method: "DELETE" });
+
+/* ---------------- Bills ---------------- */
+
+export function getBills({ customerId, status } = {}) {
+  const params = new URLSearchParams();
+  if (customerId) params.set("customer_id", customerId);
+  if (status) params.set("status", status);
+  const query = params.toString();
+  return request(`/bills${query ? `?${query}` : ""}`);
+}
+export const getBill = (id) => request(`/bills/${id}`);
+export const createBill = (data) =>
+  thenRefreshOrders(request("/bills", { method: "POST", body: data }));
+export const updateBill = (id, data) =>
+  thenRefreshOrders(request(`/bills/${id}`, { method: "PATCH", body: data }));
+export const markBillSent = (id) =>
+  thenRefreshOrders(request(`/bills/${id}/sent`, { method: "POST" }));
+export const markBillPaid = (id, paidOn) =>
+  thenRefreshOrders(
+    request(`/bills/${id}/paid`, { method: "POST", body: { paid_on: paidOn || null } })
+  );
+export const markBillUnpaid = (id) =>
+  thenRefreshOrders(request(`/bills/${id}/unpaid`, { method: "POST" }));
+export const deleteBill = (id) =>
+  thenRefreshOrders(request(`/bills/${id}`, { method: "DELETE" }));
+
+/* ---------------- Boutique settings (name, UPI ID for bills…) ---------------- */
+
+export const getAppSettings = () => request("/settings");
+export const saveAppSettings = (data) => request("/settings", { method: "PUT", body: data });
+
+/* ---------------- Backups ---------------- */
+
+/** Downloads a full copy of the database to this device. */
+export async function downloadBackup() {
+  const { blob, name } = await requestFile("/admin/backup");
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = name;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return name;
 }
 
 /* ---------------- Misc ---------------- */

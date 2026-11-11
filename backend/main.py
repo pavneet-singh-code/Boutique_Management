@@ -1,17 +1,24 @@
 import traceback
 import csv
 import io
+import os
+import re
+import sqlite3
+import tempfile
+from datetime import date, datetime
 
 from dotenv import load_dotenv
 load_dotenv()
 
 from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Response
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session, selectinload
+from starlette.background import BackgroundTask
 from typing import List
 
-import models, schemas
+import models, schemas, services
 from database import engine, get_db
 from pdf_processor import (
     convert_all_pdf_pages_to_images,
@@ -20,10 +27,31 @@ from pdf_processor import (
 from vision_service import extract_order_from_image
 from auth import get_current_user
 from auth_routes import router as auth_router
+from customer_routes import router as customer_router
 
 
-# Automatically create or sync SQLite tables on startup
-models.Base.metadata.create_all(bind=engine)
+# ---------------------------------------------------------
+# DATABASE VERSION CHECK
+# Tables are created / changed by migrations, not on startup:
+#   cd backend && alembic upgrade head
+# The app needs at least migration 0003 (customers, payments, bills).
+# 0004 (unique order numbers) runs once duplicates are fixed in the app.
+# ---------------------------------------------------------
+
+def current_migration():
+    from alembic.runtime.migration import MigrationContext
+
+    with engine.connect() as connection:
+        return MigrationContext.configure(connection).get_current_revision()
+
+
+DB_REVISION = current_migration()
+
+if DB_REVISION not in ("0003", "0004"):
+    raise RuntimeError(
+        "The database needs to be upgraded. Back up boutique.db, then run "
+        "'alembic upgrade head' in the backend folder and reload the app."
+    )
 
 
 app = FastAPI(
@@ -38,6 +66,9 @@ app.include_router(
     prefix="/api/v1"
 )
 
+# Customers, bills and boutique settings
+app.include_router(customer_router)
+
 
 # CORS
 app.add_middleware(
@@ -46,6 +77,8 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    # Lets the browser read the backup's file name.
+    expose_headers=["Content-Disposition"],
 )
 
 
@@ -99,7 +132,14 @@ def get_orders(
 ):
     """Retrieves all stored boutique orders from SQLite."""
 
-    orders = db.query(models.Order).all()
+    orders = (
+        db.query(models.Order)
+        .options(
+            selectinload(models.Order.customer),
+            selectinload(models.Order.bill).selectinload(models.Bill.orders),
+        )
+        .all()
+    )
 
     return orders
 
@@ -120,8 +160,8 @@ def create_test_order(
         order_number="26833",
         customer_name="Sunita Devi",
         additional_info="(Vandana)",
-        order_date="16/08/26",
-        deliver_date="27/08/26",
+        order_date=date(2026, 8, 16),
+        deliver_date=date(2026, 8, 27),
         what_to_design="Beta Ka Salwar",
         needs_review=False
     )
@@ -182,7 +222,7 @@ async def render_pdf_as_image(
 # 5. Analyze uploaded order PDF
 @app.post(
     "/api/v1/analyze-order-pdf",
-    response_model=List[schemas.OrderCreate]
+    response_model=List[schemas.OrderScan]
 )
 async def analyze_order_pdf(
     file: UploadFile = File(...),
@@ -234,7 +274,7 @@ async def analyze_order_pdf(
             extracted_data = extract_order_from_image(image)
             print(f"STEP 5: Gemini completed page {index + 1}", flush=True)
 
-            order_data = schemas.OrderCreate(
+            order_data = schemas.OrderScan(
                 filename=f"{file.filename} (Page {index + 1})",
                 **extracted_data.model_dump()
             )
@@ -273,26 +313,41 @@ def bulk_save_orders(
             detail="No orders provided"
         )
 
+    if any(not order.order_number for order in orders):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "order_number_required",
+                "numbers": [],
+                "message": "Every order needs an order number.",
+            },
+        )
+
+    duplicates = find_duplicate_numbers(db, [order.order_number for order in orders])
+    if duplicates:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "duplicate_order_numbers",
+                "numbers": duplicates,
+                "message": "These order numbers are already used: " + ", ".join(duplicates),
+            },
+        )
+
     saved_orders = []
 
     try:
         for order in orders:
-
-            db_order = models.Order(
-                filename=order.filename,
-                order_number=order.order_number,
-                customer_name=order.customer_name,
-                additional_info=order.additional_info,
-                order_date=order.order_date,
-                deliver_date=order.deliver_date,
-                contact_number=order.contact_number,
-                what_to_design=order.what_to_design,
-                advance_payment=order.advance_payment,
-                total_amount=order.total_amount,
-                needs_review=order.needs_review,
+            values = order.model_dump()
+            customer = services.resolve_customer(
+                db,
+                customer_id=values.pop("customer_id"),
+                name=values.get("customer_name"),
+                phone=values.get("contact_number"),
             )
-
+            db_order = models.Order(**values, customer_id=customer.id if customer else None)
             db.add(db_order)
+            db.flush()
             saved_orders.append(db_order)
 
         # Commit everything together
@@ -304,6 +359,17 @@ def bulk_save_orders(
 
         return saved_orders
 
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "duplicate_order_numbers",
+                "numbers": [],
+                "message": "An order number is already used.",
+            },
+        )
+
     except Exception as e:
         db.rollback()
 
@@ -311,6 +377,111 @@ def bulk_save_orders(
             status_code=500,
             detail=f"Failed to save orders: {str(e)}"
         )
+
+
+def find_duplicate_numbers(db: Session, numbers, exclude_id=None):
+    """Order numbers that are repeated in `numbers` or already saved."""
+    seen, repeated = set(), set()
+    for number in numbers:
+        if not number:
+            continue
+        if number in seen:
+            repeated.add(number)
+        seen.add(number)
+    if seen:
+        query = db.query(models.Order.order_number).filter(
+            models.Order.order_number.in_(seen)
+        )
+        if exclude_id is not None:
+            query = query.filter(models.Order.id != exclude_id)
+        repeated.update(row[0] for row in query.all())
+    return sorted(repeated)
+
+
+# Order-number / data problems for the "Order number check" screen
+ORDER_NUMBER_FORMAT = re.compile(r"^\d{6}$")
+
+
+@app.get("/api/v1/orders/data-check")
+def data_check(
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
+):
+    """Lists the problems that must be fixed before order numbers can be
+    made unique, plus dates that look wrong."""
+
+    orders = db.query(models.Order).order_by(models.Order.id).all()
+
+    def as_dict(order):
+        return schemas.OrderResponse.model_validate(order).model_dump(mode="json")
+
+    groups = {}
+    for order in orders:
+        if order.order_number:
+            groups.setdefault(order.order_number, []).append(order)
+
+    duplicates = [
+        {"order_number": number, "orders": [as_dict(o) for o in group]}
+        for number, group in sorted(groups.items())
+        if len(group) > 1
+    ]
+    missing = [as_dict(o) for o in orders if not o.order_number]
+    unusual = [
+        as_dict(o)
+        for o in orders
+        if o.order_number and not ORDER_NUMBER_FORMAT.match(o.order_number)
+    ]
+
+    date_problems = []
+    for order in orders:
+        reasons = []
+        saved_year = order.created_at.year if order.created_at else datetime.now().year
+        for field in ("order_date", "deliver_date"):
+            value = getattr(order, field)
+            if value and abs(value.year - saved_year) > 1:
+                reasons.append(f"{field}_year")
+        if order.order_date and order.deliver_date and order.deliver_date < order.order_date:
+            reasons.append("delivery_before_order")
+        if order.import_notes and "could not be read" in order.import_notes:
+            reasons.append("unreadable_date")
+        if reasons:
+            date_problems.append({"order": as_dict(order), "reasons": reasons})
+
+    return {
+        "unique_enforced": DB_REVISION == "0004",
+        "duplicates": duplicates,
+        "missing": missing,
+        "unusual_format": unusual,
+        "date_problems": date_problems,
+        "blocking": len(duplicates) + len(missing),
+    }
+
+
+# Download a consistent copy of the whole database (for backups on your PC)
+@app.get("/api/v1/admin/backup")
+def download_backup(current_user: str = Depends(get_current_user)):
+    db_path = engine.url.database
+    if not db_path or not os.path.exists(db_path):
+        raise HTTPException(status_code=500, detail="Database file not found")
+
+    handle, temp_path = tempfile.mkstemp(suffix=".db")
+    os.close(handle)
+    source = sqlite3.connect(db_path)
+    target = sqlite3.connect(temp_path)
+    try:
+        source.backup(target)  # consistent copy, even while the app is writing
+    finally:
+        target.close()
+        source.close()
+
+    stamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
+    return FileResponse(
+        temp_path,
+        media_type="application/octet-stream",
+        filename=f"boutique-backup-{stamp}.db",
+        background=BackgroundTask(os.remove, temp_path),
+    )
+
 
 # 7. Export orders as CSV
 @app.get("/api/v1/orders/export")
@@ -330,16 +501,26 @@ def export_orders_csv(
         "ID",
         "Filename",
         "Order Number",
-        "Customer Name",
+        "Customer",
+        "Name On Order",
         "Additional Info",
+        "Contact Number",
         "Order Date",
         "Deliver Date",
-        "Contact Number",
         "What To Design",
-        "Advance Payment",
-        "Total Amount",
+        "Estimated Total",
+        "Advance Amount",
+        "Advance Date",
+        "Bill Number",
+        "Final Total",
+        "Billed Date",
+        "Final Payment",
+        "Final Payment Date",
+        "Received",
+        "Balance",
+        "Payment State",
         "Needs Review",
-        "Created At"
+        "Created At",
     ])
 
     # CSV rows
@@ -348,16 +529,26 @@ def export_orders_csv(
             o.id,
             o.filename,
             o.order_number,
+            o.customer.name if o.customer else "",
             o.customer_name,
             o.additional_info,
+            o.contact_number,
             o.order_date,
             o.deliver_date,
-            o.contact_number,
             o.what_to_design,
-            o.advance_payment,
-            o.total_amount,
+            o.estimated_total,
+            o.advance_amount,
+            o.advance_date,
+            o.bill_number,
+            o.final_total,
+            o.billed_date,
+            o.final_payment_amount,
+            o.final_payment_date,
+            o.received,
+            o.balance,
+            o.payment_state,
             o.needs_review,
-            o.created_at
+            o.created_at,
         ])
 
     output.seek(0)
@@ -429,10 +620,51 @@ def update_order_field(
         exclude_unset=True
     )
 
+    if "order_number" in update_data and not update_data["order_number"]:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "order_number_required",
+                "numbers": [],
+                "message": "Every order needs an order number.",
+            },
+        )
+
+    if update_data.get("customer_id"):
+        services.resolve_customer(db, customer_id=update_data["customer_id"])
+    if "customer_id" in update_data and db_order.bill_id and update_data["customer_id"] != db_order.customer_id:
+        services.conflict(
+            "order_already_billed",
+            "This suit is on a bill. Remove it from the bill before changing the customer.",
+        )
+
+    new_number = update_data.get("order_number")
+    if new_number and new_number != db_order.order_number:
+        if find_duplicate_numbers(db, [new_number], exclude_id=order_id):
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "duplicate_order_numbers",
+                    "numbers": [new_number],
+                    "message": f"Order number {new_number} is already used.",
+                },
+            )
+
     for key, value in update_data.items():
         setattr(db_order, key, value)
 
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "order_number_required",
+                "numbers": [],
+                "message": "Every order needs its own order number.",
+            },
+        )
     db.refresh(db_order)
 
     return db_order
@@ -453,6 +685,12 @@ def delete_order(
 
     if order is None:
         raise HTTPException(status_code=404, detail="Order not found")
+
+    if order.bill_id:
+        services.conflict(
+            "order_already_billed",
+            f"This suit is on bill {order.bill.bill_number}. Remove it from the bill first.",
+        )
 
     db.delete(order)
     db.commit()

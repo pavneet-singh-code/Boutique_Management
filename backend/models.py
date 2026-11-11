@@ -1,21 +1,149 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text
+from sqlalchemy import (
+    Boolean,
+    Column,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+)
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+
 from database import Base
+
+
+class Customer(Base):
+    __tablename__ = "customers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    phone = Column(String, unique=True, nullable=True)
+    notes = Column(Text, nullable=True)  # measurements, preferences
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    orders = relationship("Order", back_populates="customer")
+    bills = relationship("Bill", back_populates="customer")
+
+
+class Bill(Base):
+    """Groups one or more of a customer's suits into a single final bill."""
+
+    __tablename__ = "bills"
+
+    id = Column(Integer, primary_key=True, index=True)
+    bill_number = Column(String, unique=True, nullable=False)  # B-2611-004
+    customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False)
+    discount = Column(Integer, nullable=False, default=0)
+    status = Column(String, nullable=False, default="draft")  # draft | sent | paid
+    issued_on = Column(Date, nullable=False)
+    paid_on = Column(Date, nullable=True)
+    created_by = Column(Integer, nullable=True)  # employee id (Phase 2)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    customer = relationship("Customer", back_populates="bills")
+    orders = relationship("Order", back_populates="bill")
+
 
 class Order(Base):
     __tablename__ = "orders"
 
-    # Fixed typo: primary_key=True (was primary_index=True)
-    id = Column(Integer, primary_key=True, index=True) 
+    id = Column(Integer, primary_key=True, index=True)
     filename = Column(String, nullable=True)
-    order_number = Column(String, index=True, nullable=True)
+    # Unique once migration 0004 has run (after duplicates are cleaned up).
+    order_number = Column(String, index=True, unique=True, nullable=True)
+    customer_id = Column(Integer, ForeignKey("customers.id"), nullable=True, index=True)
+    # Name / phone exactly as written on the order form.
     customer_name = Column(String, nullable=True)
     additional_info = Column(String, nullable=True)
-    order_date = Column(String, nullable=True)
-    deliver_date = Column(String, nullable=True)
     contact_number = Column(String, nullable=True)
+    order_date = Column(Date, nullable=True)
+    deliver_date = Column(Date, nullable=True)
     what_to_design = Column(Text, nullable=True)
-    advance_payment = Column(String, nullable=True)
-    total_amount = Column(String, nullable=True)
+
+    # Payment step 1: advance when the order is taken
+    advance_amount = Column(Integer, nullable=True)
+    advance_date = Column(Date, nullable=True)
+    # The rough total written on the order form (the real total is set on the bill)
+    estimated_total = Column(Integer, nullable=True)
+    # Payment step 2: final bill
+    final_total = Column(Integer, nullable=True)
+    billed_date = Column(Date, nullable=True)
+    bill_id = Column(Integer, ForeignKey("bills.id"), nullable=True, index=True)
+    # Payment step 3: the rest of the money
+    final_payment_amount = Column(Integer, nullable=True)
+    final_payment_date = Column(Date, nullable=True)
+
     needs_review = Column(Boolean, default=False)
+    # Things the clean-up could not fix automatically (e.g. an unreadable date).
+    import_notes = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    customer = relationship("Customer", back_populates="orders")
+    bill = relationship("Bill", back_populates="orders")
+
+    # ---- Worked-out values (never typed in) ----
+    @property
+    def bill_number(self):
+        return self.bill.bill_number if self.bill else None
+
+    @property
+    def bill_status(self):
+        return self.bill.status if self.bill else None
+
+    @property
+    def received(self):
+        return (self.advance_amount or 0) + (self.final_payment_amount or 0)
+
+    @property
+    def balance(self):
+        """Still to collect. Only known once the final total is set on a bill."""
+        if self.final_total is None:
+            return None
+        discount = self.bill_discount_share
+        return max(0, self.final_total - discount - self.received)
+
+    @property
+    def bill_discount_share(self):
+        """This suit's part of the bill's discount (split by price)."""
+        if not self.bill or not self.bill.discount or self.final_total is None:
+            return 0
+        shares = split_discount(self.bill)
+        return shares.get(self.id, 0)
+
+    @property
+    def payment_state(self):
+        if self.final_payment_date or (self.bill and self.bill.status == "paid"):
+            return "paid"
+        if self.final_total is not None:
+            return "billed"
+        if self.advance_amount:
+            return "advance"
+        return "none"
+
+
+def split_discount(bill):
+    """Splits a bill's discount across its suits in proportion to their price.
+    Any rounding leftover goes to the last suit, so the parts always add up."""
+    orders = sorted(bill.orders, key=lambda o: o.id)
+    total = sum(o.final_total or 0 for o in orders)
+    discount = min(bill.discount or 0, total)
+    shares, given = {}, 0
+    for index, order in enumerate(orders):
+        if index == len(orders) - 1:
+            share = discount - given
+        else:
+            share = (discount * (order.final_total or 0)) // total if total else 0
+        shares[order.id] = share
+        given += share
+    return shares
+
+
+class AppSetting(Base):
+    """Simple key/value settings, e.g. the boutique's UPI ID for bills."""
+
+    __tablename__ = "app_settings"
+
+    key = Column(String, primary_key=True)
+    value = Column(Text, nullable=True)

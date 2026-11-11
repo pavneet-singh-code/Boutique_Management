@@ -199,7 +199,23 @@ export default function UploadOrdersPage() {
 
   const step = phase === "pick" ? 0 : phase === "scanning" ? 1 : 2;
   const page = pages[current];
-  const duplicate = page && existingNumbers.has(clean(page.form.order_number));
+
+  // Order numbers must be present and unique (in the database and in this upload).
+  const numberCounts = {};
+  for (const item of pages) {
+    const number = clean(item.form.order_number);
+    if (number) numberCounts[number] = (numberCounts[number] || 0) + 1;
+  }
+  const pageProblem = (item, index) => {
+    const number = clean(item.form.order_number);
+    if (!number) return t("upload.missingNumber", { n: index + 1 });
+    if (existingNumbers.has(number)) return t("upload.duplicate", { number });
+    if (numberCounts[number] > 1) return t("upload.sameNumberTwice", { number });
+    return null;
+  };
+  const problems = pages.map(pageProblem);
+  const hasProblems = problems.some(Boolean);
+  const currentProblem = page ? problems[current] : null;
 
   return (
     <AppShell
@@ -365,9 +381,11 @@ export default function UploadOrdersPage() {
                     )}
                   >
                     {t("upload.page", { n: index + 1 })}
-                    {item.form.needs_review && (
+                    {problems[index] ? (
+                      <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-card bg-danger" />
+                    ) : item.form.needs_review ? (
                       <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-card bg-[#f59e0b]" />
-                    )}
+                    ) : null}
                   </button>
                 ))}
               </div>
@@ -381,11 +399,7 @@ export default function UploadOrdersPage() {
                 </Button>
               </div>
 
-              {duplicate && (
-                <Notice tone="warn">
-                  {t("upload.duplicate", { number: clean(page.form.order_number) })}
-                </Notice>
-              )}
+              {currentProblem && <Notice tone="error">{currentProblem}</Notice>}
 
               <OrderForm key={page.id} value={page.form} onChange={changeField} original={page.original} />
 
@@ -412,6 +426,16 @@ export default function UploadOrdersPage() {
               </div>
 
               {saveError && <Notice tone="error">{saveError}</Notice>}
+              {hasProblems && (
+                <Notice tone="warn">
+                  <p className="font-semibold">{t("upload.fixNumbers")}</p>
+                  <ul className="mt-1 list-disc pl-4">
+                    {problems.filter(Boolean).map((problem) => (
+                      <li key={problem}>{problem}</li>
+                    ))}
+                  </ul>
+                </Notice>
+              )}
 
               <form
                 id="save-upload"
@@ -423,6 +447,7 @@ export default function UploadOrdersPage() {
                 <SaveBar
                   form="save-upload"
                   saving={saving}
+                  disabled={hasProblems}
                   label={
                     pages.length === 1
                       ? t("upload.saveOne")

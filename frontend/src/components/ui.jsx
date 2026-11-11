@@ -282,6 +282,8 @@ export function ConfirmDialog({
   busy,
   onConfirm,
   onCancel,
+  tone = "danger",
+  children,
 }) {
   const { t } = useI18n();
 
@@ -315,18 +317,24 @@ export function ConfirmDialog({
         >
           <X size={18} />
         </button>
-        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-danger-soft text-danger">
-          <TriangleAlert size={20} />
+        <div
+          className={cx(
+            "flex h-11 w-11 items-center justify-center rounded-full",
+            tone === "danger" ? "bg-danger-soft text-danger" : "bg-accent-soft text-accent-soft-ink"
+          )}
+        >
+          {tone === "danger" ? <TriangleAlert size={20} /> : <CircleCheck size={20} />}
         </div>
         <h2 id="confirm-title" className="mt-4 text-lg font-semibold text-ink">
           {title}
         </h2>
         {body && <p className="mt-2 text-sm leading-6 text-muted">{body}</p>}
+        {children && <div className="mt-4">{children}</div>}
         <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button variant="secondary" onClick={onCancel} disabled={busy}>
             {t("common.cancel")}
           </Button>
-          <Button variant="danger" onClick={onConfirm} disabled={busy}>
+          <Button variant={tone === "danger" ? "danger" : "primary"} onClick={onConfirm} disabled={busy}>
             {busy && <LoaderCircle size={16} className="animate-spin" />}
             {confirmLabel || t("common.delete")}
           </Button>

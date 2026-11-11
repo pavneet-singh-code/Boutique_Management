@@ -89,10 +89,43 @@ export function amount(value) {
   return Number.isFinite(number) ? number : null;
 }
 
+/* ---------------- Money: three-step payments ---------------- */
+// 1. advance_amount (+ advance_date)  2. final_total on a bill (+ billed_date)
+// 3. final_payment_amount (+ final_payment_date). The server works out
+// received / balance / payment_state.
+
+/** The final total once billed, otherwise the estimate from the order form. */
+export function orderValue(order) {
+  return order.final_total ?? amount(order.estimated_total) ?? null;
+}
+
 export function balanceOf(order) {
-  const total = amount(order.total_amount);
-  if (total == null) return null;
-  return Math.max(0, total - (amount(order.advance_payment) ?? 0));
+  return order.balance ?? null;
+}
+
+export function receivedOf(order) {
+  return order.received ?? (amount(order.advance_amount) ?? 0);
+}
+
+/** Money that actually arrived between two dates (by payment dates). */
+export function receivedBetween(orders, from, to) {
+  let total = 0;
+  const inRange = (value) => {
+    const date = parseDate(value);
+    return date && date >= from && date <= to;
+  };
+  for (const order of orders) {
+    if (order.advance_amount && inRange(order.advance_date)) total += order.advance_amount;
+    if (order.final_payment_amount && inRange(order.final_payment_date)) {
+      total += order.final_payment_amount;
+    }
+  }
+  return total;
+}
+
+export function monthRange(key) {
+  const [y, m] = key.split("-").map(Number);
+  return [new Date(y, m - 1, 1), new Date(y, m, 0, 23, 59, 59)];
 }
 
 export function formatMoney(value, locale = "en-IN") {
@@ -150,44 +183,69 @@ export function customerKey(name) {
     .replace(/[^\p{L}\p{N}]+/gu, "");
 }
 
-export function displayName(order, t) {
-  return clean(order.customer_name) || t("common.unknownCustomer");
+/** The customer's saved name, else the name written on the order. */
+export function rawName(order) {
+  return clean(order.customer?.name) || clean(order.customer_name);
 }
 
-/** Groups orders into customers by a normalised name. */
+export function displayName(order, t) {
+  return rawName(order) || t("common.unknownCustomer");
+}
+
+/** Seed for the avatar colour: the customer record if there is one. */
+export function avatarSeed(order) {
+  return order.customer_id ? `c${order.customer_id}` : customerKey(order.customer_name);
+}
+
+export function customerPhone(order) {
+  return clean(order.customer?.phone) || clean(order.contact_number);
+}
+
+/** Groups orders by customer record (for reports such as "top customers"). */
 export function groupCustomers(orders) {
   const map = new Map();
-
   for (const order of orders) {
-    const key = customerKey(order.customer_name) || "unknown";
-    if (!map.has(key)) {
-      map.set(key, { key, names: new Map(), orders: [], total: 0, contact: "" });
+    if (!order.customer_id) continue;
+    if (!map.has(order.customer_id)) {
+      map.set(order.customer_id, {
+        id: order.customer_id,
+        key: `c${order.customer_id}`,
+        name: rawName(order),
+        orders: [],
+        total: 0,
+      });
     }
-    const customer = map.get(key);
-    const name = clean(order.customer_name);
-    if (name) customer.names.set(name, (customer.names.get(name) || 0) + 1);
+    const customer = map.get(order.customer_id);
     customer.orders.push(order);
-    customer.total += amount(order.total_amount) ?? 0;
-    const phone = clean(order.contact_number);
-    if (phone && !customer.contact) customer.contact = phone;
+    customer.total += orderValue(order) ?? 0;
   }
+  return [...map.values()];
+}
 
-  return [...map.values()].map((customer) => {
-    const sorted = [...customer.orders].sort(
-      (a, b) => (orderDate(b)?.getTime() ?? 0) - (orderDate(a)?.getTime() ?? 0)
-    );
-    const name =
-      [...customer.names.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "";
-    return {
-      key: customer.key,
-      name,
-      orders: sorted,
-      total: customer.total,
-      contact: customer.contact,
-      lastOrder: sorted[0],
-      lastDate: orderDate(sorted[0]),
-    };
-  });
+/** Rough "same person?" check for customer names (Manjot / Manjoot). */
+export function similarNames(a, b) {
+  const x = customerKey(a);
+  const y = customerKey(b);
+  if (!x || !y || x === y) return x === y && Boolean(x);
+  const shorter = Math.min(x.length, y.length);
+  const longer = Math.max(x.length, y.length);
+  // "gaganpreet" / "gaganpreets" yes; "simran" / "simransmother" no.
+  if (shorter >= 4 && shorter / longer >= 0.6 && (x.startsWith(y) || y.startsWith(x))) return true;
+  return editDistance(x, y) <= (Math.max(x.length, y.length) >= 7 ? 2 : 1);
+}
+
+function editDistance(a, b) {
+  const row = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i += 1) {
+    let previous = row[0];
+    row[0] = i;
+    for (let j = 1; j <= b.length; j += 1) {
+      const current = row[j];
+      row[j] = Math.min(row[j] + 1, row[j - 1] + 1, previous + (a[i - 1] === b[j - 1] ? 0 : 1));
+      previous = current;
+    }
+  }
+  return row[b.length];
 }
 
 /* ---------------- Avatars ---------------- */
@@ -236,6 +294,7 @@ export function phoneForLinks(value) {
 export function searchText(order) {
   return [
     order.order_number,
+    order.customer?.name,
     order.customer_name,
     order.contact_number,
     order.what_to_design,
@@ -249,14 +308,17 @@ export function searchText(order) {
 
 export function summarise(orders) {
   let value = 0;
-  let advance = 0;
+  let received = 0;
   let balance = 0;
   let review = 0;
+  let unbilled = 0;
   for (const order of orders) {
-    value += amount(order.total_amount) ?? 0;
-    advance += amount(order.advance_payment) ?? 0;
-    balance += balanceOf(order) ?? 0;
+    value += orderValue(order) ?? 0;
+    received += receivedOf(order);
+    if (order.payment_state === "billed") balance += order.balance ?? 0;
+    if (!order.bill_id) unbilled += 1;
     if (order.needs_review) review += 1;
   }
-  return { count: orders.length, value, advance, balance, review };
+  // `advance` kept for older screens: money received so far.
+  return { count: orders.length, value, received, advance: received, balance, review, unbilled };
 }

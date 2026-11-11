@@ -67,6 +67,10 @@ export function LanguageProvider({ children }) {
   const tError = useCallback(
     (error) => {
       const message = error?.message || "";
+      if (error?.code === "duplicate_order_numbers" && error.numbers?.length) {
+        return t("number.duplicate", { numbers: error.numbers.join(", ") });
+      }
+      if (error?.code === "order_number_required") return t("number.required");
       if (message.startsWith("error.")) return t(message);
       return message || t("error.generic");
     },

@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Pencil, TriangleAlert } from "lucide-react";
+import { orderEditPath, orderPath } from "../lib/api";
 import { useI18n } from "../lib/i18n";
 import {
-  amount,
+  avatarSeed,
   clean,
-  customerKey,
+  orderValue,
+  rawName,
   daysBetween,
   displayName,
   formatDate,
@@ -44,15 +46,15 @@ export function OrderRow({ order, showDelivery = true, rightText }) {
   const name = displayName(order, t);
   const design = clean(order.what_to_design);
   const extra = clean(order.additional_info);
-  const total = amount(order.total_amount);
+  const total = orderValue(order);
 
   return (
     <li>
       <Link
-        href={`/orders/${order.id}`}
+        href={orderPath(order)}
         className="flex items-center gap-3 px-4 py-3 transition hover:bg-card-2 active:bg-card-2"
       >
-        <Avatar name={clean(order.customer_name)} seed={customerKey(order.customer_name)} />
+        <Avatar name={rawName(order)} seed={avatarSeed(order)} />
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline justify-between gap-2">
             <p className="truncate text-[16.5px] font-medium text-ink">
@@ -118,7 +120,7 @@ export function OrdersTable({ orders }) {
 
   return (
     <div className="overflow-x-auto rounded-2xl border border-line bg-card shadow-sm">
-      <table className="w-full min-w-[900px] border-collapse text-left">
+      <table className="w-full min-w-[1000px] border-collapse text-left">
         <thead>
           <tr className="bg-card-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-muted">
             <th className="px-5 py-3.5">{t("field.orderNumber")}</th>
@@ -127,7 +129,8 @@ export function OrdersTable({ orders }) {
             <th className="px-4 py-3.5">{t("field.orderDate")}</th>
             <th className="px-4 py-3.5">{t("orders.delivery")}</th>
             <th className="px-4 py-3.5 text-right">{t("field.total")}</th>
-            <th className="px-4 py-3.5 text-right">{t("field.advance")}</th>
+            <th className="px-4 py-3.5 text-right">{t("pay.received")}</th>
+            <th className="px-4 py-3.5">{t("pay.title")}</th>
             <th className="px-4 py-3.5">{t("field.needsReview")}</th>
             <th className="px-5 py-3.5 text-right">
               <span className="sr-only">{t("common.edit")}</span>
@@ -138,7 +141,7 @@ export function OrdersTable({ orders }) {
           {orders.map((order) => (
             <tr
               key={order.id}
-              onClick={() => router.push(`/orders/${order.id}`)}
+              onClick={() => router.push(orderPath(order))}
               className="cursor-pointer transition-colors hover:bg-card-2/60"
             >
               <td className="px-5 py-3.5">
@@ -149,8 +152,8 @@ export function OrdersTable({ orders }) {
               <td className="px-4 py-3.5">
                 <div className="flex items-center gap-3">
                   <Avatar
-                    name={clean(order.customer_name)}
-                    seed={customerKey(order.customer_name)}
+                    name={rawName(order)}
+                    seed={avatarSeed(order)}
                     size={34}
                   />
                   <div className="min-w-0">
@@ -180,17 +183,21 @@ export function OrdersTable({ orders }) {
                 {formatDate(order.deliver_date, locale)}
               </td>
               <td className="whitespace-nowrap px-4 py-3.5 text-right text-sm font-medium text-ink">
-                {formatMoney(amount(order.total_amount), locale)}
+                {formatMoney(orderValue(order), locale)}
               </td>
               <td className="whitespace-nowrap px-4 py-3.5 text-right text-sm text-ink-2">
-                {formatMoney(amount(order.advance_payment), locale)}
+                {formatMoney(order.received ?? 0, locale)}
+              </td>
+              <td className="whitespace-nowrap px-4 py-3.5 text-xs text-ink-2">
+                {t(`pay.state.${order.payment_state || "none"}`)}
+                {order.bill_number && <span className="block text-muted">{order.bill_number}</span>}
               </td>
               <td className="px-4 py-3.5">
                 <ReviewBadge needsReview={Boolean(order.needs_review)} />
               </td>
               <td className="px-4 py-3.5 text-right">
                 <Link
-                  href={`/orders/${order.id}/edit`}
+                  href={orderEditPath(order)}
                   onClick={(event) => event.stopPropagation()}
                   aria-label={t("common.edit")}
                   title={t("common.edit")}

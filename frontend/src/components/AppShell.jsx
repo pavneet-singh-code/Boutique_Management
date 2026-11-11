@@ -15,6 +15,7 @@ import {
   LayoutDashboard,
   LogOut,
   Plus,
+  ReceiptIndianRupee,
   Scissors,
   Settings,
   Upload,
@@ -39,6 +40,7 @@ const sidebarSections = [
       { label: "nav.orders", path: "/orders", icon: ClipboardList, exact: true },
       { label: "nav.upload", path: "/upload-orders", icon: Upload },
       { label: "nav.newOrder", path: "/orders/new", icon: FilePlus },
+      { label: "nav.bills", path: "/bills", icon: ReceiptIndianRupee },
       { label: "nav.export", path: "/export-orders", icon: Download },
     ],
   },
@@ -57,7 +59,7 @@ const tabs = [
     label: "tab.orders",
     path: "/orders",
     icon: ClipboardList,
-    match: ["/orders", "/upload-orders"],
+    match: ["/orders", "/upload-orders", "/bills"],
   },
   { label: "tab.customers", path: "/customers", icon: Users, match: ["/customers"] },
   {
@@ -159,7 +161,7 @@ function Sidebar() {
   );
 }
 
-function TopBar({ title, subtitle }) {
+function TopBar({ title, subtitle, actions }) {
   const { t } = useI18n();
   return (
     <header className="sticky top-0 z-30 hidden border-b border-line bg-[#faf7f1]/95 backdrop-blur-md md:block">
@@ -173,7 +175,10 @@ function TopBar({ title, subtitle }) {
             <p className="mt-0.5 hidden text-sm text-muted lg:block">{subtitle}</p>
           )}
         </div>
-        <LanguageToggle />
+        <div className="flex items-center gap-2">
+          {actions && <div className="flex items-center">{actions}</div>}
+          <LanguageToggle />
+        </div>
       </div>
     </header>
   );
@@ -323,7 +328,8 @@ export default function AppShell({
     <div className="min-h-dvh bg-bg text-ink">
       <Sidebar />
       <div className="flex min-h-dvh min-w-0 flex-col md:ml-64">
-        <TopBar title={title} subtitle={subtitle} />
+        {/* Detail screens have no page heading on desktop, so their buttons go here. */}
+        <TopBar title={title} subtitle={subtitle} actions={hideTabs ? actions : null} />
         <MobileHeader
           title={title}
           mobileTitle={mobileTitle}

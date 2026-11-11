@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { FileText } from "lucide-react";
 import AppShell from "../../../../components/AppShell";
 import OrderForm, { toFormValues, toPayload } from "../../../../components/OrderForm";
@@ -13,17 +13,18 @@ import {
   PageHeading,
   Spinner,
 } from "../../../../components/ui";
-import { updateOrder } from "../../../../lib/api";
+import { findOrder, orderPath, updateOrder } from "../../../../lib/api";
 import { useI18n } from "../../../../lib/i18n";
 import { clean } from "../../../../lib/orders";
 import { useOrders } from "../../../../lib/useOrders";
 
-export default function EditOrderPage() {
+function EditOrderContent() {
   const { id } = useParams();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const { t, tError } = useI18n();
   const { orders, ready, error, reload } = useOrders();
-  const order = orders.find((item) => String(item.id) === String(id));
+  const order = findOrder(orders, id, searchParams.get("id"));
 
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -43,11 +44,15 @@ export default function EditOrderPage() {
       setSaveError(t("new.needName"));
       return;
     }
+    if (!clean(form.order_number)) {
+      setSaveError(t("number.required"));
+      return;
+    }
     setSaving(true);
     setSaveError("");
     try {
-      await updateOrder(id, toPayload(form));
-      router.replace(`/orders/${id}`);
+      const updated = await updateOrder(order.id, toPayload(form));
+      router.replace(orderPath(updated));
     } catch (err) {
       setSaveError(tError(err));
       setSaving(false);
@@ -60,7 +65,7 @@ export default function EditOrderPage() {
     <AppShell
       title={t("edit.title")}
       subtitle={t("edit.subtitle")}
-      back={`/orders/${id}`}
+      back={order ? orderPath(order) : "/orders"}
       hideTabs
     >
       <div className="mx-auto max-w-3xl">
@@ -84,11 +89,24 @@ export default function EditOrderPage() {
                 {saveError}
               </Notice>
             )}
+            {order?.import_notes && (
+              <Notice tone="warn" className="mb-4">
+                {t("order.cleanupNote")}: {order.import_notes}
+              </Notice>
+            )}
             <OrderForm value={form} onChange={onChange} original={order} />
             <SaveBar saving={saving} form="order-form" />
           </form>
         )}
       </div>
     </AppShell>
+  );
+}
+
+export default function EditOrderPage() {
+  return (
+    <Suspense fallback={null}>
+      <EditOrderContent />
+    </Suspense>
   );
 }

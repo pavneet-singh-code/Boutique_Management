@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ChevronRight,
   ClipboardList,
+  Hash,
+  ReceiptIndianRupee,
   Clock3,
   Download,
   FilePlus,
@@ -35,15 +37,29 @@ import {
   daysBetween,
   formatMoney,
   friendlyDate,
+  monthRange,
   orderMonthKey,
   parseDate,
+  receivedBetween,
   summarise,
 } from "../../lib/orders";
+import { getDataCheck } from "../../lib/api";
 import { useOrders } from "../../lib/useOrders";
 
 export default function DashboardPage() {
   const { t, locale } = useI18n();
   const { orders, ready, loading, error, reload } = useOrders();
+  const [numberProblems, setNumberProblems] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    getDataCheck()
+      .then((check) => !cancelled && setNumberProblems(check.blocking))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [orders.length]);
 
   const data = useMemo(() => {
     const month = currentMonthKey();
@@ -64,8 +80,13 @@ export default function DashboardPage() {
       .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)) || b.id - a.id)
       .slice(0, 5);
 
+    const [from, to] = monthRange(month);
+    const all = summarise(orders);
     return {
       stats: summarise(thisMonth),
+      receivedThisMonth: receivedBetween(orders, from, to),
+      toCollect: all.balance,
+      unbilled: all.unbilled,
       review: orders.filter((order) => order.needs_review).length,
       upcoming,
       recent,
@@ -152,22 +173,46 @@ export default function DashboardPage() {
                 tone="accent"
               />
               <StatTile
-                label={t("dash.value")}
-                value={formatMoney(data.stats.value, locale)}
-                icon={IndianRupee}
-              />
-              <StatTile
-                label={t("dash.advance")}
-                value={formatMoney(data.stats.advance, locale)}
+                label={t("dash.received")}
+                value={formatMoney(data.receivedThisMonth, locale)}
                 icon={Wallet}
               />
-              <StatTile
-                label={t("dash.balance")}
-                value={formatMoney(data.stats.balance, locale)}
-                icon={Clock3}
-              />
+              <Link href="/bills" className="block">
+                <StatTile
+                  label={t("dash.toCollect")}
+                  value={formatMoney(data.toCollect, locale)}
+                  icon={Clock3}
+                />
+              </Link>
+              <Link href="/bills/new" className="block">
+                <StatTile
+                  label={t("dash.notBilled")}
+                  value={data.unbilled.toLocaleString(locale)}
+                  note={t("dash.unbilledNote", { count: data.unbilled })}
+                  icon={IndianRupee}
+                />
+              </Link>
             </div>
           </section>
+
+          {/* Order number problems (Phase 0 clean-up) */}
+          {numberProblems > 0 && (
+            <Link
+              href="/orders/data-check"
+              className="mx-4 flex items-center gap-3 rounded-2xl bg-danger-soft p-4 transition hover:opacity-90 md:mx-0"
+            >
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-danger text-white">
+                <Hash size={20} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-semibold text-danger">
+                  {t("check.banner", { count: numberProblems })}
+                </span>
+                <span className="block text-sm text-ink-2">{t("check.bannerHelp")}</span>
+              </span>
+              <ChevronRight size={20} className="shrink-0 text-danger" />
+            </Link>
+          )}
 
           {/* Needs review */}
           {data.review > 0 && (
@@ -256,7 +301,7 @@ export default function DashboardPage() {
               {[
                 { href: "/upload-orders", icon: Upload, label: t("nav.upload") },
                 { href: "/orders/new", icon: FilePlus, label: t("nav.newOrder") },
-                { href: "/export-orders", icon: Download, label: t("nav.export") },
+                { href: "/bills", icon: ReceiptIndianRupee, label: t("nav.bills") },
               ].map((item) => (
                 <Link
                   key={item.href}
