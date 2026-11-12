@@ -19,6 +19,8 @@ import {
   parseDate,
 } from "../lib/orders";
 import { Avatar, ReviewBadge, cx } from "./ui";
+import { LateChip, ProgressBar, StageChip } from "./Work";
+import { isLate, isOpen } from "../lib/work";
 
 /** Short "delivery" hint: "3 days left" / "Due today" / date. */
 export function DeliveryHint({ order, className }) {
@@ -90,8 +92,21 @@ export function OrderRow({ order, showDelivery = true, rightText }) {
               </span>
             ) : null}
           </div>
-          {showDelivery && (
-            <DeliveryHint order={order} className="mt-0.5 block text-xs" />
+          <div className="mt-0.5 flex items-center justify-between gap-2">
+            {showDelivery ? (
+              <DeliveryHint order={order} className="min-w-0 truncate text-xs" />
+            ) : (
+              <span />
+            )}
+            <span className="flex shrink-0 items-center gap-1">
+              {isLate(order) && <LateChip />}
+              {order.status && order.status !== "received" && (
+                <StageChip status={order.status} step={order.current_step} />
+              )}
+            </span>
+          </div>
+          {isOpen(order) && (order.tasks || []).length > 0 && (
+            <ProgressBar value={order.progress ?? 0} className="mt-1.5" />
           )}
         </div>
       </Link>
@@ -131,6 +146,7 @@ export function OrdersTable({ orders }) {
             <th className="px-4 py-3.5">{t("field.design")}</th>
             <th className="px-4 py-3.5">{t("field.orderDate")}</th>
             <th className="px-4 py-3.5">{t("orders.delivery")}</th>
+            <th className="px-4 py-3.5">{t("stage.label")}</th>
             {seeMoney && (
               <>
                 <th className="px-4 py-3.5 text-right">{t("field.total")}</th>
@@ -188,6 +204,17 @@ export function OrdersTable({ orders }) {
               </td>
               <td className="whitespace-nowrap px-4 py-3.5 text-sm text-ink-2">
                 {formatDate(order.deliver_date, locale)}
+              </td>
+              <td className="px-4 py-3.5">
+                <span className="flex flex-col items-start gap-1">
+                  <span className="flex gap-1">
+                    <StageChip status={order.status} step={order.current_step} />
+                    {isLate(order) && <LateChip />}
+                  </span>
+                  {isOpen(order) && (order.tasks || []).length > 0 && (
+                    <ProgressBar value={order.progress ?? 0} className="w-20" />
+                  )}
+                </span>
               </td>
               {seeMoney && (
               <>

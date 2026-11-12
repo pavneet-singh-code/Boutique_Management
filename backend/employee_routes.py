@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session, selectinload
 
 import activity
@@ -16,7 +17,7 @@ from database import get_db
 
 router = APIRouter(prefix="/api/v1")
 
-EDITABLE = ("name", "phone", "role", "color", "active")
+EDITABLE = ("name", "phone", "role", "color", "active", "skills")
 
 
 def get_employee_or_404(db: Session, employee_id: int) -> models.Employee:
@@ -68,6 +69,7 @@ def add_employee(data: schemas.EmployeeCreate, db: Session = Depends(get_db), us
         role=data.role,
         pin_hash=hash_secret(data.pin),
         active=True,
+        skills=json.dumps(sorted(set(data.skills))) if data.skills else None,
     )
     db.add(employee)
     db.flush()
@@ -104,6 +106,8 @@ def update_employee(
     if losing_owner and active_owner_count(db, exclude_id=employee.id) == 0:
         problem(409, "last_owner", "There must always be at least one active owner.")
 
+    if "skills" in updates:
+        updates["skills"] = json.dumps(sorted(set(updates["skills"] or []))) or None
     for key, value in updates.items():
         setattr(employee, key, value.strip() if isinstance(value, str) else value)
 
@@ -157,10 +161,25 @@ def list_activity(
         query = query.filter(models.ActivityLog.actor_id == user.id)
     elif actor_id:
         query = query.filter(models.ActivityLog.actor_id == actor_id)
-    if entity:
-        query = query.filter(models.ActivityLog.entity == entity)
-    if entity_id is not None:
-        query = query.filter(models.ActivityLog.entity_id == entity_id)
+    if entity == "order" and entity_id is not None:
+        # An order's history also includes the work (tasks) done on it.
+        query = query.filter(
+            or_(
+                and_(models.ActivityLog.entity == "order", models.ActivityLog.entity_id == entity_id),
+                and_(
+                    models.ActivityLog.entity == "task",
+                    or_(
+                        models.ActivityLog.details.like(f'%"order_id": {entity_id},%'),
+                        models.ActivityLog.details.like(f'%"order_id": {entity_id}}}%'),
+                    ),
+                ),
+            )
+        )
+    else:
+        if entity:
+            query = query.filter(models.ActivityLog.entity == entity)
+        if entity_id is not None:
+            query = query.filter(models.ActivityLog.entity_id == entity_id)
     if before_id:
         query = query.filter(models.ActivityLog.id < before_id)
     rows = query.order_by(models.ActivityLog.id.desc()).limit(limit).all()

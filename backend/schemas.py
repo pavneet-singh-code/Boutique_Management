@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from typing import List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -72,7 +72,7 @@ class OrderScan(OrderFormExtraction):
 
 
 TEXT_FIELDS = ("customer_name", "additional_info", "contact_number", "what_to_design", "filename")
-DATE_FIELDS = ("order_date", "deliver_date", "advance_date")
+DATE_FIELDS = ("order_date", "deliver_date", "advance_date", "trial_date")
 AMOUNT_FIELDS = ("advance_amount", "estimated_total")
 
 
@@ -152,6 +152,7 @@ class OrderCreate(BaseModel):
     advance_amount: Optional[int] = None
     advance_date: Optional[date] = None
     estimated_total: Optional[int] = None
+    trial_date: Optional[date] = None
     needs_review: bool = False
     import_notes: Optional[str] = None
 
@@ -175,6 +176,8 @@ class OrderUpdate(BaseModel):
     advance_amount: Optional[int] = None
     advance_date: Optional[date] = None
     estimated_total: Optional[int] = None
+    trial_date: Optional[date] = None
+    status: Optional[Literal["received", "in_work", "ready", "delivered", "cancelled"]] = None
     needs_review: Optional[bool] = None
 
     @model_validator(mode="before")
@@ -223,6 +226,14 @@ class OrderResponse(BaseModel):
     received: int = 0
     balance: Optional[int] = None
     payment_state: str = "none"  # none | advance | billed | paid
+
+    status: str = "received"
+    status_confirmed: bool = True
+    trial_date: Optional[date] = None
+    delivered_at: Optional[datetime] = None
+    progress: int = 0
+    current_step: Optional[str] = None
+    tasks: List["TaskOut"] = []
 
     needs_review: bool = False
     import_notes: Optional[str] = None
@@ -342,9 +353,41 @@ class AppSettings(BaseModel):
 
 # ---------------------------------------------------------------- Team
 
-from typing import Any, Dict, Literal  # noqa: E402
 
 Role = Literal["owner", "uploader", "worker", "social_media"]
+
+
+Speciality = Literal["materials", "cutting", "machine", "handwork", "stitching", "final_check", "social_media"]
+
+
+def _skills(value):
+    if not value:
+        return []
+    if isinstance(value, list):
+        return value
+    try:
+        import json
+
+        return list(json.loads(value))
+    except ValueError:
+        return []
+
+
+def _employee_dict(data):
+    """Database row -> plain dict (skills decoded, PIN hidden)."""
+    return {
+        "id": data.id,
+        "employee_code": data.employee_code,
+        "name": data.name,
+        "role": data.role,
+        "color": data.color,
+        "active": data.active,
+        "skills": _skills(data.skills),
+        "phone": data.phone,
+        "has_pin": bool(data.pin_hash),
+        "last_login_at": data.last_login_at,
+        "created_at": data.created_at,
+    }
 
 
 class EmployeeBrief(BaseModel):
@@ -356,6 +399,12 @@ class EmployeeBrief(BaseModel):
     role: str
     color: Optional[str] = None
     active: bool = True
+    skills: List[str] = []
+
+    @model_validator(mode="before")
+    @classmethod
+    def from_row(cls, data):
+        return _employee_dict(data) if hasattr(data, "pin_hash") else data
 
 
 class EmployeeOut(EmployeeBrief):
@@ -364,23 +413,6 @@ class EmployeeOut(EmployeeBrief):
     last_login_at: Optional[datetime] = None
     created_at: Optional[datetime] = None
 
-    @model_validator(mode="before")
-    @classmethod
-    def add_has_pin(cls, data):
-        if hasattr(data, "pin_hash"):
-            return {
-                "id": data.id,
-                "employee_code": data.employee_code,
-                "name": data.name,
-                "role": data.role,
-                "color": data.color,
-                "active": data.active,
-                "phone": data.phone,
-                "has_pin": bool(data.pin_hash),
-                "last_login_at": data.last_login_at,
-                "created_at": data.created_at,
-            }
-        return data
 
 
 HEX_COLOR = r"^#[0-9a-fA-F]{6}$"
@@ -392,6 +424,7 @@ class EmployeeCreate(BaseModel):
     role: Role
     pin: str
     color: Optional[str] = Field(None, pattern=HEX_COLOR)
+    skills: List[Speciality] = []
 
 
 class EmployeeUpdate(BaseModel):
@@ -400,6 +433,7 @@ class EmployeeUpdate(BaseModel):
     role: Optional[Role] = None
     color: Optional[str] = Field(None, pattern=HEX_COLOR)
     active: Optional[bool] = None
+    skills: Optional[List[Speciality]] = None
 
 
 class PinReset(BaseModel):
@@ -415,3 +449,95 @@ class ActivityOut(BaseModel):
     label: Optional[str] = None
     details: Dict[str, Any] = {}
     created_at: datetime
+
+
+
+# ---------------------------------------------------------------- Work tasks
+
+TaskType = Literal[
+    "materials", "cutting", "machine", "handwork", "stitching", "final_check", "social_media", "other"
+]
+TaskStatus = Literal["assigned", "in_progress", "done"]
+
+
+class TaskOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    order_id: int
+    employee: Optional[EmployeeBrief] = None
+    position: int = 0
+    task: str
+    note: Optional[str] = None
+    status: str
+    due_date: Optional[date] = None
+    original_due_date: Optional[date] = None
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+
+
+class TaskCreate(BaseModel):
+    employee_id: Optional[int] = None
+    task: TaskType
+    due_date: Optional[date] = None
+    note: Optional[str] = None
+
+
+class TaskUpdate(BaseModel):
+    employee_id: Optional[int] = None
+    task: Optional[TaskType] = None
+    due_date: Optional[date] = None
+    note: Optional[str] = None
+    status: Optional[TaskStatus] = None
+
+
+class WorkOrder(BaseModel):
+    """What a worker sees about the order: no money, no phone numbers."""
+
+    id: int
+    order_number: Optional[str] = None
+    customer_name: Optional[str] = None
+    additional_info: Optional[str] = None
+    what_to_design: Optional[str] = None
+    deliver_date: Optional[date] = None
+    trial_date: Optional[date] = None
+    status: str
+    progress: int
+    current_step: Optional[str] = None
+
+
+class WaitingStep(BaseModel):
+    task: str
+    employee_name: Optional[str] = None
+    status: str
+
+
+class MyTask(TaskOut):
+    order: WorkOrder
+    # Earlier steps of the plan that aren't done yet ("waiting for cutting").
+    waiting_for: List[WaitingStep] = []
+
+
+class PlanCreate(BaseModel):
+    """Several steps at once (e.g. from a template)."""
+
+    steps: List[TaskCreate] = Field(min_length=1)
+
+
+class StepOrder(BaseModel):
+    task_ids: List[int]
+
+
+class ConfirmStatus(BaseModel):
+    order_ids: List[int] = Field(min_length=1)
+    delivered: bool
+
+
+class Workload(BaseModel):
+    employee: EmployeeBrief
+    open: int
+    late: int
+
+
+OrderResponse.model_rebuild()

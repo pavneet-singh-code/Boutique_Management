@@ -30,14 +30,15 @@ from auth import OWNER, STAFF, VIEWERS
 from auth_routes import router as auth_router
 from customer_routes import router as customer_router
 from employee_routes import router as employee_router
+from work_routes import roll_over_tasks, router as work_router, set_stage
 
 
 # ---------------------------------------------------------
 # DATABASE VERSION CHECK
 # Tables are created / changed by migrations, not on startup:
 #   cd backend && alembic upgrade head
-# The app needs at least migration 0004 (employees + activity log).
-# 0005 (unique order numbers) runs once duplicates are fixed in the app.
+# The app needs at least migration 0005 (order stages + work tasks).
+# 0006 (unique order numbers) runs once duplicates are fixed in the app.
 # ---------------------------------------------------------
 
 def current_migration():
@@ -49,7 +50,7 @@ def current_migration():
 
 DB_REVISION = current_migration()
 
-if DB_REVISION not in ("0004", "0005"):
+if DB_REVISION not in ("0005", "0006"):
     raise RuntimeError(
         "The database needs to be upgraded. Back up boutique.db, then run "
         "'alembic upgrade head' in the backend folder and reload the app."
@@ -73,6 +74,9 @@ app.include_router(customer_router)
 
 # Team (employees) and the activity log
 app.include_router(employee_router)
+
+# Work: tasks for employees and order stages
+app.include_router(work_router)
 
 
 # CORS
@@ -154,12 +158,14 @@ def get_orders(
     current_user: models.Employee = Depends(VIEWERS)
 ):
     """Retrieves all stored boutique orders from SQLite."""
+    roll_over_tasks(db)  # unfinished steps move to today
 
     orders = (
         db.query(models.Order)
         .options(
             selectinload(models.Order.customer),
             selectinload(models.Order.bill).selectinload(models.Bill.orders),
+            selectinload(models.Order.tasks).selectinload(models.OrderTask.employee),
         )
         .all()
     )
@@ -477,7 +483,7 @@ def data_check(
             date_problems.append({"order": as_dict(order), "reasons": reasons})
 
     return {
-        "unique_enforced": DB_REVISION == "0005",
+        "unique_enforced": DB_REVISION == "0006",
         "duplicates": duplicates,
         "missing": missing,
         "unusual_format": unusual,
@@ -606,6 +612,7 @@ def get_order_by_id(
     current_user: models.Employee = Depends(VIEWERS)
 ):
     """Retrieves full details for a specific order."""
+    roll_over_tasks(db)
 
     order = (
         db.query(models.Order)
@@ -682,14 +689,18 @@ def update_order_field(
                 },
             )
 
+    new_status = update_data.pop("status", None)
     before = activity.snapshot(db_order, update_data.keys())
     for key, value in update_data.items():
         setattr(db_order, key, value)
-    activity.log(
-        db, current_user, "order", db_order.id, "updated",
-        label=activity.order_label(db_order),
-        changes=activity.changes(before, activity.snapshot(db_order, update_data.keys())),
-    )
+    if update_data:
+        activity.log(
+            db, current_user, "order", db_order.id, "updated",
+            label=activity.order_label(db_order),
+            changes=activity.changes(before, activity.snapshot(db_order, update_data.keys())),
+        )
+    if new_status:
+        set_stage(db, current_user, db_order, new_status)
 
     try:
         db.commit()

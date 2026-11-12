@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
+  BriefcaseBusiness,
   CalendarDays,
   ChevronRight,
   CircleCheck,
@@ -18,6 +19,7 @@ import {
 } from "lucide-react";
 import AppShell, { HeaderIconButton } from "../../../components/AppShell";
 import { PaymentSteps } from "../../../components/Bills";
+import { WorkSection } from "../../../components/Work";
 import {
   Avatar,
   Button,
@@ -123,6 +125,8 @@ function OrderDetailContent() {
   const canEdit = useCan("editOrders");
   const canDelete = useCan("deleteOrders");
   const seeMoney = useCan("money");
+  const canAssign = useCan("team");
+  const canBill = useCan("makeBills");
 
   const markChecked = async () => {
     setBusy(true);
@@ -272,6 +276,10 @@ function OrderDetailContent() {
           </p>
         </Section>
 
+        <Section icon={BriefcaseBusiness} title={t("work.title")}>
+          <WorkSection order={order} canEdit={canEdit} canAssign={canAssign} canBill={canBill} />
+        </Section>
+
         <Section icon={CalendarDays} title={t("order.dates")}>
           <Row label={t("field.orderDate")} value={formatDate(order.order_date, locale)} />
           <Row
@@ -314,7 +322,14 @@ function OrderDetailContent() {
             <h2 className="border-b border-line px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-accent-ink md:px-5">
               {t("activity.history")}
             </h2>
-            <ActivityList entity="order" entityId={order.id} meId={me?.id} pageSize={10} />
+            <ActivityList
+              // Reload the history whenever the order or its work changes.
+              key={`${order.status}-${(order.tasks || []).map((task) => task.status).join(",")}-${order.deliver_date}`}
+              entity="order"
+              entityId={order.id}
+              meId={me?.id}
+              pageSize={10}
+            />
           </Card>
         )}
 

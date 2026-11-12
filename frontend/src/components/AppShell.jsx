@@ -16,6 +16,7 @@ import {
   FilePlus,
   House,
   LayoutDashboard,
+  ListTodo,
   LogOut,
   Plus,
   ReceiptIndianRupee,
@@ -45,6 +46,7 @@ const sidebarSections = [
     heading: "nav.ordersSection",
     items: [
       { label: "nav.orders", path: "/orders", icon: ClipboardList, exact: true, feature: "orders" },
+      { label: "nav.pending", path: "/pending", icon: ListTodo, feature: "editOrders" },
       { label: "nav.upload", path: "/upload-orders", icon: Upload, feature: "upload" },
       { label: "nav.newOrder", path: "/orders/new", icon: FilePlus, feature: "editOrders" },
       { label: "nav.bills", path: "/bills", icon: ReceiptIndianRupee, feature: "bills" },
@@ -71,6 +73,7 @@ const ALL_TABS = {
     match: ["/orders", "/upload-orders", "/bills"],
   },
   customers: { label: "tab.customers", path: "/customers", icon: Users, match: ["/customers"] },
+  pending: { label: "tab.pending", path: "/pending", icon: ListTodo, match: ["/pending"] },
   reports: {
     label: "tab.reports",
     path: "/monthly-review",
@@ -81,7 +84,7 @@ const ALL_TABS = {
     label: "tab.settings",
     path: "/settings",
     icon: Settings,
-    match: ["/settings", "/export-orders", "/team", "/activity"],
+    match: ["/settings", "/export-orders", "/team", "/activity", "/monthly-review", "/yearly-review"],
   },
   myWork: { label: "tab.myWork", path: "/my-work", icon: BriefcaseBusiness, match: ["/my-work"] },
   profile: {
@@ -93,9 +96,9 @@ const ALL_TABS = {
 };
 
 const TABS_BY_ROLE = {
-  owner: ["home", "orders", "customers", "reports", "settings"],
-  uploader: ["home", "orders", "customers", "reports", "settings"],
-  social_media: ["orders", "profile"],
+  owner: ["home", "orders", "pending", "customers", "settings"],
+  uploader: ["home", "orders", "pending", "customers", "settings"],
+  social_media: ["orders", "myWork", "profile"],
   worker: ["myWork", "profile"],
 };
 

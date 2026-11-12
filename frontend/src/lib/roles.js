@@ -25,7 +25,8 @@ const FEATURES = {
   backup: ["owner"],
   boutiqueSettings: ["owner"],
   allActivity: ["owner"],
-  myWork: ["worker"],
+  myWork: ["worker", "social_media", "owner", "uploader"],
+  confirmDelivery: ["owner", "uploader"],
 };
 
 export const ROLES = ["owner", "uploader", "worker", "social_media"];

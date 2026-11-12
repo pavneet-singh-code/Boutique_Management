@@ -11,6 +11,8 @@ import {
   Download,
   Hash,
   Languages,
+  BriefcaseBusiness,
+  ChartNoAxesColumn,
   History,
   LogOut,
   ReceiptIndianRupee,
@@ -133,6 +135,17 @@ export default function SettingsPage() {
         {can(role, "boutiqueSettings") && <BoutiqueDetails />}
 
         <Card className="divide-y divide-line overflow-hidden rounded-none border-x-0 md:rounded-2xl md:border-x">
+          {can(role, "myWork") && role !== "worker" && role !== "social_media" && (
+            <Row icon={BriefcaseBusiness} title={t("nav.myWork")} help={t("mywork.empty")} href="/my-work" />
+          )}
+          {can(role, "reports") && (
+            <Row
+              icon={ChartNoAxesColumn}
+              title={t("tab.reports")}
+              help={`${t("nav.monthly")} · ${t("nav.yearly")}`}
+              href="/monthly-review"
+            />
+          )}
           {can(role, "bills") && (
             <Row
               icon={ReceiptIndianRupee}

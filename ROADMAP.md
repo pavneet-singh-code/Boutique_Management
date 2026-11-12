@@ -3,7 +3,7 @@
 Planned features for the boutique management app, and the order we will build them in.
 Every phase ends with something that works and can be deployed on its own.
 
-**Status:** Phases 0, 1 and 2 built, waiting to be deployed together · **Last updated:** 11 Nov 2026
+**Status:** Phases 0–3 built, waiting to be deployed together · **Last updated:** 11 Nov 2026
 
 ---
 
@@ -225,28 +225,41 @@ Notes:
   - "No reel yet" if it has none.
   - "Reel planned / editing / posted" otherwise.
 
-### 3.4 Order status (work stages)
+### 3.4 Each suit's plan, and where the order is
 
-| Status | Hindi | Progress |
-|--------|-------|----------|
-| `received` | ऑर्डर मिला | 0% |
-| `cutting` | कटिंग | 20% |
-| `stitching` | सिलाई | 50% |
-| `handwork` | हाथ का काम | 70% |
-| `finishing` | फ़िनिशिंग | 85% |
-| `ready` | तैयार | 100% |
-| `delivered` | दे दिया | ✓ |
-| `cancelled` | रद्द | — |
+Every suit is made differently, so there is **no fixed list of stages**. The owner gives each order its own
+**plan**: steps in the order they happen, each with a speciality, a person (can be chosen later), a date and a
+note. For example:
 
-**How progress is worked out:**
-- If an order has tasks, progress is the share of its tasks that are done.
-- If it has no tasks, progress comes from its stage, using the table above.
+> 1. Collect materials (Sita) → 2. Cutting (Kamla) → 3. Machine work → 4. Handwork (Sita) → 5. Stitching (Kamla) →
+> 6. Final check / delivery (Rani)
 
-**When an order becomes `ready`:**
-- The owner is asked to enter the **final total**, which is payment step 2.
-- The social media manager gets an **"outfit ready to shoot"** alert, but only for orders marked `ok_to_post`.
+**Specialities** (`SPECIALITIES`), which are also the kinds of steps:
 
----
+| Key | Hindi | English |
+|---|---|---|
+| `materials` | सामान लाना | Collect materials |
+| `cutting` | कटिंग | Cutting |
+| `machine` | मशीन का काम | Machine work |
+| `handwork` | हाथ का काम | Handwork |
+| `stitching` | सिलाई | Stitching |
+| `final_check` | आखिरी जाँच / डिलीवरी | Final check / delivery |
+| `social_media` | सोशल मीडिया | Social media (e.g. a reel of this suit) |
+| `other` | दूसरा काम | Other work |
+
+**Where the order is** (`status`):
+- **Stages:** `received` (ऑर्डर मिला), `in_work` (काम चल रहा, shown with the current step, e.g. "कटिंग"),
+  `ready` (तैयार), `delivered` (दे दिया), `cancelled` (रद्द).
+- **Automatic changes:** the first step started puts the order in work. When every step is done it becomes
+  ready, and reopening a step puts it back in work.
+- **Progress:** the share of the steps that are done.
+
+**One person, several specialities.** Each person keeps **one ID and one login (one phone number)** and can have
+several specialities ticked. Their **role** (owner / uploader / worker / social media) still decides what they
+can see. When the owner gives out a step, people with that speciality are shown first.
+
+**Unfinished steps move to the next day.** Every day (Indian time), any step not done by its date moves to
+today. The first date is kept, so the owner sees "moved forward 3 days", and each move is in the activity log.
 
 ## 4. Who sees what
 
@@ -389,9 +402,10 @@ every database change.**
    - `0002` cleans the data and switches the columns to proper types.
    - `0003` adds customers, three-step payments and bills (Phase 1).
    - `0004` adds employees and the activity log (Phase 2).
-   - `0005` makes order numbers unique and required. It is the **last** step on purpose: it waits until the
-     duplicates have been fixed in the app, and the app needs `0004` to run.
-   - The backend refuses to start until at least `0004` has run, with a clear message.
+   - `0005` adds order stages, trial dates and work tasks (Phase 3).
+   - `0006` makes order numbers unique and required. It is the **last** step on purpose: it waits until the
+     duplicates have been fixed in the app, and the app needs `0005` to run.
+   - The backend refuses to start until at least `0005` has run, with a clear message.
 2. ✅ **Order numbers fixed automatically where it is safe:**
    - The `/` misread: `26/025` → `261025`.
    - Every change is written in the order's *clean-up note*.
@@ -403,7 +417,7 @@ every database change.**
 4. ✅ **Order numbers required and unique:**
    - The backend refuses duplicate or missing numbers on upload, add and edit.
    - The upload screen blocks saving and says which page has the problem.
-   - The database rule is switched on by `0005`, once the check screen shows "All clear".
+   - The database rule is switched on by `0006`, once the check screen shows "All clear".
    - Links now use the order number (`/orders/261023`). Old links using the internal id still work.
 5. ✅ **Proper types:**
    - Dates are real dates.
@@ -412,13 +426,13 @@ every database change.**
    - Dates that couldn't be read are kept in the clean-up note, so nothing is lost.
 6. ✅ **Backups to your PC:** see section 10.
 
-**How to deploy Phases 0, 1 and 2 (together):**
+**How to deploy Phases 0–3 (together):**
 1. **Back up first:** run `Backup-Boutique-DB.bat` on your PC.
 2. **Update the backend on PythonAnywhere** (in a Bash console):
    - `cd ~/Boutique_Management && git pull`
    - `cd backend && pip install -r requirements.txt` (use your virtualenv if you have one)
    - `alembic upgrade head`
-   - It runs `0002`, `0003` and `0004`, then stops at `0005` and lists the duplicates. **That's expected.**
+   - It runs `0002` to `0005`, then stops at `0006` and lists the duplicates. **That's expected.**
 3. **Reload the web app** on the Web tab, then deploy the new frontend.
 4. **Owner login:**
    - Log in with **"Log in with the owner password"** (the same password as today). You are `FA-001`.
@@ -521,16 +535,47 @@ every database change.**
 ✅ **Done when:** you, Mom, the uploader, the workers and the social media manager each have their own login,
 and the owner can add people.
 
-### Phase 3 — Order status, assigning work, worker view
-1. **Status:** add `status`, stages and `trial_date` to orders, with a stage picker on the order page.
-2. **Tasks:** an `order_tasks` table, and an **assign** flow for the owner: pick a worker, the task type and a due
-   date.
-3. **Pending tab (owner):** shows orders that are unassigned, late, or ready but not yet billed.
-4. **Worker "My work":** Start / Done buttons that update the task and the order's progress, and write to the
-   activity log.
-5. **Views per role:** separate screens and bottom tabs for each role, as described in section 4.
+### Phase 3 — Plans per suit, giving out work, worker view — ✅ built, not deployed yet
+1. ✅ **Database** (migration `0005`):
+   - **Orders:** stage, "status confirmed", trial date, delivered time.
+   - **Plan steps** (`order_tasks`): step order, speciality, an optional person, date, original date and note.
+   - **Employees:** their specialities.
+2. ✅ **Old orders aren't guessed.**
+   - Orders whose delivery date passed before this phase are **not** marked delivered. Instead, Home and Pending
+     ask **"Were these delivered?"**.
+   - The answer screen has tick boxes with **Select all → Yes, delivered**, plus **Not yet** per order. Until
+     answered they don't show as late.
+3. ✅ **The plan for each suit** (the order page's **Work** section, owner):
+   - **Quick plans** to start from: Simple suit, With handwork, Full (machine + handwork). A step gets the person
+     automatically when only one person has that speciality.
+   - **Add a step:** pick the speciality, a person (those with the speciality first, "Show everyone" for the
+     rest), a date and a note.
+   - **Each step:** move up or down, choose or change the person, change the date, start / done / undo, remove.
+4. ✅ **Stages move by themselves** (see 3.4). Staff can still set them by hand.
+   - **Ready** shows "Make bill" and "Mark delivered".
+   - Every automatic change is in the history, marked "(automatic)".
+5. ✅ **Specialities on the Team page.** Tick boxes for each person; several are allowed.
+6. ✅ **Unfinished steps move to the next day,** showing "moved forward N days" to the owner and the worker.
+   Workload counts these as slipped.
+7. ✅ **Pending tab** (owner and uploader):
+   - The "Were these delivered?" banner.
+   - Late orders, orders that still need people (no plan, or a step without a person), due in the next 3 days,
+     ready but not billed, ready to hand over, and trials in the next 7 days.
+   - Home shows a summary line.
+8. ✅ **"My work"**, for workers, the social media person (who now has a My work tab), and owners or uploaders who
+   are given steps (Settings → My work):
+   - Big cards with the step, order number, customer name, design, note and dates, plus
+     **"Waiting for: Cutting (Kamla)"** when earlier steps aren't done yet.
+   - Big **Start** and **Done** buttons.
+   - No money or phone numbers.
+9. ✅ **More:**
+   - **Order list:** shows the current step and a progress bar, with filters for In progress / Ready / Delivered.
+   - **Order history:** includes its steps.
+   - **Activity log:** shows step moves made by "the app".
 
-✅ **Done when:** the owner can assign work, workers can see and finish it, and the owner can see progress.
+**Decided for now:**
+- **Workers see:** the customer's name, but no phone numbers or money.
+- **Login:** one login per person, with several specialities (not one ID per speciality).
 
 ### Phase 4 — Order calendar
 1. **Month and agenda views**, as described in section 5, with worker colours, trial dates and progress bars.

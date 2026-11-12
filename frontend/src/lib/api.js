@@ -405,6 +405,29 @@ export const deleteBill = (id) =>
 export const getAppSettings = () => request("/settings");
 export const saveAppSettings = (data) => request("/settings", { method: "PUT", body: data });
 
+/* ---------------- Work: tasks and order stages ---------------- */
+
+export const getMyTasks = () => request("/tasks/mine");
+export const getWorkload = () => request("/work/workload");
+export const assignTask = (orderId, data) =>
+  thenRefreshOrders(request(`/orders/${orderId}/tasks`, { method: "POST", body: data }));
+export const updateTask = (taskId, data) =>
+  thenRefreshOrders(request(`/tasks/${taskId}`, { method: "PATCH", body: data }));
+export const removeTask = (taskId) =>
+  thenRefreshOrders(request(`/tasks/${taskId}`, { method: "DELETE" }));
+/** Adds several steps at once, in order: [{ task, employee_id?, due_date?, note? }]. */
+export const addPlan = (orderId, steps) =>
+  thenRefreshOrders(request(`/orders/${orderId}/plan`, { method: "POST", body: { steps } }));
+export const reorderSteps = (orderId, taskIds) =>
+  thenRefreshOrders(
+    request(`/orders/${orderId}/tasks/order`, { method: "POST", body: { task_ids: taskIds } })
+  );
+/** Old orders: "were these delivered?" */
+export const confirmDelivery = (orderIds, delivered) =>
+  thenRefreshOrders(
+    request("/orders/confirm-status", { method: "POST", body: { order_ids: orderIds, delivered } })
+  );
+
 /* ---------------- Backups ---------------- */
 
 /** Downloads a full copy of the database to this device. */

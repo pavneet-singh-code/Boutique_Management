@@ -51,7 +51,7 @@ class Order(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     filename = Column(String, nullable=True)
-    # Unique once migration 0005 has run (after duplicates are cleaned up).
+    # Unique once migration 0006 has run (after duplicates are cleaned up).
     order_number = Column(String, index=True, unique=True, nullable=True)
     customer_id = Column(Integer, ForeignKey("customers.id"), nullable=True, index=True)
     # Name / phone exactly as written on the order form.
@@ -75,6 +75,15 @@ class Order(Base):
     final_payment_amount = Column(Integer, nullable=True)
     final_payment_date = Column(Date, nullable=True)
 
+    # Work stage (see STAGES below) and the fitting / trial date
+    # received | in_work | ready | delivered | cancelled
+    status = Column(String, nullable=False, default="received")
+    # False for old orders whose delivery date had passed: the app asks
+    # "was this delivered?" instead of guessing.
+    status_confirmed = Column(Boolean, nullable=False, default=True)
+    trial_date = Column(Date, nullable=True)
+    delivered_at = Column(DateTime(timezone=True), nullable=True)
+
     needs_review = Column(Boolean, default=False)
     # Things the clean-up could not fix automatically (e.g. an unreadable date).
     import_notes = Column(Text, nullable=True)
@@ -82,6 +91,30 @@ class Order(Base):
 
     customer = relationship("Customer", back_populates="orders")
     bill = relationship("Bill", back_populates="orders")
+    tasks = relationship(
+        "OrderTask",
+        back_populates="order",
+        cascade="all, delete-orphan",
+        order_by="[OrderTask.position, OrderTask.id]",
+    )
+
+    @property
+    def progress(self):
+        """0-100: share of the steps that are done."""
+        if self.status in ("ready", "delivered"):
+            return 100
+        if self.tasks:
+            done = sum(1 for task in self.tasks if task.status == "done")
+            return round(done * 100 / len(self.tasks))
+        return STAGE_PROGRESS.get(self.status, 0)
+
+    @property
+    def current_step(self):
+        """The first step of this order's plan that isn't done yet."""
+        for task in self.tasks:
+            if task.status != "done":
+                return task.task
+        return None
 
     # ---- Worked-out values (never typed in) ----
     @property
@@ -182,6 +215,8 @@ class Employee(Base):
     name = Column(String, nullable=False)
     phone = Column(String, unique=True, nullable=True)
     role = Column(String, nullable=False, default="worker")
+    # What they are good at (several allowed): see SPECIALITIES below. JSON list.
+    skills = Column(Text, nullable=True)
     color = Column(String, nullable=True)
     pin_hash = Column(String, nullable=True)
     active = Column(Boolean, nullable=False, default=True)
@@ -206,3 +241,50 @@ class ActivityLog(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
 
     actor = relationship("Employee")
+
+
+
+# ---------------------------------------------------------------- Work
+
+# Every suit has its own plan of steps (tasks, in order). The order itself
+# only tracks where it is overall.
+STAGES = ("received", "in_work", "ready", "delivered", "cancelled")
+STAGE_PROGRESS = {"received": 0, "in_work": 50, "ready": 100, "delivered": 100, "cancelled": 0}
+
+# The boutique's specialities; also the kinds of steps in a plan.
+SPECIALITIES = (
+    "materials",    # collects materials
+    "cutting",
+    "machine",      # machine work
+    "handwork",
+    "stitching",
+    "final_check",  # final touch / final check / delivery
+    "social_media",
+)
+TASK_TYPES = SPECIALITIES + ("other",)
+TASK_STATUSES = ("assigned", "in_progress", "done")
+
+
+class OrderTask(Base):
+    """A piece of work on an order, given to one employee."""
+
+    __tablename__ = "order_tasks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    order_id = Column(Integer, ForeignKey("orders.id", ondelete="CASCADE"), nullable=False, index=True)
+    # Empty until the owner chooses who does this step.
+    employee_id = Column(Integer, ForeignKey("employees.id"), nullable=True, index=True)
+    position = Column(Integer, nullable=False, default=0)  # order of the steps in the plan
+    task = Column(String, nullable=False)  # see TASK_TYPES
+    note = Column(Text, nullable=True)
+    status = Column(String, nullable=False, default="assigned")  # assigned | in_progress | done
+    due_date = Column(Date, nullable=True)
+    # When an unfinished step is moved to the next day, the first date is kept here.
+    original_due_date = Column(Date, nullable=True)
+    assigned_by = Column(Integer, ForeignKey("employees.id"), nullable=True)
+    started_at = Column(DateTime(timezone=True), nullable=True)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    order = relationship("Order", back_populates="tasks")
+    employee = relationship("Employee", foreign_keys=[employee_id])

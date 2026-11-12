@@ -32,16 +32,35 @@ const FIELD_LABELS = {
   upi_id: "settings.upiId",
   address: "settings.address",
   bill_note: "settings.billNote",
+  status: "stage.label",
+  skills: "team.skills",
+  trial_date: "field.trialDate",
+  due_date: "work.due",
+  employee_id: "work.who",
+  task: "work.what",
+  note: "work.note",
 };
 
 const MONEY = new Set(["advance_amount", "estimated_total"]);
-const DATES = new Set(["order_date", "deliver_date", "advance_date"]);
+// Task statuses share the "status" field name with order stages.
+const STATUS_KEYS = { assigned: "taskStatus.assigned", in_progress: "taskStatus.in_progress", done: "taskStatus.done" };
+const DATES = new Set(["order_date", "deliver_date", "advance_date", "trial_date", "due_date"]);
 
 function formatValue(field, value, t, locale) {
   if (value === null || value === undefined || value === "") return "—";
   if (MONEY.has(field)) return formatMoney(Number(value), locale);
   if (DATES.has(field)) return formatDate(value, locale);
   if (field === "role") return t(`role.${value}`);
+  if (field === "status") return t(value in STATUS_KEYS ? STATUS_KEYS[value] : `stage.${value}`);
+  if (field === "task") return t(`task.${value}`);
+  if (field === "skills") {
+    try {
+      const list = JSON.parse(value);
+      return list.length ? list.map((skill) => t(`task.${skill}`)).join(", ") : "—";
+    } catch {
+      return String(value);
+    }
+  }
   if (typeof value === "boolean") return value ? t("common.yes") : t("common.no");
   const text = String(value);
   return text.length > 60 ? `${text.slice(0, 57)}…` : text;
@@ -53,7 +72,9 @@ export function describe(entry, t, locale, meId) {
     ? entry.actor.id === meId
       ? t("team.you")
       : entry.actor.name
-    : t("activity.someone");
+    : entry.action === "pushed"
+      ? t("act.system")
+      : t("activity.someone");
   const d = entry.details || {};
   let key = `act.${entry.entity}.${entry.action}`;
   if (entry.entity === "order" && entry.action === "created" && d.source === "upload") key += ".upload";
@@ -63,9 +84,12 @@ export function describe(entry, t, locale, meId) {
     merged: d.merged_name || "",
     amount: d.amount_due != null ? formatMoney(d.amount_due, locale) : formatMoney(d.amount ?? 0, locale),
     role: d.role ? t(`role.${d.role}`) : "",
+    task: d.task ? t(`task.${d.task}`) : "",
+    employee: d.employee || t("work.noPerson"),
   };
   const translated = t(key, vars);
-  const text = translated === key ? `${actor}: ${entry.entity} ${entry.action} ${entry.label || ""}` : translated;
+  let text = translated === key ? `${actor}: ${entry.entity} ${entry.action} ${entry.label || ""}` : translated;
+  if (d.automatic) text = `${text} ${t("act.auto")}`;
 
   let href = null;
   if (entry.action !== "deleted" && entry.entity_id) {
@@ -73,13 +97,14 @@ export function describe(entry, t, locale, meId) {
     if (entry.entity === "customer") href = `/customers/${entry.entity_id}`;
     if (entry.entity === "bill") href = `/bills/${entry.entity_id}`;
     if (entry.entity === "employee") href = "/team";
+    if (entry.entity === "task" && d.order_id) href = `/orders/${d.order_id}`;
   }
 
   const changes = Object.entries(d.changes || {}).map(([field, [before, after]]) => ({
     field,
     label: FIELD_LABELS[field] ? t(FIELD_LABELS[field]) : field,
-    before: field === "customer_id" ? null : formatValue(field, before, t, locale),
-    after: field === "customer_id" ? null : formatValue(field, after, t, locale),
+    before: ["customer_id", "employee_id"].includes(field) ? null : formatValue(field, before, t, locale),
+    after: ["customer_id", "employee_id"].includes(field) ? null : formatValue(field, after, t, locale),
   }));
 
   return { text, href, changes };

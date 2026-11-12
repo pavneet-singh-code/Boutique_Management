@@ -16,6 +16,7 @@ import {
 import { addEmployee, getEmployees, resetEmployeePin, updateEmployee } from "../../lib/api";
 import { useI18n } from "../../lib/i18n";
 import { ROLES, useMe } from "../../lib/roles";
+import { SPECIALITIES } from "../../lib/work";
 import { serverTime } from "../../lib/orders";
 import { useResource } from "../../lib/useResource";
 
@@ -51,6 +52,34 @@ function ColorPicker({ value, onChange }) {
   );
 }
 
+function SkillPicker({ value = [], onChange }) {
+  const { t } = useI18n();
+  const toggle = (skill) =>
+    onChange(value.includes(skill) ? value.filter((s) => s !== skill) : [...value, skill]);
+  return (
+    <div className="mt-1.5 flex flex-wrap gap-2">
+      {SPECIALITIES.map((skill) => (
+        <button
+          key={skill}
+          type="button"
+          role="checkbox"
+          aria-checked={value.includes(skill)}
+          onClick={() => toggle(skill)}
+          className={cx(
+            "h-9 rounded-full border px-3.5 text-sm transition",
+            value.includes(skill)
+              ? "border-accent bg-accent-soft font-medium text-accent-soft-ink"
+              : "border-line bg-card text-ink-2"
+          )}
+        >
+          {value.includes(skill) ? "✓ " : ""}
+          {t(`task.${skill}`)}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function RolePicker({ value, onChange }) {
   const { t } = useI18n();
   return (
@@ -77,7 +106,7 @@ function RolePicker({ value, onChange }) {
 
 function AddForm({ onAdded, onCancel }) {
   const { t, tError } = useI18n();
-  const [form, setForm] = useState({ name: "", phone: "", role: "worker", pin: "", color: null });
+  const [form, setForm] = useState({ name: "", phone: "", role: "worker", pin: "", color: null, skills: [] });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const set = (field) => (value) => setForm((prev) => ({ ...prev, [field]: value }));
@@ -110,6 +139,11 @@ function AddForm({ onAdded, onCancel }) {
           <span className="text-[13px] font-medium text-ink-2">{t("team.phone")}</span>
           <input value={form.phone} onChange={(e) => set("phone")(e.target.value)} inputMode="tel" required className={inputClass} />
         </label>
+        <div>
+          <span className="text-[13px] font-medium text-ink-2">{t("team.skills")}</span>
+          <SkillPicker value={form.skills} onChange={set("skills")} />
+          <span className="mt-1 block text-xs text-muted">{t("team.skillsHelp")}</span>
+        </div>
         <div>
           <span className="text-[13px] font-medium text-ink-2">{t("team.role")}</span>
           <RolePicker value={form.role} onChange={set("role")} />
@@ -153,6 +187,7 @@ function EmployeeCard({ employee, isMe, onChanged }) {
     phone: employee.phone || "",
     role: employee.role,
     color: employee.color,
+    skills: employee.skills || [],
   });
   const [pin, setPin] = useState("");
   const [busy, setBusy] = useState(false);
@@ -208,6 +243,11 @@ function EmployeeCard({ employee, isMe, onChanged }) {
             {employee.employee_code} · {t(`role.${employee.role}`)}
             {employee.phone ? ` · ${employee.phone}` : ""}
           </span>
+          {(employee.skills || []).length > 0 && (
+            <span className="block truncate text-xs text-accent-ink">
+              {employee.skills.map((skill) => t(`task.${skill}`)).join(" · ")}
+            </span>
+          )}
           <span className="block text-xs text-muted">
             {t("team.lastLogin")}: {lastLogin}
             {!employee.has_pin && ` · ${t("team.noPin")}`}
@@ -226,6 +266,10 @@ function EmployeeCard({ employee, isMe, onChanged }) {
             <span className="text-[13px] font-medium text-ink-2">{t("team.phone")}</span>
             <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} inputMode="tel" className={inputClass} />
           </label>
+          <div>
+            <span className="text-[13px] font-medium text-ink-2">{t("team.skills")}</span>
+            <SkillPicker value={form.skills} onChange={(skills) => setForm({ ...form, skills })} />
+          </div>
           <div>
             <span className="text-[13px] font-medium text-ink-2">{t("team.role")}</span>
             <RolePicker value={form.role} onChange={(role) => setForm({ ...form, role })} />
@@ -346,7 +390,7 @@ export default function TeamPage() {
           <ul className="divide-y divide-line md:space-y-3 md:divide-y-0">
             {team.map((employee) => (
               <EmployeeCard
-                key={`${employee.id}-${employee.role}-${employee.color}-${employee.active}`}
+                key={`${employee.id}-${employee.role}-${employee.color}-${employee.active}-${(employee.skills || []).join()}`}
                 employee={employee}
                 isMe={employee.id === me?.id}
                 onChanged={reload}

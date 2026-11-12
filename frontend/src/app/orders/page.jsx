@@ -38,6 +38,7 @@ import {
   summarise,
 } from "../../lib/orders";
 import { useOrders } from "../../lib/useOrders";
+import { isOpen } from "../../lib/work";
 import { useCan } from "../../lib/roles";
 
 const PAGE_SIZE = 15;
@@ -54,6 +55,7 @@ function OrdersContent() {
   const [month, setMonth] = useState(() => searchParams.get("month") || currentMonthKey());
   const [allMonths, setAllMonths] = useState(() => searchParams.get("allMonths") === "true");
   const [review, setReview] = useState(() => searchParams.get("review") || "all");
+  const [stage, setStage] = useState(() => searchParams.get("stage") || "all");
   const [sortBy, setSortBy] = useState(() => searchParams.get("sort") || "newest");
   const [page, setPage] = useState(() => Math.max(1, Number(searchParams.get("page")) || 1));
 
@@ -70,6 +72,9 @@ function OrdersContent() {
       if (query && !searchText(order).includes(query)) return false;
       if (review === "review" && !order.needs_review) return false;
       if (review === "clear" && order.needs_review) return false;
+      if (stage === "open" && !isOpen(order)) return false;
+      if (stage === "ready" && order.status !== "ready") return false;
+      if (stage === "delivered" && order.status !== "delivered") return false;
       return true;
     });
 
@@ -87,7 +92,7 @@ function OrdersContent() {
       }
       return time(orderDate(b), 0) - time(orderDate(a), 0) || b.id - a.id;
     });
-  }, [orders, search, month, allMonths, review, sortBy]);
+  }, [orders, search, month, allMonths, review, stage, sortBy]);
 
   // Keep the URL in sync so Back returns to the same filters.
   useEffect(() => {
@@ -96,6 +101,7 @@ function OrdersContent() {
     if (month !== currentMonthKey()) params.set("month", month);
     if (allMonths) params.set("allMonths", "true");
     if (review !== "all") params.set("review", review);
+    if (stage !== "all") params.set("stage", stage);
     if (sortBy !== "newest") params.set("sort", sortBy);
     if (page > 1) params.set("page", String(page));
     const query = params.toString();
@@ -103,7 +109,7 @@ function OrdersContent() {
     if (window.location.pathname + window.location.search !== next) {
       router.replace(next, { scroll: false });
     }
-  }, [search, month, allMonths, review, sortBy, page, router]);
+  }, [search, month, allMonths, review, stage, sortBy, page, router]);
 
   const stats = summarise(filtered);
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -229,6 +235,20 @@ function OrdersContent() {
           <Chip active={review === "clear"} onClick={() => update(setReview)("clear")}>
             {t("orders.filterOk")}
           </Chip>
+          <span className="h-5 w-px shrink-0 bg-line" />
+          {[
+            ["open", t("taskStatus.in_progress")],
+            ["ready", t("stage.ready")],
+            ["delivered", t("stage.delivered")],
+          ].map(([value, label]) => (
+            <Chip
+              key={value}
+              active={stage === value}
+              onClick={() => update(setStage)(stage === value ? "all" : value)}
+            >
+              {label}
+            </Chip>
+          ))}
           <span className="ml-auto shrink-0">{sortSelect}</span>
         </div>
       </div>

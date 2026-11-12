@@ -4,8 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ChevronRight,
+  CircleHelp,
   ClipboardList,
   Hash,
+  ListTodo,
   ReceiptIndianRupee,
   Clock3,
   Download,
@@ -45,6 +47,7 @@ import {
   summarise,
 } from "../../lib/orders";
 import { getDataCheck } from "../../lib/api";
+import { pendingGroups } from "../../lib/work";
 import { useOrders } from "../../lib/useOrders";
 import { can, useMe } from "../../lib/roles";
 
@@ -85,7 +88,9 @@ export default function DashboardPage() {
 
     const [from, to] = monthRange(month);
     const all = summarise(orders);
+    const work = pendingGroups(orders);
     return {
+      work,
       stats: summarise(thisMonth),
       receivedThisMonth: receivedBetween(orders, from, to),
       toCollect: all.balance,
@@ -204,6 +209,48 @@ export default function DashboardPage() {
               </Link>
             </div>
           </section>
+
+          {/* Old orders: were they delivered? */}
+          {data.work.confirm.length > 0 && (
+            <Link
+              href="/orders/check-delivery"
+              className="mx-4 flex items-center gap-3 rounded-2xl bg-warn-soft p-4 transition hover:opacity-90 md:mx-0"
+            >
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#f59e0b] text-white">
+                <CircleHelp size={20} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-semibold text-warn-ink">
+                  {t("confirm.banner", { count: data.work.confirm.length })}
+                </span>
+                <span className="block text-sm text-warn-ink/80">{t("confirm.bannerHelp")}</span>
+              </span>
+              <ChevronRight size={20} className="shrink-0 text-warn-ink" />
+            </Link>
+          )}
+
+          {/* Work that needs attention */}
+          {(data.work.late.length + data.work.ready.length + data.work.unassigned.length) > 0 && (
+            <Link
+              href="/pending"
+              className="mx-4 flex items-center gap-3 rounded-2xl border border-line bg-card p-4 transition hover:bg-card-2 md:mx-0"
+            >
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#e6effb] text-[#1e4f91]">
+                <ListTodo size={20} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-semibold text-ink">
+                  {t("dash.work", {
+                    late: data.work.late.length,
+                    ready: data.work.ready.length,
+                    unassigned: data.work.unassigned.length,
+                  })}
+                </span>
+                <span className="block text-sm text-muted">{t("dash.workHelp")}</span>
+              </span>
+              <ChevronRight size={20} className="shrink-0 text-muted" />
+            </Link>
+          )}
 
           {/* Order number problems (Phase 0 clean-up) */}
           {numberProblems > 0 && (

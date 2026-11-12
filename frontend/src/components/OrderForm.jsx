@@ -24,6 +24,7 @@ export const ORDER_FIELDS = [
   "advance_amount",
   "advance_date",
   "estimated_total",
+  "trial_date",
 ];
 
 /** Turns an order from the API or a scan into form-friendly values.
@@ -40,6 +41,7 @@ export function toFormValues(order = {}) {
   form.order_date = toISODate(order.order_date);
   form.deliver_date = toISODate(order.deliver_date);
   form.advance_date = toISODate(order.advance_date);
+  form.trial_date = toISODate(order.trial_date);
   return form;
 }
 
@@ -159,6 +161,15 @@ export default function OrderForm({ value, onChange, original = {} }) {
             className={cx(inputClass, "h-12 md:h-11")}
           />
         </Field>
+        <Field label={t("field.trialDate")}>
+          <input
+            type="date"
+            value={value.trial_date ?? ""}
+            onChange={(event) => onChange("trial_date", event.target.value)}
+            className={cx(inputClass, "h-12 md:h-11")}
+          />
+        </Field>
+        <div className="hidden sm:block" />
         <Field label={t("field.design")} warn={warnFor("what_to_design")} full>
           <textarea
             rows={3}
