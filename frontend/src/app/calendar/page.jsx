@@ -26,7 +26,7 @@ export default function CalendarPage() {
   // Owners / uploaders / social media: from the orders list. Workers: their own steps.
   const { orders, ready, loading, error, reload } = useOrders({ enabled: seesOrders });
   const tasksLoader = useCallback(() => getMyTasks(), []);
-  const mine = useResource(tasksLoader, Boolean(me) && !seesOrders);
+  const mine = useResource(tasksLoader, Boolean(me) && !seesOrders, "myTasks");
 
   const [view, setView] = useState("list");
   const [kind, setKind] = useState("all");

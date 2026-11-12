@@ -70,7 +70,14 @@ function formatValue(field, value, t, locale, entity) {
   }
   if (field === "platforms") {
     try {
-      return JSON.parse(value).map((p) => t(`platform.${p}`)).join(", ") || "—";
+      return (
+        JSON.parse(value)
+          .map((target) => {
+            const [platform, format] = String(target).split(":");
+            return format ? `${t(`platform.${platform}`)} ${t(`format.${format}`)}` : t(`platform.${platform}`);
+          })
+          .join(", ") || "—"
+      );
     } catch {
       return String(value);
     }

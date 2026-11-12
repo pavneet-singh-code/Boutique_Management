@@ -75,7 +75,7 @@ function Form({ initial }) {
 export default function BoutiqueDetails() {
   const { t } = useI18n();
   const loader = useCallback(() => getAppSettings(), []);
-  const { data, error } = useResource(loader);
+  const { data, error } = useResource(loader, true, "settings");
 
   return (
     <Card className="overflow-hidden rounded-none border-x-0 md:rounded-2xl md:border-x">

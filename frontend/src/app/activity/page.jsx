@@ -14,7 +14,7 @@ export default function ActivityPage() {
   const me = useMe();
   const isOwner = can(me?.role, "allActivity");
   const loader = useCallback(() => getEmployeeDirectory(), []);
-  const { data: people } = useResource(loader, isOwner);
+  const { data: people } = useResource(loader, isOwner, "directory");
   const [actorId, setActorId] = useState(null);
   const subtitle = isOwner ? t("activity.subtitle") : t("activity.mine");
 

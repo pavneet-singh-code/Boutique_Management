@@ -87,7 +87,7 @@ function BillBubble({ bill }) {
       href={`/bills/${bill.id}`}
       className="relative block w-fit min-w-[210px] max-w-[85%] rounded-xl rounded-tl-sm bg-bubble-in px-3 pb-2 pt-2 shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] transition active:opacity-80 md:max-w-[60%]"
     >
-      <p className="flex items-center gap-1.5 text-xs font-semibold text-[#008069]">
+      <p className="flex items-center gap-1.5 text-xs font-semibold text-[#8a5644]">
         <ReceiptIndianRupee size={14} />
         {bill.bill_number}
       </p>
@@ -110,7 +110,7 @@ export default function CustomerPage() {
   const { id } = useParams();
   const { t, locale } = useI18n();
   const loader = useCallback(() => getCustomer(id), [id]);
-  const { data: customer, error, reload } = useResource(loader);
+  const { data: customer, error, reload } = useResource(loader, true, `customer:${id}`);
   const endRef = useRef(null);
   const canBill = useCan("makeBills");
 

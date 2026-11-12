@@ -8,8 +8,11 @@ import {
   CircleCheck,
   Clapperboard,
   ExternalLink,
+  FlaskConical,
   Images,
   LoaderCircle,
+  Megaphone,
+  Pin,
   Save,
   Smartphone,
   Trash2,
@@ -24,8 +27,16 @@ import { useResource } from "../lib/useResource";
 import { Button, Card, ConfirmDialog, EmployeeAvatar, Notice, cx } from "./ui";
 import { StageChip } from "./Work";
 
-export const PLATFORMS = ["instagram", "facebook", "youtube", "whatsapp_status"];
-export const FORMATS = ["reel", "post", "carousel", "story", "short"];
+// What can be posted where (same list as the server's PLATFORM_FORMATS).
+// A post lists its targets, e.g. ["instagram:reel", "youtube:short"].
+export const PLATFORM_FORMATS = {
+  instagram: ["post", "story", "reel", "trial_reel"],
+  facebook: ["post", "story", "reel", "video"],
+  youtube: ["short", "video"],
+  whatsapp: ["broadcast", "status"],
+  pinterest: ["pin", "video_pin"],
+};
+export const PLATFORMS = Object.keys(PLATFORM_FORMATS);
 export const CONTENT_STAGES = ["idea", "planned", "shooting", "editing", "ready_to_post", "posted"];
 
 // Platform colours are kept apart from employee and status colours, and every
@@ -34,10 +45,48 @@ const PLATFORM_STYLE = {
   instagram: { code: "IG", className: "bg-[#fce7f3] text-[#9d174d]" },
   facebook: { code: "FB", className: "bg-[#dbeafe] text-[#1e3a8a]" },
   youtube: { code: "YT", className: "bg-[#fde2e1] text-[#8f1d18]" },
-  whatsapp_status: { code: "WA", className: "bg-[#dcf8e6] text-[#14532d]" },
+  whatsapp: { code: "WA", className: "bg-[#dcf8e6] text-[#14532d]" },
+  pinterest: { code: "PIN", className: "bg-[#ffe4e6] text-[#be123c]" },
 };
 
-const FORMAT_ICON = { reel: Clapperboard, post: Images, carousel: Images, story: Smartphone, short: Video };
+const FORMAT_ICON = {
+  post: Images,
+  story: Smartphone,
+  reel: Clapperboard,
+  trial_reel: FlaskConical,
+  video: Video,
+  short: Video,
+  broadcast: Megaphone,
+  status: Smartphone,
+  pin: Pin,
+  video_pin: Video,
+};
+
+/** "instagram:reel" -> ["instagram", "reel"] */
+export function splitTarget(target) {
+  return target.split(":");
+}
+
+/** Where a post goes, as small labelled badges: "IG Reel", "YT Short". */
+export function TargetBadges({ targets = [], full = false }) {
+  const { t } = useI18n();
+  return (
+    <span className="flex flex-wrap gap-1">
+      {targets.map((target) => {
+        const [platform, format] = splitTarget(target);
+        return (
+          <span
+            key={target}
+            title={`${t(`platform.${platform}`)} · ${t(`format.${format}`)}`}
+            className={cx("whitespace-nowrap rounded-md px-1.5 py-px text-[10.5px] font-bold", PLATFORM_STYLE[platform]?.className)}
+          >
+            {full ? t(`platform.${platform}`) : PLATFORM_STYLE[platform]?.code} {t(`format.${format}`)}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
 
 /** Content times are boutique local time, sent without a zone. */
 export function contentDate(value) {
@@ -138,8 +187,7 @@ export function ContentCard({ item, showDate = false }) {
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
             <ContentStageChip status={item.status} />
-            <span className="text-xs text-muted">{t(`format.${item.format}`)}</span>
-            <PlatformBadges platforms={item.platforms} />
+            <TargetBadges targets={item.targets} />
             {late && <span className="text-[11px] font-semibold text-danger">· {t("content.late")}</span>}
           </div>
           {item.order && (
@@ -166,13 +214,12 @@ export function ContentForm({ item, presetOrderId, presetDate, onSaved }) {
   const canEditDetails = !item || isOwner || (item.status === "idea" && item.creator?.id === me?.id);
   const { orders } = useOrders();
   const peopleLoader = useCallback(() => getEmployeeDirectory(), []);
-  const { data: people } = useResource(peopleLoader, isOwner);
+  const { data: people } = useResource(peopleLoader, isOwner, "directory");
 
   const [form, setForm] = useState(() => ({
     title: item?.title || "",
     brief: item?.brief || "",
-    platforms: item?.platforms || ["instagram"],
-    format: item?.format || "reel",
+    targets: item?.targets || ["instagram:reel"],
     order_id: item?.order_id ?? (presetOrderId ? Number(presetOrderId) : null),
     assigned_to: item?.person?.id ?? null,
     scheduled_for: item ? toLocalInput(item.scheduled_for) : presetDate || "",
@@ -186,8 +233,8 @@ export function ContentForm({ item, presetOrderId, presetDate, onSaved }) {
   }, [orders]);
 
   const set = (field, value) => setForm((prev) => ({ ...prev, [field]: value }));
-  const togglePlatform = (platform) =>
-    set("platforms", form.platforms.includes(platform) ? form.platforms.filter((p) => p !== platform) : [...form.platforms, platform]);
+  const toggleTarget = (target) =>
+    set("targets", form.targets.includes(target) ? form.targets.filter((x) => x !== target) : [...form.targets, target]);
 
   const save = async (event) => {
     event.preventDefault();
@@ -221,39 +268,35 @@ export function ContentForm({ item, presetOrderId, presetDate, onSaved }) {
         <input value={form.title} onChange={(e) => set("title", e.target.value)} placeholder={t("content.titlePlaceholder")} required className={`${inputClass} h-12 md:h-11`} />
       </label>
       <div>
-        <span className="text-[13px] font-medium text-ink-2">{t("content.format")}</span>
-        <div className="mt-1.5 flex flex-wrap gap-2">
-          {FORMATS.map((format) => (
-            <button
-              key={format}
-              type="button"
-              aria-pressed={form.format === format}
-              onClick={() => set("format", format)}
-              className={cx("h-9 rounded-full px-3.5 text-sm transition", form.format === format ? "bg-accent font-medium text-white" : "bg-card-2 text-ink-2")}
-            >
-              {t(`format.${format}`)}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div>
         <span className="text-[13px] font-medium text-ink-2">{t("content.platforms")}</span>
-        <div className="mt-1.5 flex flex-wrap gap-2">
+        <span className="block text-xs text-muted">{t("content.platformsHelp")}</span>
+        <div className="mt-2 divide-y divide-line rounded-xl border border-line">
           {PLATFORMS.map((platform) => (
-            <button
-              key={platform}
-              type="button"
-              role="checkbox"
-              aria-checked={form.platforms.includes(platform)}
-              onClick={() => togglePlatform(platform)}
-              className={cx(
-                "h-9 rounded-full border px-3.5 text-sm transition",
-                form.platforms.includes(platform) ? "border-accent bg-accent-soft font-medium text-accent-soft-ink" : "border-line bg-card text-ink-2"
-              )}
-            >
-              {form.platforms.includes(platform) ? "✓ " : ""}
-              {t(`platform.${platform}`)}
-            </button>
+            <div key={platform} className="flex flex-wrap items-center gap-2 px-3 py-2.5">
+              <span className={cx("w-24 shrink-0 rounded-md px-2 py-1 text-xs font-bold", PLATFORM_STYLE[platform].className)}>
+                {t(`platform.${platform}`)}
+              </span>
+              {PLATFORM_FORMATS[platform].map((format) => {
+                const target = `${platform}:${format}`;
+                const on = form.targets.includes(target);
+                return (
+                  <button
+                    key={target}
+                    type="button"
+                    role="checkbox"
+                    aria-checked={on}
+                    onClick={() => toggleTarget(target)}
+                    className={cx(
+                      "h-9 rounded-full border px-3 text-sm transition",
+                      on ? "border-accent bg-accent-soft font-medium text-accent-soft-ink" : "border-line bg-card text-ink-2"
+                    )}
+                  >
+                    {on ? "✓ " : ""}
+                    {t(`format.${format}`)}
+                  </button>
+                );
+              })}
+            </div>
           ))}
         </div>
       </div>

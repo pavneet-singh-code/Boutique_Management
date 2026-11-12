@@ -14,7 +14,7 @@ function ChooseCustomer() {
   const { t } = useI18n();
   const router = useRouter();
   const loader = useCallback(() => getCustomers({ force: true }), []);
-  const { data: customers, error, reload } = useResource(loader);
+  const { data: customers, error, reload } = useResource(loader, true, "customers");
   const [query, setQuery] = useState("");
 
   const list = useMemo(() => {

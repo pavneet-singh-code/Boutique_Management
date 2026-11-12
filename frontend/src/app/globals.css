@@ -1,30 +1,31 @@
 @import "tailwindcss";
 
 /*
- * Two skins, one set of components.
- * Phones get a WhatsApp-style look (white, green accents, chat lists).
- * Tablets/desktops keep the warm boutique look.
+ * Colours come from the Fab_art logo (rose-gold / mocha on white).
+ * Phones keep the WhatsApp-style layout (chat lists, bottom tabs, round + button)
+ * but use these boutique colours - not WhatsApp green.
+ * Tablets/desktops use a slightly warmer background.
  * Components only ever use these tokens (bg-card, text-ink, ...).
  */
 :root {
-  --bg: #ffffff;
+  --bg: #fbf8f6;
   --card: #ffffff;
-  --card-2: #f0f2f5;
-  --line: #e3e8eb;
-  --ink: #111b21;
-  --ink-2: #2f3e48;
-  --muted: #5b6b75;
-  --accent: #1daa61;
-  --accent-hover: #189a57;
-  --accent-ink: #008069;
-  --accent-soft: #d9fdd3;
-  --accent-soft-ink: #0a5c36;
-  --warn-soft: #fff1de;
-  --warn-ink: #9a5a13;
-  --danger: #d92d4b;
-  --danger-soft: #fde8ec;
-  --wallpaper: #efeae2;
-  --bubble-out: #d9fdd3;
+  --card-2: #f5efeb;
+  --line: #ece2dc;
+  --ink: #2b211d;
+  --ink-2: #4d3d36;
+  --muted: #74625a;
+  --accent: #8c5d4c;
+  --accent-hover: #774b3c;
+  --accent-ink: #8a5644;
+  --accent-soft: #f4e6df;
+  --accent-soft-ink: #6e4234;
+  --warn-soft: #fdf0dc;
+  --warn-ink: #94541a;
+  --danger: #b3402e;
+  --danger-soft: #fbebe7;
+  --wallpaper: #f6efea;
+  --bubble-out: #f4e6df;
   --bubble-in: #ffffff;
 
   --font-stack: var(--font-geist-sans), var(--font-deva), ui-sans-serif,
@@ -33,22 +34,10 @@
 
 @media (min-width: 768px) {
   :root {
-    --bg: #f5f1ea;
-    --card: #fffdf9;
-    --card-2: #f8f3ec;
-    --line: #e2d6c6;
-    --ink: #2b221a;
-    --ink-2: #4e3d2d;
-    --muted: #75665a;
-    --accent: #6f4e37;
-    --accent-hover: #5c3f2c;
-    --accent-ink: #8a5a32;
-    --accent-soft: #f1e2cf;
-    --accent-soft-ink: #6b4423;
-    --warn-soft: #fbe7d3;
-    --warn-ink: #a0521d;
-    --danger: #b54a35;
-    --danger-soft: #fbf0eb;
+    --bg: #f7f2ee;
+    --card: #fffdfb;
+    --card-2: #f8f2ee;
+    --line: #e8dbd3;
   }
 }
 
@@ -135,5 +124,25 @@ html[lang="hi"] [class*="tracking-"] {
     inset: 0 0 auto 0;
     border: 0 !important;
     box-shadow: none !important;
+  }
+}
+
+/* A screen fades in softly when you open it (skipped if the phone asks for less motion) */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.page-enter {
+  animation: page-enter 180ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-enter {
+    animation: none;
   }
 }

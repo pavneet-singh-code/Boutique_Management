@@ -3,7 +3,8 @@
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, Eye, EyeOff, Languages, LoaderCircle, Scissors } from "lucide-react";
+import Image from "next/image";
+import { ArrowLeft, Eye, EyeOff, Languages, LoaderCircle } from "lucide-react";
 import { login } from "../../lib/api";
 import { homeFor } from "../../lib/roles";
 import { useI18n } from "../../lib/i18n";
@@ -95,9 +96,14 @@ function LoginForm() {
         </Link>
 
         <div className="mb-8">
-          <span className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-accent text-white md:bg-[#eee5d8] md:text-[#725c45]">
-            <Scissors size={30} strokeWidth={1.7} />
-          </span>
+          <Image
+            src="/brand/logo.jpg"
+            alt="Fab_art Studio"
+            width={720}
+            height={720}
+            priority
+            className="mb-4 -ml-3 h-36 w-36 rounded-3xl md:h-44 md:w-44"
+          />
           <h1 className="text-3xl font-semibold tracking-tight md:font-serif md:text-5xl md:font-light">
             {t("login.title")}
           </h1>

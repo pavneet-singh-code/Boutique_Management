@@ -343,7 +343,7 @@ export default function TeamPage() {
   const { t } = useI18n();
   const me = useMe();
   const loader = useCallback(() => getEmployees(), []);
-  const { data: team, error, reload } = useResource(loader);
+  const { data: team, error, reload } = useResource(loader, true, "team");
   const [adding, setAdding] = useState(false);
 
   return (

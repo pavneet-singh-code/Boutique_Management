@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -115,7 +116,8 @@ export default function DashboardPage() {
       subtitle={t("dash.subtitle")}
       brand
       mobileTitle={
-        <span className="block truncate text-[22px] font-bold tracking-tight text-accent">
+        <span className="flex items-center gap-2 truncate text-[22px] font-bold tracking-tight text-accent">
+          <Image src="/brand/icon-96.png" alt="" width={30} height={30} priority className="h-[30px] w-[30px] rounded-lg" />
           Fab_art
         </span>
       }

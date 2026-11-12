@@ -43,8 +43,8 @@ export default function BillPage() {
 
   const billLoader = useCallback(() => getBill(id), [id]);
   const settingsLoader = useCallback(() => getAppSettings(), []);
-  const { data: bill, setData: setBill, error, reload } = useResource(billLoader);
-  const { data: settings } = useResource(settingsLoader);
+  const { data: bill, setData: setBill, error, reload } = useResource(billLoader, true, `bill:${id}`);
+  const { data: settings } = useResource(settingsLoader, true, "settings");
 
   const [editing, setEditing] = useState(false);
   const canBill = useCan("makeBills");

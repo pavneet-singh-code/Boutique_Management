@@ -30,9 +30,9 @@ export default function ContentPlanPage() {
   const itemsLoader = useCallback(() => getContent(), []);
   const readyLoader = useCallback(() => getReadyToShoot(), []);
   const statsLoader = useCallback(() => getContentStats(), []);
-  const items = useResource(itemsLoader);
-  const ready = useResource(readyLoader);
-  const stats = useResource(statsLoader);
+  const items = useResource(itemsLoader, true, "content");
+  const ready = useResource(readyLoader, true, "content:ready");
+  const stats = useResource(statsLoader, true, "content:stats");
 
   const [view, setView] = useState("week");
   const [platform, setPlatform] = useState(null);

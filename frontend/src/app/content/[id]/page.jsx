@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ChevronDown, Pencil } from "lucide-react";
 import AppShell from "../../../components/AppShell";
-import { ContentForm, ContentStageChip, PlatformBadges, StageStepper, contentDate, isLateContent } from "../../../components/Content";
+import { ContentForm, ContentStageChip, StageStepper, TargetBadges, contentDate, isLateContent } from "../../../components/Content";
 import { Card, EmployeeAvatar, ErrorBox, PageHeading, Spinner, cx } from "../../../components/ui";
 import { StageChip } from "../../../components/Work";
 import { getContent } from "../../../lib/api";
@@ -19,7 +19,7 @@ export default function ContentItemPage() {
   const me = useMe();
   const canEdit = useCan("contentEdit");
   const loader = useCallback(() => getContent().then((list) => list.find((item) => String(item.id) === String(id)) || false), [id]);
-  const { data: item, setData, error, reload, ready } = useResource(loader);
+  const { data: item, setData, error, reload, ready } = useResource(loader, true, `content:${id}`);
   const [editing, setEditing] = useState(false);
 
   if (!item) {
@@ -42,8 +42,7 @@ export default function ContentItemPage() {
         <Card className="space-y-3 p-4 md:p-5">
           <div className="flex flex-wrap items-center gap-2">
             <ContentStageChip status={item.status} />
-            <span className="text-sm text-muted">{t(`format.${item.format}`)}</span>
-            <PlatformBadges platforms={item.platforms} full />
+            <TargetBadges targets={item.targets} full />
           </div>
           <p className={cx("text-[15px]", isLateContent(item) ? "font-semibold text-danger" : "text-ink")}>
             {when

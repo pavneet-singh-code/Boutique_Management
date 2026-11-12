@@ -24,7 +24,7 @@ import { useCan } from "../../lib/roles";
 export default function BillsPage() {
   const { t, locale } = useI18n();
   const loader = useCallback(() => getBills(), []);
-  const { data: bills, error, loading, reload } = useResource(loader);
+  const { data: bills, error, loading, reload } = useResource(loader, true, "bills");
   const [filter, setFilter] = useState("unpaid");
   const canBill = useCan("makeBills");
 

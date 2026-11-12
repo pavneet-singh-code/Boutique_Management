@@ -414,7 +414,7 @@ function StepRow({ task, index, count, canAssign, people, onMove }) {
 export function WorkSection({ order, canEdit, canAssign, canBill }) {
   const { t, locale, tError } = useI18n();
   const loader = useCallback(() => getWorkload(), []);
-  const { data: people } = useResource(loader, canAssign);
+  const { data: people } = useResource(loader, canAssign, "workload");
   const [adding, setAdding] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");

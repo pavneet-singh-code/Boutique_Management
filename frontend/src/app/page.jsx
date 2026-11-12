@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { getMe, getToken } from "../lib/api";
@@ -16,7 +17,10 @@ export default function Home() {
   return (
     <main className="min-h-dvh bg-[#f5f1ea] text-[#1c1c1a]">
       <nav className="flex items-center justify-between gap-3 px-5 py-5 md:px-12 md:py-6">
-        <div className="text-base font-semibold tracking-[0.2em] md:text-lg">FAB_ART</div>
+        <div className="flex items-center gap-2.5 text-base font-semibold tracking-[0.2em] md:text-lg">
+          <Image src="/brand/icon-96.png" alt="" width={36} height={36} priority className="h-9 w-9 rounded-xl" />
+          FAB_ART
+        </div>
         <div className="flex items-center gap-4">
           <LanguageToggle className="!border-[#e3d8ca] !bg-white/60" />
           <button
@@ -37,6 +41,14 @@ export default function Home() {
         </div>
 
         <div className="relative z-10 mx-auto max-w-5xl text-center">
+          <Image
+            src="/brand/logo.jpg"
+            alt="Fab_art Studio — Artistry in Every Stitch"
+            width={720}
+            height={720}
+            priority
+            className="mx-auto mb-6 h-44 w-44 rounded-full mix-blend-multiply md:h-56 md:w-56"
+          />
           <p className="mb-8 text-xs font-medium uppercase tracking-[0.35em] text-[#1c1c1a]/50">
             {t("landing.eyebrow")}
           </p>

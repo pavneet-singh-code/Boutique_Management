@@ -296,8 +296,17 @@ class OrderTask(Base):
 
 # ---------------------------------------------------------------- Social media
 
-PLATFORMS = ("instagram", "facebook", "youtube", "whatsapp_status")
-CONTENT_FORMATS = ("reel", "post", "carousel", "story", "short")
+# What can be posted where. A content item lists its "targets", e.g.
+# ["instagram:reel", "youtube:short"] - one video, several places.
+PLATFORM_FORMATS = {
+    "instagram": ("post", "story", "reel", "trial_reel"),
+    "facebook": ("post", "story", "reel", "video"),
+    "youtube": ("short", "video"),
+    "whatsapp": ("broadcast", "status"),
+    "pinterest": ("pin", "video_pin"),
+}
+PLATFORMS = tuple(PLATFORM_FORMATS)
+CONTENT_TARGETS = tuple(f"{p}:{f}" for p, formats in PLATFORM_FORMATS.items() for f in formats)
 CONTENT_STAGES = ("idea", "planned", "shooting", "editing", "ready_to_post", "posted")
 
 
@@ -309,8 +318,8 @@ class ContentItem(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False)
     brief = Column(Text, nullable=True)  # what to shoot, caption idea
-    platforms = Column(Text, nullable=True)  # JSON list, see PLATFORMS
-    format = Column(String, nullable=False, default="reel")
+    platforms = Column(Text, nullable=True)  # JSON list of targets, see CONTENT_TARGETS
+    format = Column(String, nullable=False, default="reel")  # the first target's format
     order_id = Column(Integer, ForeignKey("orders.id", ondelete="SET NULL"), nullable=True, index=True)
     assigned_to = Column(Integer, ForeignKey("employees.id"), nullable=True)
     # Boutique (India) local time, e.g. 2026-11-20 18:00

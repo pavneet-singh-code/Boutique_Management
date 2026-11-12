@@ -23,7 +23,7 @@ export default function CustomerPicker({ value, onChange, inputClassName, warn }
   const listId = useId();
   const [open, setOpen] = useState(false);
   const loader = useCallback(() => getCustomers(), []);
-  const { data: customers } = useResource(loader);
+  const { data: customers } = useResource(loader, true, "customers");
 
   const name = value.customer_name ?? "";
   const selected = customers?.find((c) => c.id === value.customer_id) || null;

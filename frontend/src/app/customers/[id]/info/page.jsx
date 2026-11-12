@@ -99,7 +99,7 @@ function DetailsForm({ customer, onSaved }) {
 function MergeBox({ customer, onMerged }) {
   const { t, tError } = useI18n();
   const loader = useCallback(() => getCustomers({ force: true }), []);
-  const { data: customers } = useResource(loader);
+  const { data: customers } = useResource(loader, true, "customers");
   const [query, setQuery] = useState("");
   const [other, setOther] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -185,7 +185,7 @@ export default function CustomerInfoPage() {
   const router = useRouter();
   const { t, locale, tError } = useI18n();
   const loader = useCallback(() => getCustomer(id), [id]);
-  const { data: customer, error, reload } = useResource(loader);
+  const { data: customer, error, reload } = useResource(loader, true, `customer:${id}`);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const canMerge = useCan("mergeCustomers");

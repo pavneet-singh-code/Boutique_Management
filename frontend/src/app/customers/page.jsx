@@ -115,7 +115,7 @@ function AddCustomer({ onAdded }) {
 export default function CustomersPage() {
   const { t, locale, tError } = useI18n();
   const loader = useCallback(() => getCustomers({ force: true }), []);
-  const { data: customers, error, loading, reload } = useResource(loader);
+  const { data: customers, error, loading, reload } = useResource(loader, true, "customers");
   const [search, setSearch] = useState("");
   const [dismissed, setDismissed] = useState(readDismissed);
   const canMerge = useCan("mergeCustomers");

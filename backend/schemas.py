@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from cleaning import (
     blank,
@@ -545,13 +545,46 @@ class Workload(BaseModel):
 
 # ---------------------------------------------------------------- Social media content
 
-Platform = Literal["instagram", "facebook", "youtube", "whatsapp_status"]
-ContentFormat = Literal["reel", "post", "carousel", "story", "short"]
 ContentStage = Literal["idea", "planned", "shooting", "editing", "ready_to_post", "posted"]
 
 
-def _platforms(value):
-    return _skills(value)  # same JSON-list format
+# Early test data stored plain platform names; read them as targets.
+_OLD_PLATFORMS = {"whatsapp_status": "whatsapp:status"}
+
+
+def content_targets(value, fmt=None):
+    from models import CONTENT_TARGETS, PLATFORM_FORMATS
+
+    targets = []
+    for raw in _skills(value):
+        if raw in _OLD_PLATFORMS:
+            raw = _OLD_PLATFORMS[raw]
+        elif ":" not in raw and raw in PLATFORM_FORMATS:
+            formats = PLATFORM_FORMATS[raw]
+            raw = f"{raw}:{fmt if fmt in formats else formats[0]}"
+        if raw in CONTENT_TARGETS and raw not in targets:
+            targets.append(raw)
+    return targets
+
+
+def target_platforms(targets):
+    seen = []
+    for target in targets:
+        platform = target.split(":", 1)[0]
+        if platform not in seen:
+            seen.append(platform)
+    return seen
+
+
+def _check_targets(value):
+    from models import CONTENT_TARGETS
+
+    if value is None:
+        return value
+    bad = [t for t in value if t not in CONTENT_TARGETS]
+    if bad:
+        raise ValueError(f"Unknown place to post: {', '.join(bad)}")
+    return list(dict.fromkeys(value))
 
 
 class ContentBrief(BaseModel):
@@ -563,7 +596,8 @@ class ContentBrief(BaseModel):
     title: str
     status: str
     format: str
-    platforms: List[str] = []
+    targets: List[str] = []  # e.g. "instagram:reel"
+    platforms: List[str] = []  # just the apps, from the targets
     scheduled_for: Optional[datetime] = None
     posted_url: Optional[str] = None
 
@@ -571,12 +605,14 @@ class ContentBrief(BaseModel):
     @classmethod
     def from_row(cls, data):
         if hasattr(data, "platforms") and not isinstance(data, dict):
+            targets = content_targets(data.platforms, data.format)
             return {
                 "id": data.id,
                 "title": data.title,
                 "status": data.status,
-                "format": data.format,
-                "platforms": _platforms(data.platforms),
+                "format": targets[0].split(":", 1)[1] if targets else data.format,
+                "targets": targets,
+                "platforms": target_platforms(targets),
                 "scheduled_for": data.scheduled_for,
                 "posted_url": data.posted_url,
             }
@@ -608,23 +644,25 @@ class ContentOut(ContentBrief):
 class ContentCreate(BaseModel):
     title: str = Field(min_length=1)
     brief: Optional[str] = None
-    platforms: List[Platform] = []
-    format: ContentFormat = "reel"
+    targets: List[str] = []
     order_id: Optional[int] = None
     assigned_to: Optional[int] = None
     scheduled_for: Optional[datetime] = None
+
+    _targets_ok = field_validator("targets")(_check_targets)
 
 
 class ContentUpdate(BaseModel):
     title: Optional[str] = None
     brief: Optional[str] = None
-    platforms: Optional[List[Platform]] = None
-    format: Optional[ContentFormat] = None
+    targets: Optional[List[str]] = None
     order_id: Optional[int] = None
     assigned_to: Optional[int] = None
     scheduled_for: Optional[datetime] = None
     status: Optional[ContentStage] = None
     posted_url: Optional[str] = None
+
+    _targets_ok = field_validator("targets")(_check_targets)
 
 
 OrderResponse.model_rebuild()

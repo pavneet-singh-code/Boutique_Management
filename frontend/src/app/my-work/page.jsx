@@ -16,7 +16,7 @@ export default function MyWorkPage() {
   const { t } = useI18n();
   const me = useMe();
   const loader = useCallback(() => getMyTasks(), []);
-  const { data: tasks, error, loading, reload } = useResource(loader);
+  const { data: tasks, error, loading, reload } = useResource(loader, true, "myTasks");
 
   const { open, done } = useMemo(() => {
     const list = tasks || [];

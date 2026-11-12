@@ -1,3 +1,4 @@
+import { clearResourceCache } from "./useResource";
 // All calls to the FastAPI backend go through here.
 // Errors thrown use translation keys ("error.network", "error.session")
 // when we know the cause, so the UI can show them in Hindi or English.
@@ -37,6 +38,7 @@ export function logout() {
   }
   setMe(null);
   invalidateOrders();
+  clearResourceCache();
 }
 
 /* ---------------- The logged-in employee ---------------- */

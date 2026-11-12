@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -22,7 +23,6 @@ import {
   LogOut,
   Plus,
   ReceiptIndianRupee,
-  Scissors,
   Settings,
   Upload,
   UserRound,
@@ -116,8 +116,23 @@ function matches(pathname, path) {
   return pathname === path || pathname.startsWith(`${path}/`);
 }
 
+// Every screen draws its own sidebar, so remember how far it was scrolled.
+let sidebarScroll = null;
+
 function Sidebar() {
   const { t } = useI18n();
+  const navRef = useRef(null);
+
+  useLayoutEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+    if (sidebarScroll !== null) {
+      nav.scrollTop = sidebarScroll;
+    } else {
+      // First visit: make sure the current page's item is in view.
+      nav.querySelector('[aria-current="page"]')?.scrollIntoView({ block: "nearest" });
+    }
+  }, []);
   const router = useRouter();
   const pathname = usePathname();
   const me = useMe();
@@ -136,9 +151,14 @@ function Sidebar() {
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-line bg-[#faf7f1] md:flex">
       <Link href="/dashboard" className="flex items-center gap-3 px-6 pb-7 pt-8">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[#e5d8c6] bg-[#eee5d8] text-[#725c45]">
-          <Scissors size={22} strokeWidth={1.6} />
-        </span>
+        <Image
+          src="/brand/icon-96.png"
+          alt=""
+          width={48}
+          height={48}
+          priority
+          className="h-12 w-12 shrink-0 rounded-2xl border border-line bg-white"
+        />
         <span className="min-w-0">
           <span className="block font-serif text-[22px] leading-tight tracking-tight text-[#30271f]">
             {t("app.name")}
@@ -151,7 +171,13 @@ function Sidebar() {
 
       <div className="mx-5 border-t border-line" />
 
-      <nav className="flex-1 overflow-y-auto px-4 py-6">
+      <nav
+        ref={navRef}
+        onScroll={(event) => {
+          sidebarScroll = event.currentTarget.scrollTop;
+        }}
+        className="flex-1 overflow-y-auto overscroll-contain px-4 py-6"
+      >
         {sections.map((section, index) => (
           <div key={section.heading} className={index === 0 ? "" : "mt-7"}>
             <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#a08e7b]">
@@ -245,6 +271,14 @@ export function HeaderIconButton({ label, href, onClick, children }) {
   const className =
     "flex h-10 w-10 items-center justify-center rounded-full text-ink-2 transition hover:bg-card-2 active:bg-card-2";
   if (href) {
+    // Pages inside the app use Link (no reload); phone / WhatsApp links stay plain.
+    if (href.startsWith("/")) {
+      return (
+        <Link href={href} aria-label={label} title={label} className={className}>
+          {children}
+        </Link>
+      );
+    }
     return (
       <a href={href} aria-label={label} title={label} className={className}>
         {children}
@@ -284,7 +318,12 @@ function MobileHeader({ title, mobileTitle, brand, back, actions }) {
           <span className="w-2" />
         )}
         <div className="min-w-0 flex-1 px-1">
-          {mobileTitle || (
+          {mobileTitle || (brand ? (
+            <h1 className="flex items-center gap-2 truncate text-[22px] font-bold tracking-tight text-accent">
+              <Image src="/brand/icon-96.png" alt="" width={30} height={30} priority className="h-[30px] w-[30px] rounded-lg" />
+              {title}
+            </h1>
+          ) : (
             <h1
               className={cx(
                 "truncate",
@@ -295,7 +334,7 @@ function MobileHeader({ title, mobileTitle, brand, back, actions }) {
             >
               {title}
             </h1>
-          )}
+          ))}
         </div>
         {actions && <div className="flex items-center">{actions}</div>}
       </div>
@@ -431,7 +470,7 @@ export default function AppShell({
             hideTabs ? "pb-6" : "pb-[calc(88px+env(safe-area-inset-bottom))] md:pb-10"
           )}
         >
-          <div className="mx-auto w-full max-w-[1400px]">
+          <div className="page-enter mx-auto w-full max-w-[1400px]">
             {allowed ? children : <NoAccess role={me?.role} />}
           </div>
         </main>

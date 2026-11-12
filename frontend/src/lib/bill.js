@@ -92,20 +92,24 @@ export async function billImageFile(bill, settings, t, locale) {
   // Paper
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = "#1daa61";
+  ctx.fillStyle = "#8c5d4c";
   ctx.fillRect(0, 0, W, 14);
 
   let y = 92;
+  const logo = await loadImage("/brand/mark.png").catch(() => null); // no logo is fine
+  const textX = logo ? pad + 128 : pad;
+  if (logo) ctx.drawImage(logo, pad - 8, 36, 116, 116);
   ctx.fillStyle = "#111b21";
   ctx.font = `700 44px ${font}`;
-  ctx.fillText(clean(settings?.boutique_name) || "Fab_art Studio", pad, y);
+  ctx.fillText(fitText(ctx, clean(settings?.boutique_name) || "Fab_art Studio", W - pad - textX), textX, y);
   ctx.font = `400 24px ${font}`;
   ctx.fillStyle = "#667781";
   const contact = [clean(settings?.phone), clean(settings?.address)].filter(Boolean).join(" · ");
   if (contact) {
     y += 40;
-    ctx.fillText(fitText(ctx, contact, W - pad * 2), pad, y);
+    ctx.fillText(fitText(ctx, contact, W - pad - textX), textX, y);
   }
+  if (logo) y = Math.max(y, 150);
 
   // Bill number / date / customer
   y += 64;
@@ -131,7 +135,7 @@ export async function billImageFile(bill, settings, t, locale) {
   ctx.stroke();
   for (const line of bill.lines) {
     y += rowH;
-    ctx.fillStyle = "#008069";
+    ctx.fillStyle = "#8a5644";
     ctx.font = `600 24px ${font}`;
     ctx.fillText(`#${line.order_number || line.order_id}`, pad, y - 18);
     ctx.fillStyle = "#111b21";

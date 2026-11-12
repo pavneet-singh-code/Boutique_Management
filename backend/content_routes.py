@@ -109,8 +109,8 @@ def create_content(data: schemas.ContentCreate, db: Session = Depends(get_db), u
     item = models.ContentItem(
         title=data.title.strip(),
         brief=(data.brief or "").strip() or None,
-        platforms=json.dumps(sorted(set(data.platforms))) if data.platforms else None,
-        format=data.format,
+        platforms=json.dumps(data.targets) if data.targets else None,
+        format=first_format(data.targets),
         order_id=data.order_id,
         assigned_to=data.assigned_to if is_owner else (data.assigned_to or user.id),
         scheduled_for=data.scheduled_for.replace(tzinfo=None) if data.scheduled_for else None,
@@ -126,7 +126,11 @@ def create_content(data: schemas.ContentCreate, db: Session = Depends(get_db), u
     return content_out(item)
 
 
-EDIT_FIELDS = ("title", "brief", "platforms", "format", "order_id", "assigned_to", "scheduled_for", "status", "posted_url")
+def first_format(targets):
+    return targets[0].split(":", 1)[1] if targets else "post"
+
+
+EDIT_FIELDS = ("title", "brief", "platforms", "order_id", "assigned_to", "scheduled_for", "status", "posted_url")
 WORK_STAGES = ("planned", "shooting", "editing", "ready_to_post", "posted")
 
 
@@ -150,9 +154,13 @@ def update_content(item_id: int, data: schemas.ContentUpdate, db: Session = Depe
 
     check_links(db, changes.get("order_id"), changes.get("assigned_to"))
     before = activity.snapshot(item, EDIT_FIELDS)
+    if "targets" in changes:
+        targets = changes.pop("targets") or []
+        changes["platforms"] = json.dumps(targets) if targets else None
+        changes["format"] = first_format(targets)
     for key, value in changes.items():
-        if key == "platforms":
-            value = json.dumps(sorted(set(value))) if value else None
+        if key in ("platforms", "format"):
+            pass
         elif key in ("title", "brief", "posted_url"):
             value = (value or "").strip() or None
             if key == "title" and not value:
@@ -220,7 +228,7 @@ def content_stats(db: Session = Depends(get_db), user=Depends(CONTENT_VIEWERS)):
     this_week = [i for i in items if i.scheduled_for and week_start <= i.scheduled_for < week_end]
     by_platform = {platform: 0 for platform in models.PLATFORMS}
     for item in this_week:
-        for platform in schemas._platforms(item.platforms):
+        for platform in schemas.target_platforms(schemas.content_targets(item.platforms, item.format)):
             by_platform[platform] = by_platform.get(platform, 0) + 1
 
     ready = (
