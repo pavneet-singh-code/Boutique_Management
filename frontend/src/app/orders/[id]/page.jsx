@@ -6,6 +6,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   BriefcaseBusiness,
   CalendarDays,
+  Clapperboard,
   ChevronRight,
   CircleCheck,
   FileText,
@@ -20,6 +21,7 @@ import {
 import AppShell, { HeaderIconButton } from "../../../components/AppShell";
 import { PaymentSteps } from "../../../components/Bills";
 import { WorkSection } from "../../../components/Work";
+import { ContentStageChip, ReelBadge } from "../../../components/Content";
 import {
   Avatar,
   Button,
@@ -126,6 +128,9 @@ function OrderDetailContent() {
   const canDelete = useCan("deleteOrders");
   const seeMoney = useCan("money");
   const canAssign = useCan("team");
+  const seeContent = useCan("contentView");
+  const planContent = useCan("contentEdit");
+  const setOkToPost = useCan("okToPost");
   const canBill = useCan("makeBills");
 
   const markChecked = async () => {
@@ -279,6 +284,58 @@ function OrderDetailContent() {
         <Section icon={BriefcaseBusiness} title={t("work.title")}>
           <WorkSection order={order} canEdit={canEdit} canAssign={canAssign} canBill={canBill} />
         </Section>
+
+        {seeContent && (
+          <Section icon={Clapperboard} title={t("content.section")}>
+            <div className="space-y-3 py-3">
+              {setOkToPost ? (
+                <label className="flex cursor-pointer items-center justify-between gap-4">
+                  <span>
+                    <span className="block text-[15px] font-medium text-ink">{t("content.okToPost")}</span>
+                    <span className="block text-xs text-muted">{t("content.okToPostHelp")}</span>
+                  </span>
+                  <span className="relative inline-flex shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(order.ok_to_post)}
+                      onChange={(event) => updateOrder(order.id, { ok_to_post: event.target.checked }).catch(() => {})}
+                      className="peer sr-only"
+                    />
+                    <span className="h-7 w-12 rounded-full bg-line transition peer-checked:bg-accent" />
+                    <span className="absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow transition peer-checked:translate-x-5" />
+                  </span>
+                </label>
+              ) : (
+                <p className="text-sm text-ink-2">
+                  {t("content.okToPost")}: {order.ok_to_post ? t("common.yes") : t("common.no")}
+                </p>
+              )}
+              {(order.content || []).length === 0 ? (
+                <p className="text-sm text-muted">{t("content.noPost")}</p>
+              ) : (
+                <ul className="divide-y divide-line">
+                  {order.content.map((item) => (
+                    <li key={item.id}>
+                      <Link href={`/content/${item.id}`} className="flex items-center justify-between gap-3 py-2">
+                        <span className="min-w-0 truncate text-[15px] text-ink">{item.title}</span>
+                        <ContentStageChip status={item.status} />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {planContent && (
+                <Link
+                  href={`/content/new?order=${order.id}`}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-full border border-line px-3.5 text-sm font-medium text-ink-2 hover:bg-card-2"
+                >
+                  <Clapperboard size={15} />
+                  {t("content.planPost")}
+                </Link>
+              )}
+            </div>
+          </Section>
+        )}
 
         <Section icon={CalendarDays} title={t("order.dates")}>
           <Row label={t("field.orderDate")} value={formatDate(order.order_date, locale)} />

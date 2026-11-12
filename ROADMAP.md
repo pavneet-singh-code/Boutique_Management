@@ -3,7 +3,7 @@
 Planned features for the boutique management app, and the order we will build them in.
 Every phase ends with something that works and can be deployed on its own.
 
-**Status:** Phases 0–4 built, waiting to be deployed together · **Last updated:** 11 Nov 2026
+**Status:** Phases 0–5 built, waiting to be deployed together · **Last updated:** 11 Nov 2026
 
 ---
 
@@ -403,9 +403,10 @@ every database change.**
    - `0003` adds customers, three-step payments and bills (Phase 1).
    - `0004` adds employees and the activity log (Phase 2).
    - `0005` adds order stages, trial dates and work tasks (Phase 3).
-   - `0006` makes order numbers unique and required. It is the **last** step on purpose: it waits until the
-     duplicates have been fixed in the app, and the app needs `0005` to run.
-   - The backend refuses to start until at least `0005` has run, with a clear message.
+   - `0006` adds the social media content plan and "customer OK to post" (Phase 5).
+   - `0007` makes order numbers unique and required. It is the **last** step on purpose: it waits until the
+     duplicates have been fixed in the app, and the app needs `0006` to run.
+   - The backend refuses to start until at least `0006` has run, with a clear message.
 2. ✅ **Order numbers fixed automatically where it is safe:**
    - The `/` misread: `26/025` → `261025`.
    - Every change is written in the order's *clean-up note*.
@@ -417,7 +418,7 @@ every database change.**
 4. ✅ **Order numbers required and unique:**
    - The backend refuses duplicate or missing numbers on upload, add and edit.
    - The upload screen blocks saving and says which page has the problem.
-   - The database rule is switched on by `0006`, once the check screen shows "All clear".
+   - The database rule is switched on by `0007`, once the check screen shows "All clear".
    - Links now use the order number (`/orders/261023`). Old links using the internal id still work.
 5. ✅ **Proper types:**
    - Dates are real dates.
@@ -426,13 +427,13 @@ every database change.**
    - Dates that couldn't be read are kept in the clean-up note, so nothing is lost.
 6. ✅ **Backups to your PC:** see section 10.
 
-**How to deploy Phases 0–4 (together):**
+**How to deploy Phases 0–5 (together):**
 1. **Back up first:** run `Backup-Boutique-DB.bat` on your PC.
 2. **Update the backend on PythonAnywhere** (in a Bash console):
    - `cd ~/Boutique_Management && git pull`
    - `cd backend && pip install -r requirements.txt` (use your virtualenv if you have one)
    - `alembic upgrade head`
-   - It runs `0002` to `0005`, then stops at `0006` and lists the duplicates. **That's expected.**
+   - It runs `0002` to `0006`, then stops at `0007` and lists the duplicates. **That's expected.**
 3. **Reload the web app** on the Web tab, then deploy the new frontend.
 4. **Owner login:**
    - Log in with **"Log in with the owner password"** (the same password as today). You are `FA-001`.
@@ -605,15 +606,34 @@ No database change: the calendar is built from the orders and their plans.
    - **Customers** moved to Settings and the Home quick links (it keeps a back arrow), and is still in the
      desktop menu.
 
-### Phase 5 — Social media manager
-1. **Content items:** a `content_items` table and the `ok_to_post` switch on orders.
-2. **Content calendar:** week, month and list views, where the owner posts the schedule and she adds ideas.
-3. **Ready to shoot:** a list of these orders, plus the reel badge on every order.
-4. **Content stages:** she moves items through the stages and pastes the post link when it is live.
-5. **Content stats:** posts per week by platform, plus orders without a reel.
-
-✅ **Done when:** the owner can post a schedule, and she can plan, track and close every reel or post from her
-phone.
+### Phase 5 — Social media manager — ✅ built, not deployed yet
+1. ✅ **Content items** (migration `0006`):
+   - Each item has a title, a brief, its platforms (Instagram / Facebook / YouTube / WhatsApp Status), a type
+     (reel / post / carousel / story / short), an optional linked outfit, a person and a date and time.
+   - **Stage:** Idea → Planned → Shooting → Editing → Ready to post → Posted, plus the post's link.
+2. ✅ **"Customer OK to post"** switch on every order (owner and uploader). Only those outfits are suggested for
+   posting.
+3. ✅ **Content plan screen** (the social media person's home; Settings → Content plan for owner and uploader):
+   - **Numbers:** posted / planned this week, posted this month, ideas waiting, ready to shoot, and this week per
+     platform.
+   - **🎬 Ready to shoot:** outfits that are Ready, have the customer's OK and have no post yet, each with "Plan a
+     post".
+   - **Views:** **Week** (the default), **Month** (🎬 per day, tap a day) and **List**, filtered by platform.
+     Late posts are shown in red.
+   - **Ideas:** posts without a date yet, in their own list.
+4. ✅ **Who does what** (checked on the server):
+   - **Owner:** adds posts straight onto the schedule, changes anything, and puts ideas on the schedule by giving
+     them a date.
+   - **Social media person:** adds **ideas**, which can suggest a date. She edits or deletes her own ideas, and moves
+     scheduled posts through the stages with one big "Next: …" button, pasting the link when posted. She can't
+     change a scheduled post's details.
+   - **Uploader:** can view the plan.
+   - **Workers:** can't see it.
+5. ✅ **Reel badge:** order rows show "Post planned" or "Posted". The order page has a **Social media** section with
+   the OK switch, its posts and "Plan a post".
+6. ✅ **The social media person's bottom bar:** **Plan · Orders · My work · Profile**. The delivery calendar moved to
+   Profile.
+7. ✅ **Activity log** records content being added, changed, posted and deleted.
 
 ### Later ideas
 See section 9. Each one can become a small phase of its own.

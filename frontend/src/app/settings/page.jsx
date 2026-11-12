@@ -12,7 +12,9 @@ import {
   Hash,
   Languages,
   BriefcaseBusiness,
+  CalendarCheck,
   ChartNoAxesColumn,
+  Clapperboard,
   History,
   Users,
   LogOut,
@@ -138,6 +140,12 @@ export default function SettingsPage() {
         <Card className="divide-y divide-line overflow-hidden rounded-none border-x-0 md:rounded-2xl md:border-x">
           {can(role, "customers") && (
             <Row icon={Users} title={t("nav.customers")} help={t("customers.subtitle")} href="/customers" />
+          )}
+          {can(role, "contentView") && role !== "social_media" && (
+            <Row icon={Clapperboard} title={t("nav.content")} help={t("content.subtitle")} href="/content" />
+          )}
+          {role === "social_media" && (
+            <Row icon={CalendarCheck} title={t("nav.calendar")} help={t("cal.subtitle")} href="/calendar" />
           )}
           {can(role, "myWork") && role !== "worker" && role !== "social_media" && (
             <Row icon={BriefcaseBusiness} title={t("nav.myWork")} help={t("mywork.empty")} href="/my-work" />

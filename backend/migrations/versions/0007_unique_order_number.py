@@ -4,15 +4,15 @@ Run this only after the duplicates / missing numbers have been fixed on the
 app's "Order number check" screen. If any problems are left, the migration
 stops, lists them and changes nothing.
 
-Revision ID: 0006
-Revises: 0005
+Revision ID: 0007
+Revises: 0006
 Create Date: 2026-11-11
 """
 from alembic import op
 import sqlalchemy as sa
 
-revision = "0006"
-down_revision = "0005"
+revision = "0007"
+down_revision = "0006"
 branch_labels = None
 depends_on = None
 

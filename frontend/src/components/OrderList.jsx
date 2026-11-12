@@ -20,6 +20,7 @@ import {
 } from "../lib/orders";
 import { Avatar, ReviewBadge, cx } from "./ui";
 import { LateChip, ProgressBar, StageChip } from "./Work";
+import { ReelBadge } from "./Content";
 import { isLate, isOpen } from "../lib/work";
 
 /** Short "delivery" hint: "3 days left" / "Due today" / date. */
@@ -99,6 +100,7 @@ export function OrderRow({ order, showDelivery = true, rightText }) {
               <span />
             )}
             <span className="flex shrink-0 items-center gap-1">
+              <ReelBadge content={order.content} />
               {isLate(order) && <LateChip />}
               {order.status && order.status !== "received" && (
                 <StageChip status={order.status} step={order.current_step} />

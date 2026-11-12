@@ -428,6 +428,18 @@ export const confirmDelivery = (orderIds, delivered) =>
     request("/orders/confirm-status", { method: "POST", body: { order_ids: orderIds, delivered } })
   );
 
+/* ---------------- Social media content plan ---------------- */
+
+export const getContent = () => request("/content");
+export const getReadyToShoot = () => request("/content/ready-to-shoot");
+export const getContentStats = () => request("/content/stats");
+export const createContent = (data) =>
+  thenRefreshOrders(request("/content", { method: "POST", body: data }));
+export const updateContent = (id, data) =>
+  thenRefreshOrders(request(`/content/${id}`, { method: "PATCH", body: data }));
+export const deleteContent = (id) =>
+  thenRefreshOrders(request(`/content/${id}`, { method: "DELETE" }));
+
 /* ---------------- Backups ---------------- */
 
 /** Downloads a full copy of the database to this device. */

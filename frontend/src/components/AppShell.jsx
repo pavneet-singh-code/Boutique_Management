@@ -8,6 +8,7 @@ import {
   BriefcaseBusiness,
   CalendarCheck,
   CalendarDays,
+  Clapperboard,
   History,
   Lock,
   CalendarRange,
@@ -40,6 +41,7 @@ const sidebarSections = [
       { label: "nav.dashboard", path: "/dashboard", icon: LayoutDashboard, feature: "reports" },
       { label: "nav.myWork", path: "/my-work", icon: BriefcaseBusiness, feature: "myWork" },
       { label: "nav.calendar", path: "/calendar", icon: CalendarCheck },
+      { label: "nav.content", path: "/content", icon: Clapperboard, feature: "contentView" },
       { label: "nav.monthly", path: "/monthly-review", icon: CalendarDays, feature: "reports" },
       { label: "nav.yearly", path: "/yearly-review", icon: CalendarRange, feature: "reports" },
     ],
@@ -77,6 +79,7 @@ const ALL_TABS = {
   customers: { label: "tab.customers", path: "/customers", icon: Users, match: ["/customers"] },
   pending: { label: "tab.pending", path: "/pending", icon: ListTodo, match: ["/pending"] },
   calendar: { label: "tab.calendar", path: "/calendar", icon: CalendarCheck, match: ["/calendar"] },
+  plan: { label: "tab.plan", path: "/content", icon: Clapperboard, match: ["/content"] },
   reports: {
     label: "tab.reports",
     path: "/monthly-review",
@@ -94,14 +97,14 @@ const ALL_TABS = {
     label: "tab.profile",
     path: "/settings",
     icon: UserRound,
-    match: ["/settings", "/activity"],
+    match: ["/settings", "/activity", "/calendar"],
   },
 };
 
 const TABS_BY_ROLE = {
   owner: ["home", "orders", "pending", "calendar", "settings"],
   uploader: ["home", "orders", "pending", "calendar", "settings"],
-  social_media: ["orders", "myWork", "calendar", "profile"],
+  social_media: ["plan", "orders", "myWork", "profile"],
   worker: ["myWork", "calendar", "profile"],
 };
 

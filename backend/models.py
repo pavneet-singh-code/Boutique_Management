@@ -51,7 +51,7 @@ class Order(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     filename = Column(String, nullable=True)
-    # Unique once migration 0006 has run (after duplicates are cleaned up).
+    # Unique once migration 0007 has run (after duplicates are cleaned up).
     order_number = Column(String, index=True, unique=True, nullable=True)
     customer_id = Column(Integer, ForeignKey("customers.id"), nullable=True, index=True)
     # Name / phone exactly as written on the order form.
@@ -83,6 +83,8 @@ class Order(Base):
     status_confirmed = Column(Boolean, nullable=False, default=True)
     trial_date = Column(Date, nullable=True)
     delivered_at = Column(DateTime(timezone=True), nullable=True)
+    # The customer is happy for this outfit to be shown on social media.
+    ok_to_post = Column(Boolean, nullable=False, default=False)
 
     needs_review = Column(Boolean, default=False)
     # Things the clean-up could not fix automatically (e.g. an unreadable date).
@@ -91,6 +93,7 @@ class Order(Base):
 
     customer = relationship("Customer", back_populates="orders")
     bill = relationship("Bill", back_populates="orders")
+    content = relationship("ContentItem", back_populates="order", order_by="ContentItem.id")
     tasks = relationship(
         "OrderTask",
         back_populates="order",
@@ -288,3 +291,36 @@ class OrderTask(Base):
 
     order = relationship("Order", back_populates="tasks")
     employee = relationship("Employee", foreign_keys=[employee_id])
+
+
+
+# ---------------------------------------------------------------- Social media
+
+PLATFORMS = ("instagram", "facebook", "youtube", "whatsapp_status")
+CONTENT_FORMATS = ("reel", "post", "carousel", "story", "short")
+CONTENT_STAGES = ("idea", "planned", "shooting", "editing", "ready_to_post", "posted")
+
+
+class ContentItem(Base):
+    """A reel / post / story on the social media plan."""
+
+    __tablename__ = "content_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    brief = Column(Text, nullable=True)  # what to shoot, caption idea
+    platforms = Column(Text, nullable=True)  # JSON list, see PLATFORMS
+    format = Column(String, nullable=False, default="reel")
+    order_id = Column(Integer, ForeignKey("orders.id", ondelete="SET NULL"), nullable=True, index=True)
+    assigned_to = Column(Integer, ForeignKey("employees.id"), nullable=True)
+    # Boutique (India) local time, e.g. 2026-11-20 18:00
+    scheduled_for = Column(DateTime, nullable=True)
+    status = Column(String, nullable=False, default="idea")
+    posted_url = Column(String, nullable=True)
+    posted_at = Column(DateTime(timezone=True), nullable=True)
+    created_by = Column(Integer, ForeignKey("employees.id"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    order = relationship("Order", back_populates="content")
+    person = relationship("Employee", foreign_keys=[assigned_to])
+    creator = relationship("Employee", foreign_keys=[created_by])

@@ -34,6 +34,15 @@ const FIELD_LABELS = {
   bill_note: "settings.billNote",
   status: "stage.label",
   skills: "team.skills",
+  title: "content.titleLabel",
+  brief: "content.brief",
+  platforms: "content.platforms",
+  format: "content.format",
+  scheduled_for: "content.when",
+  posted_url: "content.postedLink",
+  ok_to_post: "content.okToPost",
+  order_id: "content.order",
+  assigned_to: "content.who",
   trial_date: "field.trialDate",
   due_date: "work.due",
   employee_id: "work.who",
@@ -42,16 +51,30 @@ const FIELD_LABELS = {
 };
 
 const MONEY = new Set(["advance_amount", "estimated_total"]);
+// Ids that mean nothing to a person: show just "changed".
+const HIDDEN_VALUES = new Set(["customer_id", "employee_id", "order_id", "assigned_to"]);
 // Task statuses share the "status" field name with order stages.
 const STATUS_KEYS = { assigned: "taskStatus.assigned", in_progress: "taskStatus.in_progress", done: "taskStatus.done" };
 const DATES = new Set(["order_date", "deliver_date", "advance_date", "trial_date", "due_date"]);
 
-function formatValue(field, value, t, locale) {
+function formatValue(field, value, t, locale, entity) {
   if (value === null || value === undefined || value === "") return "—";
   if (MONEY.has(field)) return formatMoney(Number(value), locale);
   if (DATES.has(field)) return formatDate(value, locale);
   if (field === "role") return t(`role.${value}`);
+  if (field === "status" && entity === "content") return t(`contentStage.${value}`);
   if (field === "status") return t(value in STATUS_KEYS ? STATUS_KEYS[value] : `stage.${value}`);
+  if (field === "format") return t(`format.${value}`);
+  if (field === "scheduled_for") {
+    return new Date(value).toLocaleString(locale, { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+  }
+  if (field === "platforms") {
+    try {
+      return JSON.parse(value).map((p) => t(`platform.${p}`)).join(", ") || "—";
+    } catch {
+      return String(value);
+    }
+  }
   if (field === "task") return t(`task.${value}`);
   if (field === "skills") {
     try {
@@ -98,13 +121,14 @@ export function describe(entry, t, locale, meId) {
     if (entry.entity === "bill") href = `/bills/${entry.entity_id}`;
     if (entry.entity === "employee") href = "/team";
     if (entry.entity === "task" && d.order_id) href = `/orders/${d.order_id}`;
+    if (entry.entity === "content") href = `/content/${entry.entity_id}`;
   }
 
   const changes = Object.entries(d.changes || {}).map(([field, [before, after]]) => ({
     field,
     label: FIELD_LABELS[field] ? t(FIELD_LABELS[field]) : field,
-    before: ["customer_id", "employee_id"].includes(field) ? null : formatValue(field, before, t, locale),
-    after: ["customer_id", "employee_id"].includes(field) ? null : formatValue(field, after, t, locale),
+    before: HIDDEN_VALUES.has(field) ? null : formatValue(field, before, t, locale, entry.entity),
+    after: HIDDEN_VALUES.has(field) ? null : formatValue(field, after, t, locale, entry.entity),
   }));
 
   return { text, href, changes };

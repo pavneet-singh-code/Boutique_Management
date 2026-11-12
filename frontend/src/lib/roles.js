@@ -27,6 +27,9 @@ const FEATURES = {
   allActivity: ["owner"],
   myWork: ["worker", "social_media", "owner", "uploader"],
   confirmDelivery: ["owner", "uploader"],
+  contentView: ["owner", "uploader", "social_media"],
+  contentEdit: ["owner", "social_media"],
+  okToPost: ["owner", "uploader"],
 };
 
 export const ROLES = ["owner", "uploader", "worker", "social_media"];
@@ -38,7 +41,7 @@ export function can(role, feature) {
 /** First screen after logging in. */
 export function homeFor(role) {
   if (role === "worker") return "/my-work";
-  if (role === "social_media") return "/orders";
+  if (role === "social_media") return "/content";
   return "/dashboard";
 }
 

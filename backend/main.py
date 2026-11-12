@@ -31,14 +31,15 @@ from auth_routes import router as auth_router
 from customer_routes import router as customer_router
 from employee_routes import router as employee_router
 from work_routes import roll_over_tasks, router as work_router, set_stage
+from content_routes import router as content_router
 
 
 # ---------------------------------------------------------
 # DATABASE VERSION CHECK
 # Tables are created / changed by migrations, not on startup:
 #   cd backend && alembic upgrade head
-# The app needs at least migration 0005 (order stages + work tasks).
-# 0006 (unique order numbers) runs once duplicates are fixed in the app.
+# The app needs at least migration 0006 (social media content plan).
+# 0007 (unique order numbers) runs once duplicates are fixed in the app.
 # ---------------------------------------------------------
 
 def current_migration():
@@ -50,7 +51,7 @@ def current_migration():
 
 DB_REVISION = current_migration()
 
-if DB_REVISION not in ("0005", "0006"):
+if DB_REVISION not in ("0006", "0007"):
     raise RuntimeError(
         "The database needs to be upgraded. Back up boutique.db, then run "
         "'alembic upgrade head' in the backend folder and reload the app."
@@ -77,6 +78,9 @@ app.include_router(employee_router)
 
 # Work: tasks for employees and order stages
 app.include_router(work_router)
+
+# Social media content plan
+app.include_router(content_router)
 
 
 # CORS
@@ -166,6 +170,7 @@ def get_orders(
             selectinload(models.Order.customer),
             selectinload(models.Order.bill).selectinload(models.Bill.orders),
             selectinload(models.Order.tasks).selectinload(models.OrderTask.employee),
+            selectinload(models.Order.content),
         )
         .all()
     )
@@ -483,7 +488,7 @@ def data_check(
             date_problems.append({"order": as_dict(order), "reasons": reasons})
 
     return {
-        "unique_enforced": DB_REVISION == "0006",
+        "unique_enforced": DB_REVISION == "0007",
         "duplicates": duplicates,
         "missing": missing,
         "unusual_format": unusual,

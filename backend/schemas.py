@@ -178,6 +178,7 @@ class OrderUpdate(BaseModel):
     estimated_total: Optional[int] = None
     trial_date: Optional[date] = None
     status: Optional[Literal["received", "in_work", "ready", "delivered", "cancelled"]] = None
+    ok_to_post: Optional[bool] = None
     needs_review: Optional[bool] = None
 
     @model_validator(mode="before")
@@ -234,6 +235,8 @@ class OrderResponse(BaseModel):
     progress: int = 0
     current_step: Optional[str] = None
     tasks: List["TaskOut"] = []
+    ok_to_post: bool = False
+    content: List["ContentBrief"] = []
 
     needs_review: bool = False
     import_notes: Optional[str] = None
@@ -538,6 +541,90 @@ class Workload(BaseModel):
     employee: EmployeeBrief
     open: int
     late: int
+
+
+# ---------------------------------------------------------------- Social media content
+
+Platform = Literal["instagram", "facebook", "youtube", "whatsapp_status"]
+ContentFormat = Literal["reel", "post", "carousel", "story", "short"]
+ContentStage = Literal["idea", "planned", "shooting", "editing", "ready_to_post", "posted"]
+
+
+def _platforms(value):
+    return _skills(value)  # same JSON-list format
+
+
+class ContentBrief(BaseModel):
+    """The reel badge on an order."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    title: str
+    status: str
+    format: str
+    platforms: List[str] = []
+    scheduled_for: Optional[datetime] = None
+    posted_url: Optional[str] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def from_row(cls, data):
+        if hasattr(data, "platforms") and not isinstance(data, dict):
+            return {
+                "id": data.id,
+                "title": data.title,
+                "status": data.status,
+                "format": data.format,
+                "platforms": _platforms(data.platforms),
+                "scheduled_for": data.scheduled_for,
+                "posted_url": data.posted_url,
+            }
+        return data
+
+
+class ContentOrder(BaseModel):
+    id: int
+    order_number: Optional[str] = None
+    customer_name: Optional[str] = None
+    what_to_design: Optional[str] = None
+    status: str
+    progress: int
+    current_step: Optional[str] = None
+    ok_to_post: bool
+    deliver_date: Optional[date] = None
+
+
+class ContentOut(ContentBrief):
+    brief: Optional[str] = None
+    order_id: Optional[int] = None
+    order: Optional[ContentOrder] = None
+    person: Optional[EmployeeBrief] = None
+    creator: Optional[EmployeeBrief] = None
+    posted_at: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+
+
+class ContentCreate(BaseModel):
+    title: str = Field(min_length=1)
+    brief: Optional[str] = None
+    platforms: List[Platform] = []
+    format: ContentFormat = "reel"
+    order_id: Optional[int] = None
+    assigned_to: Optional[int] = None
+    scheduled_for: Optional[datetime] = None
+
+
+class ContentUpdate(BaseModel):
+    title: Optional[str] = None
+    brief: Optional[str] = None
+    platforms: Optional[List[Platform]] = None
+    format: Optional[ContentFormat] = None
+    order_id: Optional[int] = None
+    assigned_to: Optional[int] = None
+    scheduled_for: Optional[datetime] = None
+    status: Optional[ContentStage] = None
+    posted_url: Optional[str] = None
 
 
 OrderResponse.model_rebuild()
