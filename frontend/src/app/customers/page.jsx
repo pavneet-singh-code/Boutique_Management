@@ -162,6 +162,7 @@ export default function CustomersPage() {
   return (
     <AppShell
       feature="customers"
+      back
       title={t("customers.title")}
       subtitle={t("customers.subtitle")}
       actions={

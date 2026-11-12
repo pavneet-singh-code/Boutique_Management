@@ -14,6 +14,7 @@ import {
   BriefcaseBusiness,
   ChartNoAxesColumn,
   History,
+  Users,
   LogOut,
   ReceiptIndianRupee,
   UsersRound,
@@ -135,6 +136,9 @@ export default function SettingsPage() {
         {can(role, "boutiqueSettings") && <BoutiqueDetails />}
 
         <Card className="divide-y divide-line overflow-hidden rounded-none border-x-0 md:rounded-2xl md:border-x">
+          {can(role, "customers") && (
+            <Row icon={Users} title={t("nav.customers")} help={t("customers.subtitle")} href="/customers" />
+          )}
           {can(role, "myWork") && role !== "worker" && role !== "social_media" && (
             <Row icon={BriefcaseBusiness} title={t("nav.myWork")} help={t("mywork.empty")} href="/my-work" />
           )}

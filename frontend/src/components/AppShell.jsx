@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   BriefcaseBusiness,
+  CalendarCheck,
   CalendarDays,
   History,
   Lock,
@@ -38,6 +39,7 @@ const sidebarSections = [
     items: [
       { label: "nav.dashboard", path: "/dashboard", icon: LayoutDashboard, feature: "reports" },
       { label: "nav.myWork", path: "/my-work", icon: BriefcaseBusiness, feature: "myWork" },
+      { label: "nav.calendar", path: "/calendar", icon: CalendarCheck },
       { label: "nav.monthly", path: "/monthly-review", icon: CalendarDays, feature: "reports" },
       { label: "nav.yearly", path: "/yearly-review", icon: CalendarRange, feature: "reports" },
     ],
@@ -74,6 +76,7 @@ const ALL_TABS = {
   },
   customers: { label: "tab.customers", path: "/customers", icon: Users, match: ["/customers"] },
   pending: { label: "tab.pending", path: "/pending", icon: ListTodo, match: ["/pending"] },
+  calendar: { label: "tab.calendar", path: "/calendar", icon: CalendarCheck, match: ["/calendar"] },
   reports: {
     label: "tab.reports",
     path: "/monthly-review",
@@ -84,7 +87,7 @@ const ALL_TABS = {
     label: "tab.settings",
     path: "/settings",
     icon: Settings,
-    match: ["/settings", "/export-orders", "/team", "/activity", "/monthly-review", "/yearly-review"],
+    match: ["/settings", "/export-orders", "/team", "/activity", "/monthly-review", "/yearly-review", "/customers"],
   },
   myWork: { label: "tab.myWork", path: "/my-work", icon: BriefcaseBusiness, match: ["/my-work"] },
   profile: {
@@ -96,10 +99,10 @@ const ALL_TABS = {
 };
 
 const TABS_BY_ROLE = {
-  owner: ["home", "orders", "pending", "customers", "settings"],
-  uploader: ["home", "orders", "pending", "customers", "settings"],
-  social_media: ["orders", "myWork", "profile"],
-  worker: ["myWork", "profile"],
+  owner: ["home", "orders", "pending", "calendar", "settings"],
+  uploader: ["home", "orders", "pending", "calendar", "settings"],
+  social_media: ["orders", "myWork", "calendar", "profile"],
+  worker: ["myWork", "calendar", "profile"],
 };
 
 function tabsFor(role) {

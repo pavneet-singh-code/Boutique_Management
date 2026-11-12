@@ -3,7 +3,7 @@
 Planned features for the boutique management app, and the order we will build them in.
 Every phase ends with something that works and can be deployed on its own.
 
-**Status:** Phases 0–3 built, waiting to be deployed together · **Last updated:** 11 Nov 2026
+**Status:** Phases 0–4 built, waiting to be deployed together · **Last updated:** 11 Nov 2026
 
 ---
 
@@ -426,7 +426,7 @@ every database change.**
    - Dates that couldn't be read are kept in the clean-up note, so nothing is lost.
 6. ✅ **Backups to your PC:** see section 10.
 
-**How to deploy Phases 0–3 (together):**
+**How to deploy Phases 0–4 (together):**
 1. **Back up first:** run `Backup-Boutique-DB.bat` on your PC.
 2. **Update the backend on PythonAnywhere** (in a Bash console):
    - `cd ~/Boutique_Management && git pull`
@@ -577,11 +577,33 @@ and the owner can add people.
 - **Workers see:** the customer's name, but no phone numbers or money.
 - **Login:** one login per person, with several specialities (not one ID per speciality).
 
-### Phase 4 — Order calendar
-1. **Month and agenda views**, as described in section 5, with worker colours, trial dates and progress bars.
-2. **Workers' calendar:** shows only their own tasks.
-
-✅ **Done when:** everyone can see what's due and how far along it is, by day.
+### Phase 4 — Calendar — ✅ built, not deployed yet
+No database change: the calendar is built from the orders and their plans.
+1. ✅ **What's on it:**
+   - Deliveries 🚚 and trial / fitting days 📏.
+   - Each plan step on its "finish by" date, with the person's colour and initials.
+   - Late deliveries in red.
+   - Steps that slipped, showing "moved forward N days".
+   - Delivered or cancelled orders, and old orders still waiting for the "delivered?" answer, are left out.
+2. ✅ **List view** (the phone default): late deliveries first, then Today, Tomorrow and each day after, for 14
+   days. "Show next 14 days" adds more.
+3. ✅ **Month view:**
+   - Each day shows 🚚 / 📏 badges and one coloured dot per person with work that day.
+   - Days with something late get a red ring, and today is highlighted.
+   - Tap a day to see its items.
+   - On desktop the month and the list sit side by side.
+4. ✅ **Filters:** All / Deliveries / Trials / Work. The owner and uploader can also pick a person ("only
+   Kamla's work").
+5. ✅ **Who sees what:**
+   - **Owner and uploader:** everything.
+   - **Social media person:** deliveries, trials and her own steps.
+   - **Workers:** only their own steps, from My work.
+   - Items open the order; for workers they open My work.
+6. ✅ **Navigation:**
+   - **Bottom bar:** owner and uploader get Home · Orders · Pending · **Calendar** · Settings. The social media
+     person gets Orders · My work · Calendar · Profile, and workers get My work · Calendar · Profile.
+   - **Customers** moved to Settings and the Home quick links (it keeps a back arrow), and is still in the
+     desktop menu.
 
 ### Phase 5 — Social media manager
 1. **Content items:** a `content_items` table and the `ok_to_post` switch on orders.

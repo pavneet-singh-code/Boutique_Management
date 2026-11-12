@@ -19,6 +19,7 @@ import {
   TriangleAlert,
   Truck,
   Upload,
+  Users,
   Wallet,
 } from "lucide-react";
 import AppShell, { HeaderIconButton } from "../../components/AppShell";
@@ -354,18 +355,19 @@ export default function DashboardPage() {
           {/* Quick links on phones */}
           <section className="md:hidden">
             <SectionTitle title={t("dash.quick")} />
-            <div className="grid grid-cols-3 gap-3 px-4">
+            <div className="grid grid-cols-4 gap-2 px-4">
               {[
                 { href: "/upload-orders", icon: Upload, label: t("nav.upload") },
                 { href: "/orders/new", icon: FilePlus, label: t("nav.newOrder") },
+                { href: "/customers", icon: Users, label: t("nav.customers") },
                 can(me?.role, "makeBills")
                   ? { href: "/bills", icon: ReceiptIndianRupee, label: t("nav.bills") }
-                  : { href: "/customers", icon: ClipboardList, label: t("nav.customers") },
+                  : { href: "/monthly-review", icon: ClipboardList, label: t("tab.reports") },
               ].map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="flex flex-col items-center gap-2 rounded-2xl bg-card-2 px-2 py-4 text-center text-[13px] font-medium leading-tight text-ink-2"
+                  className="flex flex-col items-center gap-2 rounded-2xl bg-card-2 px-1 py-3.5 text-center text-[12.5px] font-medium leading-tight text-ink-2"
                 >
                   <span className="flex h-11 w-11 items-center justify-center rounded-full bg-accent-soft text-accent-soft-ink">
                     <item.icon size={20} />
