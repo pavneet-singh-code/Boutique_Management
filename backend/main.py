@@ -25,17 +25,19 @@ from pdf_processor import (
     convert_pdf_page_to_image
 )
 from vision_service import extract_order_from_image
-from auth import get_current_user
+import activity
+from auth import OWNER, STAFF, VIEWERS
 from auth_routes import router as auth_router
 from customer_routes import router as customer_router
+from employee_routes import router as employee_router
 
 
 # ---------------------------------------------------------
 # DATABASE VERSION CHECK
 # Tables are created / changed by migrations, not on startup:
 #   cd backend && alembic upgrade head
-# The app needs at least migration 0003 (customers, payments, bills).
-# 0004 (unique order numbers) runs once duplicates are fixed in the app.
+# The app needs at least migration 0004 (employees + activity log).
+# 0005 (unique order numbers) runs once duplicates are fixed in the app.
 # ---------------------------------------------------------
 
 def current_migration():
@@ -47,7 +49,7 @@ def current_migration():
 
 DB_REVISION = current_migration()
 
-if DB_REVISION not in ("0003", "0004"):
+if DB_REVISION not in ("0004", "0005"):
     raise RuntimeError(
         "The database needs to be upgraded. Back up boutique.db, then run "
         "'alembic upgrade head' in the backend folder and reload the app."
@@ -68,6 +70,9 @@ app.include_router(
 
 # Customers, bills and boutique settings
 app.include_router(customer_router)
+
+# Team (employees) and the activity log
+app.include_router(employee_router)
 
 
 # CORS
@@ -102,7 +107,7 @@ def read_root():
 @app.post("/api/v1/health-check-upload")
 async def health_check_upload(
     file: UploadFile = File(...),
-    current_user: str = Depends(get_current_user)
+    current_user: models.Employee = Depends(STAFF)
 ):
     """Validates uploaded file format before feeding into vision pipelines."""
 
@@ -121,6 +126,24 @@ async def health_check_upload(
     }
 
 
+# The social media manager sees orders and progress, but not money or phones.
+MONEY_FIELDS = (
+    "advance_amount", "estimated_total", "final_total", "final_payment_amount",
+    "received", "balance",
+)
+
+
+def for_viewer(order, user):
+    data = schemas.OrderResponse.model_validate(order)
+    if user.role != "social_media":
+        return data
+    hidden = {field: None for field in MONEY_FIELDS}
+    hidden.update(received=0, contact_number=None, payment_state="none")
+    if data.customer:
+        hidden["customer"] = data.customer.model_copy(update={"phone": None})
+    return data.model_copy(update=hidden)
+
+
 # 2. Fetch all saved orders
 @app.get(
     "/api/v1/orders",
@@ -128,7 +151,7 @@ async def health_check_upload(
 )
 def get_orders(
     db: Session = Depends(get_db),
-    current_user: str = Depends(get_current_user)
+    current_user: models.Employee = Depends(VIEWERS)
 ):
     """Retrieves all stored boutique orders from SQLite."""
 
@@ -141,7 +164,7 @@ def get_orders(
         .all()
     )
 
-    return orders
+    return [for_viewer(order, current_user) for order in orders]
 
 
 # 3. Seed dummy data
@@ -151,7 +174,7 @@ def get_orders(
 )
 def create_test_order(
     db: Session = Depends(get_db),
-    current_user: str = Depends(get_current_user)
+    current_user: models.Employee = Depends(OWNER)
 ):
     """Creates a dummy order to verify database read/write functionality."""
 
@@ -178,7 +201,7 @@ def create_test_order(
 async def render_pdf_as_image(
     file: UploadFile = File(...),
     page_number: int = 0,
-    current_user: str = Depends(get_current_user)
+    current_user: models.Employee = Depends(STAFF)
 ):
     """Converts a chosen PDF page into a high-resolution PNG."""
 
@@ -226,7 +249,7 @@ async def render_pdf_as_image(
 )
 async def analyze_order_pdf(
     file: UploadFile = File(...),
-    current_user: str = Depends(get_current_user)
+    current_user: models.Employee = Depends(STAFF)
 ):
     """
     Converts every page in an uploaded PDF to high-resolution images,
@@ -298,7 +321,7 @@ async def analyze_order_pdf(
 def bulk_save_orders(
     orders: List[schemas.OrderCreate],
     db: Session = Depends(get_db),
-    current_user: str = Depends(get_current_user)
+    current_user: models.Employee = Depends(STAFF)
 ):
     """
     Saves reviewed orders to SQLite.
@@ -348,6 +371,12 @@ def bulk_save_orders(
             db_order = models.Order(**values, customer_id=customer.id if customer else None)
             db.add(db_order)
             db.flush()
+            activity.log(
+                db, current_user, "order", db_order.id, "created",
+                label=activity.order_label(db_order),
+                source="upload" if db_order.filename else "manual",
+                file=db_order.filename,
+            )
             saved_orders.append(db_order)
 
         # Commit everything together
@@ -405,7 +434,7 @@ ORDER_NUMBER_FORMAT = re.compile(r"^\d{6}$")
 @app.get("/api/v1/orders/data-check")
 def data_check(
     db: Session = Depends(get_db),
-    current_user: str = Depends(get_current_user),
+    current_user: models.Employee = Depends(STAFF),
 ):
     """Lists the problems that must be fixed before order numbers can be
     made unique, plus dates that look wrong."""
@@ -448,7 +477,7 @@ def data_check(
             date_problems.append({"order": as_dict(order), "reasons": reasons})
 
     return {
-        "unique_enforced": DB_REVISION == "0004",
+        "unique_enforced": DB_REVISION == "0005",
         "duplicates": duplicates,
         "missing": missing,
         "unusual_format": unusual,
@@ -459,7 +488,7 @@ def data_check(
 
 # Download a consistent copy of the whole database (for backups on your PC)
 @app.get("/api/v1/admin/backup")
-def download_backup(current_user: str = Depends(get_current_user)):
+def download_backup(current_user: models.Employee = Depends(OWNER), db: Session = Depends(get_db)):
     db_path = engine.url.database
     if not db_path or not os.path.exists(db_path):
         raise HTTPException(status_code=500, detail="Database file not found")
@@ -474,6 +503,9 @@ def download_backup(current_user: str = Depends(get_current_user)):
         target.close()
         source.close()
 
+    activity.log(db, current_user, "backup", None, "downloaded")
+    db.commit()
+
     stamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
     return FileResponse(
         temp_path,
@@ -487,7 +519,7 @@ def download_backup(current_user: str = Depends(get_current_user)):
 @app.get("/api/v1/orders/export")
 def export_orders_csv(
     db: Session = Depends(get_db),
-    current_user: str = Depends(get_current_user)
+    current_user: models.Employee = Depends(STAFF)
 ):
     """Exports all stored order records as a downloadable CSV."""
 
@@ -571,7 +603,7 @@ def export_orders_csv(
 def get_order_by_id(
     order_id: int,
     db: Session = Depends(get_db),
-    current_user: str = Depends(get_current_user)
+    current_user: models.Employee = Depends(VIEWERS)
 ):
     """Retrieves full details for a specific order."""
 
@@ -587,7 +619,7 @@ def get_order_by_id(
             detail=f"Order with ID {order_id} not found"
         )
 
-    return order
+    return for_viewer(order, current_user)
 
 
 # 9. Update an order
@@ -599,7 +631,7 @@ def update_order_field(
     order_id: int,
     order_update: schemas.OrderUpdate,
     db: Session = Depends(get_db),
-    current_user: str = Depends(get_current_user)
+    current_user: models.Employee = Depends(STAFF)
 ):
     """Updates one or multiple fields for a saved order."""
 
@@ -650,8 +682,14 @@ def update_order_field(
                 },
             )
 
+    before = activity.snapshot(db_order, update_data.keys())
     for key, value in update_data.items():
         setattr(db_order, key, value)
+    activity.log(
+        db, current_user, "order", db_order.id, "updated",
+        label=activity.order_label(db_order),
+        changes=activity.changes(before, activity.snapshot(db_order, update_data.keys())),
+    )
 
     try:
         db.commit()
@@ -675,7 +713,7 @@ def update_order_field(
 def delete_order(
     order_id: int,
     db: Session = Depends(get_db),
-    current_user: str = Depends(get_current_user),
+    current_user: models.Employee = Depends(OWNER),
 ):
     order = (
         db.query(models.Order)
@@ -692,6 +730,11 @@ def delete_order(
             f"This suit is on bill {order.bill.bill_number}. Remove it from the bill first.",
         )
 
+    activity.log(
+        db, current_user, "order", order.id, "deleted",
+        label=activity.order_label(order),
+        design=order.what_to_design,
+    )
     db.delete(order)
     db.commit()
 

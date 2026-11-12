@@ -74,7 +74,8 @@ export default function YearlyReviewPage() {
   const { stats } = report;
 
   return (
-    <AppShell title={t("yearly.title")} subtitle={t("yearly.subtitle")}>
+    <AppShell
+      feature="reports" title={t("yearly.title")} subtitle={t("yearly.subtitle")}>
       <ReportTabs current="year" />
       <PageHeading
         eyebrow={t("nav.overview")}

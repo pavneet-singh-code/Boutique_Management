@@ -29,6 +29,7 @@ import {
   toISODate,
 } from "../../../lib/orders";
 import { useResource } from "../../../lib/useResource";
+import { useCan } from "../../../lib/roles";
 
 /** An order, shown as a sent chat message. */
 function OrderBubble({ order }) {
@@ -111,6 +112,7 @@ export default function CustomerPage() {
   const loader = useCallback(() => getCustomer(id), [id]);
   const { data: customer, error, reload } = useResource(loader);
   const endRef = useRef(null);
+  const canBill = useCan("makeBills");
 
   // Orders and bills in one chat timeline, oldest first.
   const timeline = useMemo(() => {
@@ -131,7 +133,8 @@ export default function CustomerPage() {
 
   if (!customer) {
     return (
-      <AppShell title={t("customers.title")} back="/customers" hideTabs>
+      <AppShell
+      feature="customers" title={t("customers.title")} back="/customers" hideTabs>
         <ErrorBox error={error} onRetry={reload} className="mt-4" />
         {!error && <Spinner />}
       </AppShell>
@@ -149,6 +152,7 @@ export default function CustomerPage() {
 
   return (
     <AppShell
+      feature="customers"
       title={customer.name}
       subtitle={subtitle}
       back="/customers"
@@ -220,7 +224,7 @@ export default function CustomerPage() {
             </span>
             <span className="truncate">{t("customers.newOrder", { name: customer.name })}</span>
           </Link>
-          {customer.unbilled_count > 0 && (
+          {canBill && customer.unbilled_count > 0 && (
             <Link
               href={`/bills/new?customer=${customer.id}`}
               aria-label={t("pay.createBill")}

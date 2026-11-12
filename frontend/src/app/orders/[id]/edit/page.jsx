@@ -63,6 +63,7 @@ function EditOrderContent() {
 
   return (
     <AppShell
+      feature="editOrders"
       title={t("edit.title")}
       subtitle={t("edit.subtitle")}
       back={order ? orderPath(order) : "/orders"}

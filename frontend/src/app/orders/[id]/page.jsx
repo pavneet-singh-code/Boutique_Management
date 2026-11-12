@@ -46,6 +46,8 @@ import {
   phoneForLinks,
 } from "../../../lib/orders";
 import { useOrders } from "../../../lib/useOrders";
+import { useCan, useMe } from "../../../lib/roles";
+import ActivityList from "../../../components/ActivityList";
 
 function Row({ label, value, strong }) {
   return (
@@ -117,6 +119,10 @@ function OrderDetailContent() {
   const [actionError, setActionError] = useState("");
 
   const order = findOrder(orders, id, searchParams.get("id"));
+  const me = useMe();
+  const canEdit = useCan("editOrders");
+  const canDelete = useCan("deleteOrders");
+  const seeMoney = useCan("money");
 
   const markChecked = async () => {
     setBusy(true);
@@ -145,7 +151,8 @@ function OrderDetailContent() {
 
   if (!order) {
     return (
-      <AppShell title={t("order.title")} back="/orders" hideTabs>
+      <AppShell
+      feature="orders" title={t("order.title")} back="/orders" hideTabs>
         <ErrorBox error={error} onRetry={() => reload()} className="mt-4" />
         {!ready && !error ? (
           <Spinner />
@@ -174,17 +181,22 @@ function OrderDetailContent() {
 
   return (
     <AppShell
+      feature="orders"
       title={`${t("order.title")} ${number}`}
       back="/orders"
       hideTabs
       actions={
         <>
-          <HeaderIconButton label={t("common.edit")} href={orderEditPath(order)}>
-            <Pencil size={20} />
-          </HeaderIconButton>
-          <HeaderIconButton label={t("common.delete")} onClick={() => setConfirmDelete(true)}>
-            <Trash2 size={20} />
-          </HeaderIconButton>
+          {canEdit && (
+            <HeaderIconButton label={t("common.edit")} href={orderEditPath(order)}>
+              <Pencil size={20} />
+            </HeaderIconButton>
+          )}
+          {canDelete && (
+            <HeaderIconButton label={t("common.delete")} onClick={() => setConfirmDelete(true)}>
+              <Trash2 size={20} />
+            </HeaderIconButton>
+          )}
         </>
       }
     >
@@ -222,11 +234,13 @@ function OrderDetailContent() {
               disabled={!phone}
               external
             />
-            <ActionButton
-              icon={Pencil}
-              label={t("common.edit")}
-              onClick={() => router.push(orderEditPath(order))}
-            />
+            {canEdit && (
+              <ActionButton
+                icon={Pencil}
+                label={t("common.edit")}
+                onClick={() => router.push(orderEditPath(order))}
+              />
+            )}
           </div>
         </div>
 
@@ -236,7 +250,7 @@ function OrderDetailContent() {
           </Notice>
         )}
 
-        {order.needs_review && (
+        {order.needs_review && canEdit && (
           <div className="mx-4 flex flex-col gap-3 rounded-2xl bg-warn-soft p-4 sm:flex-row sm:items-center md:mx-0">
             <TriangleAlert size={20} className="shrink-0 text-warn-ink" />
             <p className="flex-1 text-sm text-warn-ink">{t("dash.reviewHelp")}</p>
@@ -281,9 +295,11 @@ function OrderDetailContent() {
           />
         </Section>
 
-        <Section icon={IndianRupee} title={t("order.payment")}>
-          <PaymentSteps order={order} />
-        </Section>
+        {seeMoney && (
+          <Section icon={IndianRupee} title={t("order.payment")}>
+            <PaymentSteps order={order} />
+          </Section>
+        )}
 
         <Section icon={FileText} title={t("order.other")}>
           <Row label={t("field.source")} value={clean(order.filename) || "—"} />
@@ -293,7 +309,16 @@ function OrderDetailContent() {
           )}
         </Section>
 
-        {order.customer_id && (
+        {canEdit && (
+          <Card className="mx-4 overflow-hidden md:mx-0">
+            <h2 className="border-b border-line px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-accent-ink md:px-5">
+              {t("activity.history")}
+            </h2>
+            <ActivityList entity="order" entityId={order.id} meId={me?.id} pageSize={10} />
+          </Card>
+        )}
+
+        {order.customer_id && canEdit && (
         <Link
           href={`/customers/${order.customer_id}`}
           className="mx-4 flex items-center justify-between rounded-2xl border border-line bg-card px-4 py-4 text-[15px] font-medium text-accent-ink transition hover:bg-card-2 md:mx-0"

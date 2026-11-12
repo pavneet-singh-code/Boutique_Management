@@ -142,7 +142,8 @@ export default function ExportOrdersPage() {
   ];
 
   return (
-    <AppShell title={t("export.title")} subtitle={t("export.subtitle")} back="/settings">
+    <AppShell
+      feature="export" title={t("export.title")} subtitle={t("export.subtitle")} back="/settings">
       <div className="mx-auto max-w-2xl">
         <PageHeading
           eyebrow={t("nav.ordersSection")}

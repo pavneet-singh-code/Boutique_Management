@@ -38,6 +38,7 @@ import {
   summarise,
 } from "../../lib/orders";
 import { useOrders } from "../../lib/useOrders";
+import { useCan } from "../../lib/roles";
 
 const PAGE_SIZE = 15;
 
@@ -46,6 +47,8 @@ function OrdersContent() {
   const searchParams = useSearchParams();
   const { t, locale } = useI18n();
   const { orders, ready, loading, error, reload } = useOrders();
+  const canEdit = useCan("editOrders");
+  const seeMoney = useCan("money");
 
   const [search, setSearch] = useState(() => searchParams.get("search") || "");
   const [month, setMonth] = useState(() => searchParams.get("month") || currentMonthKey());
@@ -128,19 +131,22 @@ function OrdersContent() {
 
   return (
     <AppShell
+      feature="orders"
       title={t("orders.title")}
       subtitle={t("orders.subtitle")}
       actions={
         <>
-          <HeaderIconButton label={t("nav.newOrder")} href="/orders/new">
-            <FilePlus size={21} />
-          </HeaderIconButton>
+          {canEdit && (
+            <HeaderIconButton label={t("nav.newOrder")} href="/orders/new">
+              <FilePlus size={21} />
+            </HeaderIconButton>
+          )}
           <HeaderIconButton label={t("common.refresh")} onClick={() => reload()}>
             <RefreshCw size={20} className={loading ? "animate-spin" : ""} />
           </HeaderIconButton>
         </>
       }
-      fab={{ href: "/upload-orders", label: t("nav.upload"), icon: ScanLine }}
+      fab={canEdit ? { href: "/upload-orders", label: t("nav.upload"), icon: ScanLine } : null}
     >
       <PageHeading
         eyebrow={t("nav.ordersSection")}
@@ -152,14 +158,18 @@ function OrdersContent() {
               <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
               {t("common.refresh")}
             </Button>
-            <LinkButton href="/orders/new" variant="secondary">
-              <FilePlus size={17} />
-              {t("nav.newOrder")}
-            </LinkButton>
-            <LinkButton href="/upload-orders">
-              <Upload size={17} />
-              {t("nav.upload")}
-            </LinkButton>
+            {canEdit && (
+              <>
+                <LinkButton href="/orders/new" variant="secondary">
+                  <FilePlus size={17} />
+                  {t("nav.newOrder")}
+                </LinkButton>
+                <LinkButton href="/upload-orders">
+                  <Upload size={17} />
+                  {t("nav.upload")}
+                </LinkButton>
+              </>
+            )}
           </>
         }
       />
@@ -232,12 +242,11 @@ function OrdersContent() {
           {/* Summary */}
           <p className="border-y border-line bg-card-2 px-4 py-2 text-[13px] text-muted md:hidden">
             {periodLabel} ·{" "}
-            {t("orders.monthTotal", {
-              count: stats.count,
-              value: formatMoney(stats.value, locale),
-            })}
+            {seeMoney
+              ? t("orders.monthTotal", { count: stats.count, value: formatMoney(stats.value, locale) })
+              : t("common.orderCount", { count: stats.count })}
           </p>
-          <div className="mb-6 hidden grid-cols-4 gap-4 md:grid">
+          <div className={seeMoney ? "mb-6 hidden grid-cols-4 gap-4 md:grid" : "hidden"}>
             <StatTile label={t("dash.orders")} value={stats.count} note={periodLabel} />
             <StatTile label={t("dash.value")} value={formatMoney(stats.value, locale)} />
             <StatTile label={t("dash.advance")} value={formatMoney(stats.advance, locale)} />

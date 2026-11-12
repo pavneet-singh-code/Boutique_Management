@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Pencil, TriangleAlert } from "lucide-react";
 import { orderEditPath, orderPath } from "../lib/api";
 import { useI18n } from "../lib/i18n";
+import { useCan } from "../lib/roles";
 import {
   avatarSeed,
   clean,
@@ -117,6 +118,8 @@ export function OrderChatList({ orders, showDelivery, rightText }) {
 export function OrdersTable({ orders }) {
   const { t, locale } = useI18n();
   const router = useRouter();
+  const seeMoney = useCan("money");
+  const canEdit = useCan("editOrders");
 
   return (
     <div className="overflow-x-auto rounded-2xl border border-line bg-card shadow-sm">
@@ -128,9 +131,13 @@ export function OrdersTable({ orders }) {
             <th className="px-4 py-3.5">{t("field.design")}</th>
             <th className="px-4 py-3.5">{t("field.orderDate")}</th>
             <th className="px-4 py-3.5">{t("orders.delivery")}</th>
-            <th className="px-4 py-3.5 text-right">{t("field.total")}</th>
-            <th className="px-4 py-3.5 text-right">{t("pay.received")}</th>
-            <th className="px-4 py-3.5">{t("pay.title")}</th>
+            {seeMoney && (
+              <>
+                <th className="px-4 py-3.5 text-right">{t("field.total")}</th>
+                <th className="px-4 py-3.5 text-right">{t("pay.received")}</th>
+                <th className="px-4 py-3.5">{t("pay.title")}</th>
+              </>
+            )}
             <th className="px-4 py-3.5">{t("field.needsReview")}</th>
             <th className="px-5 py-3.5 text-right">
               <span className="sr-only">{t("common.edit")}</span>
@@ -182,6 +189,8 @@ export function OrdersTable({ orders }) {
               <td className="whitespace-nowrap px-4 py-3.5 text-sm text-ink-2">
                 {formatDate(order.deliver_date, locale)}
               </td>
+              {seeMoney && (
+              <>
               <td className="whitespace-nowrap px-4 py-3.5 text-right text-sm font-medium text-ink">
                 {formatMoney(orderValue(order), locale)}
               </td>
@@ -192,10 +201,13 @@ export function OrdersTable({ orders }) {
                 {t(`pay.state.${order.payment_state || "none"}`)}
                 {order.bill_number && <span className="block text-muted">{order.bill_number}</span>}
               </td>
+              </>
+              )}
               <td className="px-4 py-3.5">
                 <ReviewBadge needsReview={Boolean(order.needs_review)} />
               </td>
               <td className="px-4 py-3.5 text-right">
+                {canEdit && (
                 <Link
                   href={orderEditPath(order)}
                   onClick={(event) => event.stopPropagation()}
@@ -205,6 +217,7 @@ export function OrdersTable({ orders }) {
                 >
                   <Pencil size={14} />
                 </Link>
+                )}
               </td>
             </tr>
           ))}

@@ -75,7 +75,8 @@ function MonthlyContent() {
   const isCurrent = month >= currentMonthKey();
 
   return (
-    <AppShell title={t("monthly.title")} subtitle={t("monthly.subtitle")}>
+    <AppShell
+      feature="reports" title={t("monthly.title")} subtitle={t("monthly.subtitle")}>
       <ReportTabs current="month" />
       <PageHeading
         eyebrow={t("nav.overview")}

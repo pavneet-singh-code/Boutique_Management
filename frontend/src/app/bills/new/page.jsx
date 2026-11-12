@@ -73,7 +73,8 @@ function NewBillContent() {
   const preselect = (searchParams.get("orders") || "").split(",").filter(Boolean);
 
   return (
-    <AppShell title={t("bills.new")} subtitle={t("bills.subtitle")} back hideTabs>
+    <AppShell
+      feature="makeBills" title={t("bills.new")} subtitle={t("bills.subtitle")} back hideTabs>
       <div className="mx-auto max-w-2xl px-4 pt-4 md:px-0 md:pt-0">
         <PageHeading eyebrow={t("bills.title")} title={t("bills.new")} subtitle={t("bills.chooseSuitsHelp")} />
         {customerId ? (

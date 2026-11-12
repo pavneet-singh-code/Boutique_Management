@@ -71,6 +71,20 @@ export function LanguageProvider({ children }) {
         return t("number.duplicate", { numbers: error.numbers.join(", ") });
       }
       if (error?.code === "order_number_required") return t("number.required");
+      const known = {
+        forbidden: "error.forbidden",
+        wrong_login: "login.wrongPin",
+        wrong_password: "login.wrong",
+        locked: "login.locked",
+        wrong_pin: "profile.wrongPin",
+        bad_pin: "profile.badPin",
+        phone_in_use: "team.phoneInUse",
+        phone_needed: "profile.phoneNeeded",
+        last_owner: "team.lastOwner",
+      };
+      if (known[error?.code]) {
+        return t(known[error.code], { minutes: error.minutes ?? 15 });
+      }
       if (message.startsWith("error.")) return t(message);
       return message || t("error.generic");
     },

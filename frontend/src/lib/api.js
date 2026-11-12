@@ -6,10 +6,13 @@ const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
 
 const TOKEN_KEY = "fab_art_token";
+const ME_KEY = "fab_art_me";
 
+// Logins are kept on the device (30 days), so nobody has to log in every
+// time they open the app. "Log out everywhere" cancels them on the server.
 export function getToken() {
   try {
-    return sessionStorage.getItem(TOKEN_KEY);
+    return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
   } catch {
     return null;
   }
@@ -17,7 +20,8 @@ export function getToken() {
 
 function setToken(token) {
   try {
-    sessionStorage.setItem(TOKEN_KEY, token);
+    localStorage.setItem(TOKEN_KEY, token);
+    sessionStorage.removeItem(TOKEN_KEY);
   } catch {
     // ignore
   }
@@ -25,11 +29,48 @@ function setToken(token) {
 
 export function logout() {
   try {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(ME_KEY);
     sessionStorage.removeItem(TOKEN_KEY);
   } catch {
     // ignore
   }
+  setMe(null);
   invalidateOrders();
+}
+
+/* ---------------- The logged-in employee ---------------- */
+
+const meListeners = new Set();
+let meCache;
+
+function readStoredMe() {
+  try {
+    return JSON.parse(localStorage.getItem(ME_KEY) || "null");
+  } catch {
+    return null;
+  }
+}
+
+/** The logged-in employee ({ id, name, role, color, … }) or null. */
+export function getMe() {
+  if (meCache === undefined) meCache = typeof window === "undefined" ? null : readStoredMe();
+  return meCache;
+}
+
+function setMe(employee) {
+  meCache = employee;
+  try {
+    if (employee) localStorage.setItem(ME_KEY, JSON.stringify(employee));
+  } catch {
+    // ignore
+  }
+  for (const listener of meListeners) listener();
+}
+
+export function subscribeMe(listener) {
+  meListeners.add(listener);
+  return () => meListeners.delete(listener);
 }
 
 function sessionExpired() {
@@ -97,6 +138,7 @@ async function request(path, { method = "GET", body, auth = true } = {}) {
     // e.g. { code: "duplicate_order_numbers", numbers: ["261023"] }
     error.code = data?.detail?.code;
     error.numbers = data?.detail?.numbers ?? [];
+    error.minutes = data?.detail?.minutes;
     throw error;
   }
 
@@ -125,15 +167,60 @@ async function requestFile(path) {
 
 /* ---------------- Auth ---------------- */
 
-export async function login(password) {
+/** Log in with { phone, pin } or with the owner { password }. */
+export async function login(credentials) {
   const data = await request("/auth/login", {
     method: "POST",
-    body: { password },
+    body: typeof credentials === "string" ? { password: credentials } : credentials,
     auth: false,
   });
   setToken(data.access_token);
+  setMe(data.employee);
   invalidateOrders();
   return data;
+}
+
+/** Refreshes who is logged in (role or name may have changed). */
+export async function refreshMe() {
+  const me = await request("/auth/me");
+  setMe(me);
+  return me;
+}
+
+export async function updateMyProfile(data) {
+  const me = await request("/auth/me", { method: "PATCH", body: data });
+  setMe(me);
+  return me;
+}
+
+export const changeMyPin = (newPin, currentPin) =>
+  request("/auth/me/pin", {
+    method: "POST",
+    body: { new_pin: newPin, current_pin: currentPin || null },
+  });
+
+export async function logoutEverywhere() {
+  await request("/auth/logout-everywhere", { method: "POST" });
+  logout();
+}
+
+/* ---------------- Team & activity ---------------- */
+
+export const getEmployees = () => request("/employees");
+export const getEmployeeDirectory = () => request("/employees/directory");
+export const addEmployee = (data) => request("/employees", { method: "POST", body: data });
+export const updateEmployee = (id, data) =>
+  request(`/employees/${id}`, { method: "PATCH", body: data });
+export const resetEmployeePin = (id, pin) =>
+  request(`/employees/${id}/reset-pin`, { method: "POST", body: { pin } });
+
+export function getActivity({ entity, entityId, actorId, beforeId, limit = 50 } = {}) {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (entity) params.set("entity", entity);
+  if (entityId != null) params.set("entity_id", String(entityId));
+  if (actorId) params.set("actor_id", String(actorId));
+  if (beforeId) params.set("before_id", String(beforeId));
+  return request(`/activity?${params.toString()}`);
 }
 
 /* ---------------- Orders (with a small in-memory cache) ---------------- */

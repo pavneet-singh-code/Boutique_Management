@@ -5,6 +5,10 @@ import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pwdlib import PasswordHash
+from sqlalchemy.orm import Session
+
+import models
+from database import get_db
 
 
 SECRET_KEY = os.getenv("JWT_SECRET_KEY")
@@ -13,7 +17,9 @@ if not SECRET_KEY:
     raise RuntimeError("JWT_SECRET_KEY is not configured")
 
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
+# People stay logged in on their phone for 30 days ("Log out everywhere"
+# or deactivating someone cancels their tokens straight away).
+ACCESS_TOKEN_EXPIRE_DAYS = 30
 
 password_hash = PasswordHash.recommended()
 
@@ -21,58 +27,69 @@ password_hash = PasswordHash.recommended()
 security = HTTPBearer()
 
 
-def verify_password(
-    plain_password: str,
-    hashed_password: str
-) -> bool:
-    return password_hash.verify(
-        plain_password,
-        hashed_password
-    )
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return password_hash.verify(plain_password, hashed_password)
 
 
-def create_access_token() -> str:
+def hash_secret(secret: str) -> str:
+    return password_hash.hash(secret)
 
-    expire = datetime.now(timezone.utc) + timedelta(
-        minutes=ACCESS_TOKEN_EXPIRE_MINUTES
-    )
 
+def create_access_token(employee: models.Employee) -> str:
+    expire = datetime.now(timezone.utc) + timedelta(days=ACCESS_TOKEN_EXPIRE_DAYS)
     payload = {
-        "sub": "fab_art_admin",
+        "sub": str(employee.id),
+        "role": employee.role,
+        "ver": employee.token_version,
         "exp": expire,
     }
-
-    return jwt.encode(
-        payload,
-        SECRET_KEY,
-        algorithm=ALGORITHM
-    )
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
 def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
-):
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db),
+) -> models.Employee:
+    """The logged-in employee. Checked against the database on every request,
+    so deactivated people and 'logged out everywhere' tokens stop working."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Not authenticated",
         headers={"WWW-Authenticate": "Bearer"},
     )
 
-    token = credentials.credentials
-
     try:
-        payload = jwt.decode(
-            token,
-            SECRET_KEY,
-            algorithms=[ALGORITHM]
-        )
-
-        username = payload.get("sub")
-
-        if username != "fab_art_admin":
-            raise credentials_exception
-
-        return username
-
-    except jwt.InvalidTokenError:
+        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        employee_id = int(payload.get("sub"))
+    except (jwt.InvalidTokenError, TypeError, ValueError):
         raise credentials_exception
+
+    employee = db.get(models.Employee, employee_id)
+    if (
+        employee is None
+        or not employee.active
+        or payload.get("ver") != employee.token_version
+    ):
+        raise credentials_exception
+    return employee
+
+
+def require_roles(*roles):
+    """Dependency: only these roles may use the endpoint."""
+
+    def checker(user: models.Employee = Depends(get_current_user)) -> models.Employee:
+        if user.role not in roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={"code": "forbidden", "message": "You don't have access to this.", "numbers": []},
+            )
+        return user
+
+    return checker
+
+
+# Who may do what (see ROADMAP.md, section 4)
+OWNER = require_roles("owner")
+STAFF = require_roles("owner", "uploader")  # orders, customers, uploads, payments
+VIEWERS = require_roles("owner", "uploader", "social_media")  # can look at orders
+ANYONE = get_current_user

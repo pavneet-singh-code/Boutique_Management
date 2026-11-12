@@ -51,7 +51,8 @@ function NewOrderContent() {
   };
 
   return (
-    <AppShell title={t("new.title")} subtitle={t("new.subtitle")} back hideTabs>
+    <AppShell
+      feature="editOrders" title={t("new.title")} subtitle={t("new.subtitle")} back hideTabs>
       <div className="mx-auto max-w-3xl">
         <PageHeading
           eyebrow={t("nav.ordersSection")}

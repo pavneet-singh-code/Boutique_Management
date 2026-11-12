@@ -27,6 +27,8 @@ import {
 import { useI18n } from "../../../../lib/i18n";
 import { formatDate, formatMoney } from "../../../../lib/orders";
 import { useResource } from "../../../../lib/useResource";
+import { useCan, useMe } from "../../../../lib/roles";
+import ActivityList from "../../../../components/ActivityList";
 
 const inputClass =
   "mt-1.5 w-full rounded-xl border border-line bg-card px-3.5 text-[16px] text-ink outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 md:text-sm";
@@ -186,6 +188,8 @@ export default function CustomerInfoPage() {
   const { data: customer, error, reload } = useResource(loader);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const canMerge = useCan("mergeCustomers");
+  const me = useMe();
 
   const remove = async () => {
     try {
@@ -199,7 +203,8 @@ export default function CustomerInfoPage() {
 
   if (!customer) {
     return (
-      <AppShell title={t("customers.info")} back={`/customers/${id}`} hideTabs>
+      <AppShell
+      feature="customers" title={t("customers.info")} back={`/customers/${id}`} hideTabs>
         <ErrorBox error={error} onRetry={reload} className="mt-4" />
         {!error && <Spinner />}
       </AppShell>
@@ -207,7 +212,8 @@ export default function CustomerInfoPage() {
   }
 
   return (
-    <AppShell title={t("customers.info")} back={`/customers/${customer.id}`} hideTabs>
+    <AppShell
+      feature="customers" title={t("customers.info")} back={`/customers/${customer.id}`} hideTabs>
       <div className="mx-auto max-w-2xl space-y-4 pb-8">
         <PageHeading eyebrow={t("customers.title")} title={customer.name} subtitle={customer.phone} />
 
@@ -248,9 +254,14 @@ export default function CustomerInfoPage() {
           </Card>
         )}
 
-        <MergeBox customer={customer} onMerged={reload} />
+        {canMerge && <MergeBox customer={customer} onMerged={reload} />}
 
-        {customer.order_count === 0 && (
+        <Card className="mx-4 overflow-hidden md:mx-0">
+          <h2 className="border-b border-line px-4 py-3 font-semibold text-ink md:px-6">{t("activity.history")}</h2>
+          <ActivityList entity="customer" entityId={customer.id} meId={me?.id} pageSize={10} />
+        </Card>
+
+        {canMerge && customer.order_count === 0 && (
           <div className="px-4 md:px-0">
             {deleteError && <Notice tone="error" className="mb-3">{deleteError}</Notice>}
             <Button variant="secondary" onClick={() => setConfirmDelete(true)} className="text-danger">

@@ -5,7 +5,10 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   ArrowLeft,
+  BriefcaseBusiness,
   CalendarDays,
+  History,
+  Lock,
   CalendarRange,
   ChartNoAxesColumn,
   ClipboardList,
@@ -19,62 +22,86 @@ import {
   Scissors,
   Settings,
   Upload,
+  UserRound,
   Users,
+  UsersRound,
 } from "lucide-react";
-import { getToken, logout } from "../lib/api";
+import { getToken, logout, refreshMe } from "../lib/api";
 import { useI18n } from "../lib/i18n";
-import { LanguageToggle, cx } from "./ui";
+import { can, homeFor, useMe } from "../lib/roles";
+import { EmployeeAvatar, LanguageToggle, LinkButton, cx } from "./ui";
 
 const sidebarSections = [
   {
     heading: "nav.overview",
     items: [
-      { label: "nav.dashboard", path: "/dashboard", icon: LayoutDashboard },
-      { label: "nav.monthly", path: "/monthly-review", icon: CalendarDays },
-      { label: "nav.yearly", path: "/yearly-review", icon: CalendarRange },
+      { label: "nav.dashboard", path: "/dashboard", icon: LayoutDashboard, feature: "reports" },
+      { label: "nav.myWork", path: "/my-work", icon: BriefcaseBusiness, feature: "myWork" },
+      { label: "nav.monthly", path: "/monthly-review", icon: CalendarDays, feature: "reports" },
+      { label: "nav.yearly", path: "/yearly-review", icon: CalendarRange, feature: "reports" },
     ],
   },
   {
     heading: "nav.ordersSection",
     items: [
-      { label: "nav.orders", path: "/orders", icon: ClipboardList, exact: true },
-      { label: "nav.upload", path: "/upload-orders", icon: Upload },
-      { label: "nav.newOrder", path: "/orders/new", icon: FilePlus },
-      { label: "nav.bills", path: "/bills", icon: ReceiptIndianRupee },
-      { label: "nav.export", path: "/export-orders", icon: Download },
+      { label: "nav.orders", path: "/orders", icon: ClipboardList, exact: true, feature: "orders" },
+      { label: "nav.upload", path: "/upload-orders", icon: Upload, feature: "upload" },
+      { label: "nav.newOrder", path: "/orders/new", icon: FilePlus, feature: "editOrders" },
+      { label: "nav.bills", path: "/bills", icon: ReceiptIndianRupee, feature: "bills" },
+      { label: "nav.export", path: "/export-orders", icon: Download, feature: "export" },
     ],
   },
   {
     heading: "nav.management",
     items: [
-      { label: "nav.customers", path: "/customers", icon: Users },
+      { label: "nav.customers", path: "/customers", icon: Users, feature: "customers" },
+      { label: "nav.team", path: "/team", icon: UsersRound, feature: "team" },
+      { label: "nav.activity", path: "/activity", icon: History },
       { label: "nav.settings", path: "/settings", icon: Settings },
     ],
   },
 ];
 
-const tabs = [
-  { label: "tab.home", path: "/dashboard", icon: House, match: ["/dashboard"] },
-  {
+const ALL_TABS = {
+  home: { label: "tab.home", path: "/dashboard", icon: House, match: ["/dashboard"] },
+  orders: {
     label: "tab.orders",
     path: "/orders",
     icon: ClipboardList,
     match: ["/orders", "/upload-orders", "/bills"],
   },
-  { label: "tab.customers", path: "/customers", icon: Users, match: ["/customers"] },
-  {
+  customers: { label: "tab.customers", path: "/customers", icon: Users, match: ["/customers"] },
+  reports: {
     label: "tab.reports",
     path: "/monthly-review",
     icon: ChartNoAxesColumn,
     match: ["/monthly-review", "/yearly-review"],
   },
-  {
+  settings: {
     label: "tab.settings",
     path: "/settings",
     icon: Settings,
-    match: ["/settings", "/export-orders"],
+    match: ["/settings", "/export-orders", "/team", "/activity"],
   },
-];
+  myWork: { label: "tab.myWork", path: "/my-work", icon: BriefcaseBusiness, match: ["/my-work"] },
+  profile: {
+    label: "tab.profile",
+    path: "/settings",
+    icon: UserRound,
+    match: ["/settings", "/activity"],
+  },
+};
+
+const TABS_BY_ROLE = {
+  owner: ["home", "orders", "customers", "reports", "settings"],
+  uploader: ["home", "orders", "customers", "reports", "settings"],
+  social_media: ["orders", "profile"],
+  worker: ["myWork", "profile"],
+};
+
+function tabsFor(role) {
+  return (TABS_BY_ROLE[role] || TABS_BY_ROLE.owner).map((key) => ALL_TABS[key]);
+}
 
 function matches(pathname, path) {
   return pathname === path || pathname.startsWith(`${path}/`);
@@ -84,6 +111,13 @@ function Sidebar() {
   const { t } = useI18n();
   const router = useRouter();
   const pathname = usePathname();
+  const me = useMe();
+  const sections = sidebarSections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => !item.feature || can(me?.role, item.feature)),
+    }))
+    .filter((section) => section.items.length > 0);
 
   const handleLogout = () => {
     logout();
@@ -109,7 +143,7 @@ function Sidebar() {
       <div className="mx-5 border-t border-line" />
 
       <nav className="flex-1 overflow-y-auto px-4 py-6">
-        {sidebarSections.map((section, index) => (
+        {sections.map((section, index) => (
           <div key={section.heading} className={index === 0 ? "" : "mt-7"}>
             <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#a08e7b]">
               {t(section.heading)}
@@ -148,6 +182,20 @@ function Sidebar() {
       </nav>
 
       <div className="border-t border-line px-4 py-4">
+        {me && (
+          <Link
+            href="/settings"
+            className="mb-2 flex items-center gap-3 rounded-xl px-3 py-2 transition hover:bg-[#f0e9df]"
+          >
+            <EmployeeAvatar employee={me} size={34} />
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-semibold text-ink">{me.name}</span>
+              <span className="block truncate text-xs text-muted">
+                {me.employee_code} · {t(`role.${me.role}`)}
+              </span>
+            </span>
+          </Link>
+        )}
         <button
           type="button"
           onClick={handleLogout}
@@ -249,19 +297,21 @@ function MobileHeader({ title, mobileTitle, brand, back, actions }) {
 function BottomNav() {
   const { t } = useI18n();
   const pathname = usePathname();
+  const me = useMe();
+  const tabs = tabsFor(me?.role);
 
   return (
     <nav
       aria-label="Main"
       className="pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-line bg-card md:hidden"
     >
-      <div className="grid grid-cols-5">
+      <div className="grid" style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}>
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const active = tab.match.some((path) => matches(pathname, path));
           return (
             <Link
-              key={tab.path}
+              key={tab.label}
               href={tab.path}
               aria-current={active ? "page" : undefined}
               className="flex flex-col items-center gap-1 pb-2 pt-2.5"
@@ -307,6 +357,26 @@ function Fab({ href, label, icon: Icon = Plus }) {
  * Page frame. Phones: WhatsApp-style app bar + bottom tabs + floating button.
  * Tablets/desktop: sidebar + top bar.
  */
+function NoAccess({ role }) {
+  const { t } = useI18n();
+  return (
+    <div className="flex flex-col items-center px-6 py-16 text-center">
+      <span className="flex h-14 w-14 items-center justify-center rounded-full bg-card-2 text-muted">
+        <Lock size={26} />
+      </span>
+      <h2 className="mt-4 text-lg font-semibold text-ink">{t("noAccess.title")}</h2>
+      <p className="mt-1 text-sm text-muted">{t("noAccess.body")}</p>
+      <LinkButton href={homeFor(role)} className="mt-5">
+        {t("noAccess.home")}
+      </LinkButton>
+    </div>
+  );
+}
+
+/**
+ * `feature` (see lib/roles.js) decides who may open the screen,
+ * e.g. feature="customers" keeps workers out. No feature = everyone.
+ */
 export default function AppShell({
   title,
   subtitle,
@@ -316,13 +386,22 @@ export default function AppShell({
   actions,
   fab,
   hideTabs = false,
+  feature,
   children,
 }) {
   const router = useRouter();
+  const me = useMe();
 
   useEffect(() => {
-    if (!getToken()) router.replace("/login");
+    if (!getToken()) {
+      router.replace("/login");
+      return;
+    }
+    // Keep name / role up to date (they may have changed on another phone).
+    refreshMe().catch(() => {});
   }, [router]);
+
+  const allowed = !feature || !me || can(me.role, feature);
 
   return (
     <div className="min-h-dvh bg-bg text-ink">
@@ -343,10 +422,12 @@ export default function AppShell({
             hideTabs ? "pb-6" : "pb-[calc(88px+env(safe-area-inset-bottom))] md:pb-10"
           )}
         >
-          <div className="mx-auto w-full max-w-[1400px]">{children}</div>
+          <div className="mx-auto w-full max-w-[1400px]">
+            {allowed ? children : <NoAccess role={me?.role} />}
+          </div>
         </main>
         {!hideTabs && <BottomNav />}
-        {fab && !hideTabs && <Fab {...fab} />}
+        {fab && !hideTabs && allowed && <Fab {...fab} />}
       </div>
     </div>
   );

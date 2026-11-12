@@ -3,7 +3,7 @@
 Planned features for the boutique management app, and the order we will build them in.
 Every phase ends with something that works and can be deployed on its own.
 
-**Status:** Phases 0 and 1 built, waiting to be deployed together · **Last updated:** 11 Nov 2026
+**Status:** Phases 0, 1 and 2 built, waiting to be deployed together · **Last updated:** 11 Nov 2026
 
 ---
 
@@ -388,9 +388,10 @@ every database change.**
    - `0001` is the baseline, the table as it is today.
    - `0002` cleans the data and switches the columns to proper types.
    - `0003` adds customers, three-step payments and bills (Phase 1).
-   - `0004` makes order numbers unique and required. It is the **last** step on purpose: it waits until the
-     duplicates have been fixed in the app, and the app needs `0003` to run.
-   - The backend refuses to start until at least `0003` has run, with a clear message.
+   - `0004` adds employees and the activity log (Phase 2).
+   - `0005` makes order numbers unique and required. It is the **last** step on purpose: it waits until the
+     duplicates have been fixed in the app, and the app needs `0004` to run.
+   - The backend refuses to start until at least `0004` has run, with a clear message.
 2. ✅ **Order numbers fixed automatically where it is safe:**
    - The `/` misread: `26/025` → `261025`.
    - Every change is written in the order's *clean-up note*.
@@ -402,7 +403,7 @@ every database change.**
 4. ✅ **Order numbers required and unique:**
    - The backend refuses duplicate or missing numbers on upload, add and edit.
    - The upload screen blocks saving and says which page has the problem.
-   - The database rule is switched on by `0004`, once the check screen shows "All clear".
+   - The database rule is switched on by `0005`, once the check screen shows "All clear".
    - Links now use the order number (`/orders/261023`). Old links using the internal id still work.
 5. ✅ **Proper types:**
    - Dates are real dates.
@@ -411,16 +412,20 @@ every database change.**
    - Dates that couldn't be read are kept in the clean-up note, so nothing is lost.
 6. ✅ **Backups to your PC:** see section 10.
 
-**How to deploy Phases 0 and 1 (together):**
+**How to deploy Phases 0, 1 and 2 (together):**
 1. **Back up first:** run `Backup-Boutique-DB.bat` on your PC.
 2. **Update the backend on PythonAnywhere** (in a Bash console):
    - `cd ~/Boutique_Management && git pull`
    - `cd backend && pip install -r requirements.txt` (use your virtualenv if you have one)
    - `alembic upgrade head`
-   - It runs `0002` and `0003`, then stops at `0004` and lists the duplicates. **That's expected.**
+   - It runs `0002`, `0003` and `0004`, then stops at `0005` and lists the duplicates. **That's expected.**
 3. **Reload the web app** on the Web tab, then deploy the new frontend.
-4. **Fix the problems:** open **Settings → Order number check** and fix everything until it says "All clear".
-5. **Finish:** run `alembic upgrade head` again, and reload the web app. Order numbers are now locked as unique.
+4. **Owner login:**
+   - Log in with **"Log in with the owner password"** (the same password as today). You are `FA-001`.
+   - In **Settings → My profile**, enter your name, phone and a PIN.
+   - Then add your mom, the uploader, the workers and the social media manager in **Settings → Team**.
+5. **Fix the problems:** open **Settings → Order number check** and fix everything until it says "All clear".
+6. **Finish:** run `alembic upgrade head` again, and reload the web app. Order numbers are now locked as unique.
 
 ✅ **Done when:** every order has a unique, correctly formatted number, and the check screen says
 "Order numbers are unique and required ✓".
@@ -467,25 +472,51 @@ every database change.**
    - **CSV export:** includes every payment column.
 
 **Not done yet:**
-- **"Only the owner can generate bills"** needs separate logins, so it comes with **Phase 2**. Until then
-  everyone shares the one owner password, so only owners can log in anyway.
 - **Scanned page next to the fields** (suggestion 1 in section 9) is still open.
+  (Owner-only bills: ✅ done in Phase 2.)
 
 ✅ **Done when:**
 - Customers are real records, and every order is linked to one.
 - The owner can bill several suits on one bill.
 - Earnings come from real money received.
 
-### Phase 2 — Employees, roles, login, activity log
-1. **Employees table with IDs and colours.** Your current login becomes the first owner (`FA-001`).
-2. **Team page (owner only):**
-   - Add an employee: name, phone, role and a temporary PIN.
-   - Change their colour.
-   - Deactivate them or reset their PIN.
-3. **Login:** per-person login with phone + PIN, plus role checks on every backend endpoint.
-4. **Activity log:** every create, update and delete from now on writes an entry. There is an "Activity" screen
-   for the owner, plus a history section on each order and customer.
-5. **"Less pale" colour refresh**, together with employee colours.
+### Phase 2 — Employees, roles, login, activity log — ✅ built, not deployed yet
+1. ✅ **Employees** (migration `0004`):
+   - **IDs and colours:** each person gets an ID (`FA-001`…) and a colour from a fixed set of 10. The set never
+     uses the status colours, and the colour is always shown with the person's initials.
+   - **First owner:** the old shared password login is **FA-001 (Owner)**. It still works as a fallback:
+     "Log in with the owner password" logs in as the first active owner.
+2. ✅ **Team page** (Settings → Team, owner only):
+   - **Add a person:** name, phone, role (with a short description of what each role can see), first PIN and
+     colour.
+   - **Edit:** name, phone, role and colour; set a new PIN; deactivate or activate again.
+   - **Safety:** there is always at least one active owner. Changing someone's role, deactivating them or resetting
+     their PIN logs them out on every phone.
+3. ✅ **Login:**
+   - **Phone + PIN:** everyone logs in with their phone number (with or without +91) and a 4–6 digit PIN.
+   - **Staying logged in:** a login lasts 30 days on the phone.
+   - **Lock-out:** after 5 wrong PINs the account is locked for 15 minutes, so a short PIN can't be guessed.
+   - **"Log out on all phones"** is in My profile.
+   - **Every request is checked** against the database, so a deactivated person is logged out straight away.
+4. ✅ **Roles are checked on the server for every request** (table in section 4):
+   - **Owner:** everything.
+   - **Uploader:** upload, edit orders and customers, see earnings and reports, record "Payment received". Cannot
+     delete orders, generate bills, merge customers, manage the team, change boutique details or download
+     backups.
+   - **Worker:** "My work" and their profile only. Assigned work comes in Phase 3.
+   - **Social media:** orders and their progress, with **no prices, payments or customer phone numbers**. These are
+     removed on the server, not just hidden.
+   - **In the app:** each role gets its own menu and bottom tabs. Opening a screen that isn't for your role shows a
+     friendly "not for your role" message.
+5. ✅ **Activity log:**
+   - **Recorded:** every add, edit and delete of orders, customers, bills, the team and boutique details, plus
+     payments, backups, logins and lock-outs. Edits show what changed: "Delivery date: 20 Oct → 5 Dec".
+   - **Activity screen:** the owner sees everyone and can filter by person; others see only their own actions.
+   - **History:** each order and each customer page has its own History section.
+6. ✅ **More colour:**
+   - Stronger text and accent colours on both the phone and desktop looks.
+   - A coloured greeting banner on Home with your name and avatar.
+   - Employee colours on avatars, Team and Activity.
 
 ✅ **Done when:** you, Mom, the uploader, the workers and the social media manager each have their own login,
 and the owner can add people.

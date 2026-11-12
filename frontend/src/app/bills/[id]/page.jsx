@@ -34,6 +34,7 @@ import { billMessage, shareBillImage, whatsappLink } from "../../../lib/bill";
 import { useI18n } from "../../../lib/i18n";
 import { toISODate } from "../../../lib/orders";
 import { useResource } from "../../../lib/useResource";
+import { useCan } from "../../../lib/roles";
 
 export default function BillPage() {
   const { id } = useParams();
@@ -46,6 +47,7 @@ export default function BillPage() {
   const { data: settings } = useResource(settingsLoader);
 
   const [editing, setEditing] = useState(false);
+  const canBill = useCan("makeBills");
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState("");
   const [confirm, setConfirm] = useState(null); // "paid" | "delete"
@@ -68,7 +70,7 @@ export default function BillPage() {
   };
 
   const markSentIfDraft = () => {
-    if (bill?.status === "draft") run(() => markBillSent(bill.id));
+    if (canBill && bill?.status === "draft") run(() => markBillSent(bill.id));
   };
 
   const shareImage = async () => {
@@ -96,7 +98,8 @@ export default function BillPage() {
 
   if (!bill) {
     return (
-      <AppShell title={t("bills.title")} back="/bills" hideTabs>
+      <AppShell
+      feature="bills" title={t("bills.title")} back="/bills" hideTabs>
         <ErrorBox error={error} onRetry={reload} className="mt-4" />
         {!error && <Spinner />}
       </AppShell>
@@ -107,6 +110,7 @@ export default function BillPage() {
 
   return (
     <AppShell
+      feature="bills"
       title={bill.bill_number}
       subtitle={bill.customer.name}
       back="/bills"
@@ -120,7 +124,7 @@ export default function BillPage() {
         </Link>
       }
       actions={
-        !paid && !editing ? (
+        canBill && !paid && !editing ? (
           <>
             <HeaderIconButton label={t("bills.edit")} onClick={() => setEditing(true)}>
               <Pencil size={20} />

@@ -11,8 +11,10 @@ import {
   Download,
   Hash,
   Languages,
+  History,
   LogOut,
   ReceiptIndianRupee,
+  UsersRound,
   Scissors,
   Smartphone,
   Wifi,
@@ -20,11 +22,13 @@ import {
 } from "lucide-react";
 import AppShell from "../../components/AppShell";
 import BoutiqueDetails from "../../components/BoutiqueDetails";
+import MyProfile from "../../components/MyProfile";
 import { Card, LanguageToggle, PageHeading, cx } from "../../components/ui";
 import { downloadBackup, logout, pingServer } from "../../lib/api";
 import { useI18n } from "../../lib/i18n";
 import { groupCustomers } from "../../lib/orders";
 import { useOrders } from "../../lib/useOrders";
+import { can, useMe } from "../../lib/roles";
 
 function Row({ icon: Icon, title, help, children, href, onClick, danger }) {
   const body = (
@@ -68,7 +72,10 @@ function Row({ icon: Icon, title, help, children, href, onClick, danger }) {
 export default function SettingsPage() {
   const router = useRouter();
   const { t, tError } = useI18n();
-  const { orders, ready } = useOrders();
+  const me = useMe();
+  const role = me?.role;
+  const staff = can(role, "editOrders");
+  const { orders, ready } = useOrders({ enabled: staff });
   const [online, setOnline] = useState(null);
   const [backup, setBackup] = useState({ busy: false, message: "", error: false });
 
@@ -106,16 +113,8 @@ export default function SettingsPage() {
           subtitle={t("settings.subtitle")}
         />
 
-        {/* Profile, like WhatsApp's settings header */}
-        <div className="flex items-center gap-4 border-b border-line bg-card px-4 py-4 md:rounded-2xl md:border md:px-5 md:shadow-sm">
-          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-accent text-white">
-            <Scissors size={28} />
-          </span>
-          <span>
-            <span className="block text-xl font-semibold text-ink">{t("app.name")}</span>
-            <span className="block text-sm text-muted">{t("app.tagline")}</span>
-          </span>
-        </div>
+        {/* Who is logged in (like WhatsApp's settings header) */}
+        <MyProfile />
 
         <Card className="divide-y divide-line overflow-hidden rounded-none border-x-0 md:rounded-2xl md:border-x">
           <Row icon={Languages} title={t("settings.language")} help={t("settings.languageHelp")} />
@@ -124,43 +123,63 @@ export default function SettingsPage() {
           </div>
         </Card>
 
-        <BoutiqueDetails />
+        {can(role, "team") && (
+          <Card className="divide-y divide-line overflow-hidden rounded-none border-x-0 md:rounded-2xl md:border-x">
+            <Row icon={UsersRound} title={t("team.title")} help={t("team.subtitle")} href="/team" />
+            <Row icon={History} title={t("activity.title")} help={t("activity.subtitle")} href="/activity" />
+          </Card>
+        )}
+
+        {can(role, "boutiqueSettings") && <BoutiqueDetails />}
 
         <Card className="divide-y divide-line overflow-hidden rounded-none border-x-0 md:rounded-2xl md:border-x">
-          <Row
-            icon={ReceiptIndianRupee}
-            title={t("nav.bills")}
-            help={t("bills.subtitle")}
-            href="/bills"
-          />
-          <Row
-            icon={Download}
-            title={t("nav.export")}
-            help={t("export.subtitle")}
-            href="/export-orders"
-          />
-          <Row
-            icon={Hash}
-            title={t("check.title")}
-            help={t("check.navHelp")}
-            href="/orders/data-check"
-          />
-          <Row
-            icon={DatabaseBackup}
-            title={t("backup.title")}
-            help={backup.message || t("backup.help")}
-            onClick={backup.busy ? undefined : saveBackup}
-            danger={backup.error}
-          />
-          <Row
-            icon={Database}
-            title={t("settings.data")}
-            help={
-              ready
-                ? `${t("settings.ordersStored")}: ${orders.length} · ${t("settings.customersStored")}: ${groupCustomers(orders).length}`
-                : t("common.loading")
-            }
-          />
+          {can(role, "bills") && (
+            <Row
+              icon={ReceiptIndianRupee}
+              title={t("nav.bills")}
+              help={t("bills.subtitle")}
+              href="/bills"
+            />
+          )}
+          {can(role, "export") && (
+            <Row
+              icon={Download}
+              title={t("nav.export")}
+              help={t("export.subtitle")}
+              href="/export-orders"
+            />
+          )}
+          {can(role, "dataCheck") && (
+            <Row
+              icon={Hash}
+              title={t("check.title")}
+              help={t("check.navHelp")}
+              href="/orders/data-check"
+            />
+          )}
+          {can(role, "backup") && (
+            <Row
+              icon={DatabaseBackup}
+              title={t("backup.title")}
+              help={backup.message || t("backup.help")}
+              onClick={backup.busy ? undefined : saveBackup}
+              danger={backup.error}
+            />
+          )}
+          {!can(role, "allActivity") && (
+            <Row icon={History} title={t("activity.title")} help={t("activity.mine")} href="/activity" />
+          )}
+          {staff && (
+            <Row
+              icon={Database}
+              title={t("settings.data")}
+              help={
+                ready
+                  ? `${t("settings.ordersStored")}: ${orders.length} · ${t("settings.customersStored")}: ${groupCustomers(orders).length}`
+                  : t("common.loading")
+              }
+            />
+          )}
           <Row
             icon={online === false ? WifiOff : Wifi}
             title={t("settings.server")}
@@ -182,6 +201,8 @@ export default function SettingsPage() {
         </Card>
 
         <Card className="overflow-hidden rounded-none border-x-0 md:rounded-2xl md:border-x">
+          {staff && (
+          <>
           <Row icon={CircleHelp} title={t("settings.help")} />
           <ol className="space-y-2 px-4 pb-4 pl-[72px] text-[14.5px] leading-6 text-ink-2 md:px-5 md:pl-[76px]">
             {["settings.help1", "settings.help2", "settings.help3", "settings.help4"].map(
@@ -195,7 +216,9 @@ export default function SettingsPage() {
               )
             )}
           </ol>
-          <div className="border-t border-line">
+          </>
+          )}
+          <div className={staff ? "border-t border-line" : ""}>
             <Row icon={Smartphone} title={t("settings.install")} help={t("settings.installHelp")} />
           </div>
         </Card>

@@ -338,3 +338,80 @@ class AppSettings(BaseModel):
     phone: Optional[str] = None
     address: Optional[str] = None
     bill_note: Optional[str] = None
+
+
+# ---------------------------------------------------------------- Team
+
+from typing import Any, Dict, Literal  # noqa: E402
+
+Role = Literal["owner", "uploader", "worker", "social_media"]
+
+
+class EmployeeBrief(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    employee_code: Optional[str] = None
+    name: str
+    role: str
+    color: Optional[str] = None
+    active: bool = True
+
+
+class EmployeeOut(EmployeeBrief):
+    phone: Optional[str] = None
+    has_pin: bool = False
+    last_login_at: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def add_has_pin(cls, data):
+        if hasattr(data, "pin_hash"):
+            return {
+                "id": data.id,
+                "employee_code": data.employee_code,
+                "name": data.name,
+                "role": data.role,
+                "color": data.color,
+                "active": data.active,
+                "phone": data.phone,
+                "has_pin": bool(data.pin_hash),
+                "last_login_at": data.last_login_at,
+                "created_at": data.created_at,
+            }
+        return data
+
+
+HEX_COLOR = r"^#[0-9a-fA-F]{6}$"
+
+
+class EmployeeCreate(BaseModel):
+    name: str = Field(min_length=1)
+    phone: str = Field(min_length=8)
+    role: Role
+    pin: str
+    color: Optional[str] = Field(None, pattern=HEX_COLOR)
+
+
+class EmployeeUpdate(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    role: Optional[Role] = None
+    color: Optional[str] = Field(None, pattern=HEX_COLOR)
+    active: Optional[bool] = None
+
+
+class PinReset(BaseModel):
+    pin: str
+
+
+class ActivityOut(BaseModel):
+    id: int
+    actor: Optional[EmployeeBrief] = None
+    entity: str
+    entity_id: Optional[int] = None
+    action: str
+    label: Optional[str] = None
+    details: Dict[str, Any] = {}
+    created_at: datetime

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Eye, EyeOff, Languages, LoaderCircle, Scissors } from "lucide-react";
 import { login } from "../../lib/api";
+import { homeFor } from "../../lib/roles";
 import { useI18n } from "../../lib/i18n";
 import { Notice, cx } from "../../components/ui";
 
@@ -52,6 +53,10 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const { t, tError } = useI18n();
 
+  // Everyone logs in with phone + PIN; the owner password still works as a fallback.
+  const [mode, setMode] = useState("pin");
+  const [phone, setPhone] = useState("");
+  const [pin, setPin] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -61,19 +66,22 @@ function LoginForm() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError("");
-    if (!password) {
+    if (mode === "pin" ? !phone || !pin : !password) {
       setError(t("login.empty"));
       return;
     }
     setLoading(true);
     try {
-      await login(password);
-      router.replace("/dashboard");
+      const data = await login(mode === "pin" ? { phone, pin } : { password });
+      router.replace(homeFor(data.employee?.role));
     } catch (err) {
-      setError(err.status === 401 ? t("login.wrong") : tError(err));
+      setError(tError(err));
       setLoading(false);
     }
   };
+
+  const inputClass =
+    "h-14 w-full rounded-2xl border border-line bg-card px-4 text-[16px] outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/15 disabled:opacity-60";
 
   return (
     <main className="flex min-h-dvh items-center justify-center bg-bg px-5 py-10 text-ink">
@@ -93,7 +101,9 @@ function LoginForm() {
           <h1 className="text-3xl font-semibold tracking-tight md:font-serif md:text-5xl md:font-light">
             {t("login.title")}
           </h1>
-          <p className="mt-3 text-muted">{t("login.subtitle")}</p>
+          <p className="mt-3 text-muted">
+            {mode === "pin" ? t("login.subtitlePin") : t("login.subtitle")}
+          </p>
         </div>
 
         <div className="mb-8">
@@ -107,6 +117,45 @@ function LoginForm() {
         )}
 
         <form onSubmit={handleSubmit}>
+          {mode === "pin" ? (
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="phone" className="mb-2 block text-sm font-medium text-ink-2">
+                  {t("login.phone")}
+                </label>
+                <input
+                  id="phone"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  value={phone}
+                  onChange={(event) => setPhone(event.target.value)}
+                  placeholder={t("login.phonePlaceholder")}
+                  disabled={loading}
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label htmlFor="pin" className="mb-2 block text-sm font-medium text-ink-2">
+                  {t("login.pin")}
+                </label>
+                <input
+                  id="pin"
+                  type="password"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  autoComplete="current-password"
+                  value={pin}
+                  onChange={(event) => setPin(event.target.value.replace(/\D/g, ""))}
+                  placeholder={t("login.pinPlaceholder")}
+                  disabled={loading}
+                  className={`${inputClass} tracking-[0.4em]`}
+                />
+              </div>
+            </div>
+          ) : (
+          <>
           <label htmlFor="password" className="mb-2 block text-sm font-medium text-ink-2">
             {t("login.password")}
           </label>
@@ -130,6 +179,8 @@ function LoginForm() {
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
           </div>
+          </>
+          )}
 
           {error && (
             <p role="alert" className="mt-3 text-sm text-danger">
@@ -144,6 +195,17 @@ function LoginForm() {
           >
             {loading && <LoaderCircle size={18} className="animate-spin" />}
             {loading ? t("login.loading") : t("login.submit")}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setMode(mode === "pin" ? "password" : "pin");
+              setError("");
+            }}
+            className="mt-5 w-full text-center text-sm font-medium text-accent-ink"
+          >
+            {mode === "pin" ? t("login.usePassword") : t("login.usePin")}
           </button>
         </form>
       </div>

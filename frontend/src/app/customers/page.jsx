@@ -20,6 +20,7 @@ import { createCustomer, getCustomers, mergeCustomers } from "../../lib/api";
 import { useI18n } from "../../lib/i18n";
 import { formatMoney, friendlyDate, similarNames } from "../../lib/orders";
 import { useResource } from "../../lib/useResource";
+import { useCan } from "../../lib/roles";
 
 const DISMISSED_KEY = "fab_art_not_same_customers";
 
@@ -117,6 +118,7 @@ export default function CustomersPage() {
   const { data: customers, error, loading, reload } = useResource(loader);
   const [search, setSearch] = useState("");
   const [dismissed, setDismissed] = useState(readDismissed);
+  const canMerge = useCan("mergeCustomers");
   const [merging, setMerging] = useState(null);
   const [busy, setBusy] = useState(false);
   const [mergeError, setMergeError] = useState("");
@@ -159,6 +161,7 @@ export default function CustomersPage() {
 
   return (
     <AppShell
+      feature="customers"
       title={t("customers.title")}
       subtitle={t("customers.subtitle")}
       actions={
@@ -206,7 +209,7 @@ export default function CustomersPage() {
           </div>
 
           {/* "Same person?" suggestions */}
-          {!query && lookAlikes.length > 0 && (
+          {!query && canMerge && lookAlikes.length > 0 && (
             <Card className="mx-4 my-3 overflow-hidden md:mx-0 md:mb-6 md:mt-0">
               <div className="border-b border-line px-4 py-3">
                 <h2 className="font-semibold text-ink">{t("customers.sameTitle")}</h2>

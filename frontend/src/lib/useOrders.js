@@ -7,7 +7,7 @@ import { getCachedOrders, getOrders, subscribeOrders } from "./api";
  * Shared orders list. Shows cached orders instantly (so moving between
  * screens on a phone feels quick) and refreshes them in the background.
  */
-export function useOrders() {
+export function useOrders({ enabled = true } = {}) {
   const cached = useSyncExternalStore(
     subscribeOrders,
     getCachedOrders,
@@ -30,6 +30,7 @@ export function useOrders() {
 
   // First load (or background refresh if the cache is old).
   useEffect(() => {
+    if (!enabled) return undefined;
     let cancelled = false;
     getOrders().catch((err) => {
       if (!cancelled) setError(err);
@@ -37,7 +38,7 @@ export function useOrders() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [enabled]);
 
   return {
     orders: cached ?? [],

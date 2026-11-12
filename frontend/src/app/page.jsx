@@ -2,7 +2,8 @@
 
 import { ArrowRight, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { getToken } from "../lib/api";
+import { getMe, getToken } from "../lib/api";
+import { homeFor } from "../lib/roles";
 import { useI18n } from "../lib/i18n";
 import { LanguageToggle } from "../components/ui";
 
@@ -10,7 +11,7 @@ export default function Home() {
   const router = useRouter();
   const { t } = useI18n();
 
-  const enter = () => router.push(getToken() ? "/dashboard" : "/login");
+  const enter = () => router.push(getToken() ? homeFor(getMe()?.role) : "/login");
 
   return (
     <main className="min-h-dvh bg-[#f5f1ea] text-[#1c1c1a]">

@@ -28,6 +28,7 @@ import {
   LinkButton,
   PageHeading,
   SectionTitle,
+  EmployeeAvatar,
   Spinner,
   StatTile,
 } from "../../components/ui";
@@ -45,10 +46,12 @@ import {
 } from "../../lib/orders";
 import { getDataCheck } from "../../lib/api";
 import { useOrders } from "../../lib/useOrders";
+import { can, useMe } from "../../lib/roles";
 
 export default function DashboardPage() {
   const { t, locale } = useI18n();
-  const { orders, ready, loading, error, reload } = useOrders();
+  const me = useMe();
+  const { orders, ready, loading, error, reload } = useOrders({ enabled: can(me?.role, "reports") });
   const [numberProblems, setNumberProblems] = useState(0);
 
   useEffect(() => {
@@ -101,6 +104,7 @@ export default function DashboardPage() {
 
   return (
     <AppShell
+      feature="reports"
       title={t("dash.title")}
       subtitle={t("dash.subtitle")}
       brand
@@ -122,8 +126,7 @@ export default function DashboardPage() {
       fab={{ href: "/upload-orders", label: t("nav.upload"), icon: ScanLine }}
     >
       <PageHeading
-        eyebrow={greetingDate}
-        title={t("dash.hello")}
+        title={t("dash.title")}
         subtitle={t("dash.subtitle")}
         actions={
           <>
@@ -139,10 +142,17 @@ export default function DashboardPage() {
         }
       />
 
-      {/* Phone greeting */}
-      <div className="px-4 pb-1 pt-4 md:hidden">
-        <p className="text-xl font-semibold text-ink">{t("dash.hello")}</p>
-        <p className="text-sm text-muted">{greetingDate}</p>
+      {/* Greeting banner (coloured, so Home doesn't feel pale) */}
+      <div className="px-4 pb-1 pt-4 md:mb-6 md:px-0 md:pt-0">
+        <div className="flex items-center gap-4 rounded-3xl bg-gradient-to-br from-accent to-accent-hover p-5 text-white shadow-md md:p-6">
+          {me && <EmployeeAvatar employee={me} size={52} className="ring-2 ring-white/70" />}
+          <div className="min-w-0">
+            <p className="text-xl font-semibold md:font-serif md:text-3xl md:font-normal">
+              {t("dash.hello")} {me?.name && me.name !== "Owner" ? me.name : ""}
+            </p>
+            <p className="text-sm text-white/85">{greetingDate}</p>
+          </div>
+        </div>
       </div>
 
       <ErrorBox error={error} onRetry={() => reload()} className="mb-4 mt-3" />
@@ -301,7 +311,9 @@ export default function DashboardPage() {
               {[
                 { href: "/upload-orders", icon: Upload, label: t("nav.upload") },
                 { href: "/orders/new", icon: FilePlus, label: t("nav.newOrder") },
-                { href: "/bills", icon: ReceiptIndianRupee, label: t("nav.bills") },
+                can(me?.role, "makeBills")
+                  ? { href: "/bills", icon: ReceiptIndianRupee, label: t("nav.bills") }
+                  : { href: "/customers", icon: ClipboardList, label: t("nav.customers") },
               ].map((item) => (
                 <Link
                   key={item.href}

@@ -51,7 +51,7 @@ class Order(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     filename = Column(String, nullable=True)
-    # Unique once migration 0004 has run (after duplicates are cleaned up).
+    # Unique once migration 0005 has run (after duplicates are cleaned up).
     order_number = Column(String, index=True, unique=True, nullable=True)
     customer_id = Column(Integer, ForeignKey("customers.id"), nullable=True, index=True)
     # Name / phone exactly as written on the order form.
@@ -147,3 +147,62 @@ class AppSetting(Base):
 
     key = Column(String, primary_key=True)
     value = Column(Text, nullable=True)
+
+
+# ---------------------------------------------------------------- Team
+
+ROLES = ("owner", "uploader", "worker", "social_media")
+
+# Employee colours: clear and easy to tell apart, and never the status colours
+# (green = ready, orange = needs review, red = late). Always shown with the
+# person's initials or name, so colour is never the only signal.
+EMPLOYEE_COLORS = (
+    "#2563eb",  # blue
+    "#7c3aed",  # violet
+    "#0d9488",  # teal
+    "#db2777",  # pink
+    "#4f46e5",  # indigo
+    "#0284c7",  # sky
+    "#9333ea",  # purple
+    "#92400e",  # brown
+    "#475569",  # slate
+    "#c026d3",  # magenta
+)
+
+
+def default_color(employee_id):
+    return EMPLOYEE_COLORS[(employee_id - 1) % len(EMPLOYEE_COLORS)]
+
+
+class Employee(Base):
+    __tablename__ = "employees"
+
+    id = Column(Integer, primary_key=True, index=True)
+    employee_code = Column(String, unique=True, nullable=True)  # FA-001
+    name = Column(String, nullable=False)
+    phone = Column(String, unique=True, nullable=True)
+    role = Column(String, nullable=False, default="worker")
+    color = Column(String, nullable=True)
+    pin_hash = Column(String, nullable=True)
+    active = Column(Boolean, nullable=False, default=True)
+    # Increase to log this person out everywhere (old tokens stop working).
+    token_version = Column(Integer, nullable=False, default=0)
+    failed_attempts = Column(Integer, nullable=False, default=0)
+    locked_until = Column(DateTime(timezone=True), nullable=True)
+    last_login_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class ActivityLog(Base):
+    __tablename__ = "activity_log"
+
+    id = Column(Integer, primary_key=True, index=True)
+    actor_id = Column(Integer, ForeignKey("employees.id"), nullable=True, index=True)
+    entity = Column(String, nullable=False)  # order | customer | bill | employee | settings | backup | login
+    entity_id = Column(Integer, nullable=True, index=True)
+    action = Column(String, nullable=False)  # created | updated | deleted | merged | paid | …
+    label = Column(String, nullable=True)  # e.g. "#261023 Simran" - kept even if the thing is deleted
+    details = Column(Text, nullable=True)  # JSON: {"changes": {"field": [old, new]}, ...}
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+    actor = relationship("Employee")

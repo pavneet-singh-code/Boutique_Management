@@ -158,6 +158,28 @@ export function Avatar({ name, seed, size = 48, className }) {
   );
 }
 
+/** An employee's avatar: their colour with white initials. */
+export function EmployeeAvatar({ employee, size = 40, className }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cx(
+        "inline-flex shrink-0 items-center justify-center rounded-full font-semibold text-white",
+        employee?.active === false && "opacity-50",
+        className
+      )}
+      style={{
+        width: size,
+        height: size,
+        background: employee?.color || "#475569",
+        fontSize: Math.round(size * 0.38),
+      }}
+    >
+      {initials(employee?.name || "?")}
+    </span>
+  );
+}
+
 export function ReviewBadge({ needsReview, compact = false }) {
   const { t } = useI18n();
   if (!needsReview && compact) return null;

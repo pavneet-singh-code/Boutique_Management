@@ -217,6 +217,7 @@ export default function DataCheckPage() {
 
   return (
     <AppShell
+      feature="dataCheck"
       title={t("check.title")}
       subtitle={t("check.subtitle")}
       back="/settings"

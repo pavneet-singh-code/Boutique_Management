@@ -19,12 +19,14 @@ import { getBills } from "../../lib/api";
 import { useI18n } from "../../lib/i18n";
 import { formatDate, formatMoney } from "../../lib/orders";
 import { useResource } from "../../lib/useResource";
+import { useCan } from "../../lib/roles";
 
 export default function BillsPage() {
   const { t, locale } = useI18n();
   const loader = useCallback(() => getBills(), []);
   const { data: bills, error, loading, reload } = useResource(loader);
   const [filter, setFilter] = useState("unpaid");
+  const canBill = useCan("makeBills");
 
   const visible = useMemo(() => {
     if (!bills) return [];
@@ -39,6 +41,7 @@ export default function BillsPage() {
 
   return (
     <AppShell
+      feature="bills"
       title={t("bills.title")}
       subtitle={t("bills.subtitle")}
       back="/dashboard"
@@ -47,17 +50,19 @@ export default function BillsPage() {
           <RefreshCw size={20} className={loading ? "animate-spin" : ""} />
         </HeaderIconButton>
       }
-      fab={{ href: "/bills/new", label: t("bills.new"), icon: FilePlus }}
+      fab={canBill ? { href: "/bills/new", label: t("bills.new"), icon: FilePlus } : null}
     >
       <PageHeading
         eyebrow={t("nav.ordersSection")}
         title={t("bills.title")}
         subtitle={t("bills.subtitle")}
         actions={
-          <LinkButton href="/bills/new">
-            <FilePlus size={17} />
-            {t("bills.new")}
-          </LinkButton>
+          canBill && (
+            <LinkButton href="/bills/new">
+              <FilePlus size={17} />
+              {t("bills.new")}
+            </LinkButton>
+          )
         }
       />
 

@@ -41,6 +41,13 @@ export function parseDate(value) {
   return null;
 }
 
+/** Server timestamps are UTC without a zone; read them as UTC. */
+export function serverTime(value) {
+  if (!value) return null;
+  const text = String(value);
+  return new Date(/[zZ]$|[+-]\d\d:\d\d$/.test(text) ? text : `${text}Z`);
+}
+
 export function pad(n) {
   return String(n).padStart(2, "0");
 }

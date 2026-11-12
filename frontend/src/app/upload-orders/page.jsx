@@ -219,6 +219,7 @@ export default function UploadOrdersPage() {
 
   return (
     <AppShell
+      feature="upload"
       title={t("upload.title")}
       subtitle={t("upload.subtitle")}
       back={phase === "review" ? undefined : "/orders"}
