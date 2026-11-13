@@ -8,6 +8,14 @@ from sqlalchemy.orm import sessionmaker
 # - Render + Neon: DATABASE_URL is the Neon Postgres address (postgresql://...).
 # - PythonAnywhere: no DATABASE_URL, so the SQLite file below is used.
 # - On your PC: e.g. DATABASE_URL=sqlite:///./boutique.db
+if os.getenv("RENDER"):
+    missing = [k for k in ("DATABASE_URL", "JWT_SECRET_KEY", "FAB_ART_PASSWORD_HASH", "GEMINI_API_KEY") if not os.getenv(k)]
+    if missing:
+        raise RuntimeError(
+            "Missing on Render: " + ", ".join(missing)
+            + ". Add them in the Render dashboard -> your service -> Environment, then redeploy."
+        )
+
 SQLALCHEMY_DATABASE_URL = os.getenv(
     "DATABASE_URL",
     "sqlite:////home/piggothegreat/Boutique_Management/backend/boutique.db",
