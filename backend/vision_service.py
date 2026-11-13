@@ -10,11 +10,13 @@ from schemas import OrderFormExtraction
 # Load environment variables from .env file
 load_dotenv()
 
-# Configure the outbound proxy for PythonAnywhere
-os.environ["HTTP_PROXY"] = "http://proxy.server:3128"
-os.environ["HTTPS_PROXY"] = "http://proxy.server:3128"
-os.environ["http_proxy"] = "http://proxy.server:3128"
-os.environ["https_proxy"] = "http://proxy.server:3128"
+# PythonAnywhere's free plan only reaches the internet through its proxy.
+# Render (which sets RENDER=true) and your PC connect directly.
+if not os.getenv("RENDER"):
+    os.environ["HTTP_PROXY"] = "http://proxy.server:3128"
+    os.environ["HTTPS_PROXY"] = "http://proxy.server:3128"
+    os.environ["http_proxy"] = "http://proxy.server:3128"
+    os.environ["https_proxy"] = "http://proxy.server:3128"
 
 # Retrieve API key
 api_key = os.getenv("GEMINI_API_KEY")

@@ -19,7 +19,8 @@ from starlette.background import BackgroundTask
 from typing import List
 
 import models, schemas, services
-from database import engine, get_db
+from database import IS_SQLITE, engine, get_db, make_engine
+from db_copy import copy_database
 from pdf_processor import (
     convert_all_pdf_pages_to_images,
     convert_pdf_page_to_image
@@ -52,9 +53,14 @@ def current_migration():
 DB_REVISION = current_migration()
 
 if DB_REVISION not in ("0006", "0007"):
+    if IS_SQLITE:
+        raise RuntimeError(
+            "The database needs to be upgraded. Back up boutique.db, then run "
+            "'alembic upgrade head' in the backend folder and reload the app."
+        )
     raise RuntimeError(
-        "The database needs to be upgraded. Back up boutique.db, then run "
-        "'alembic upgrade head' in the backend folder and reload the app."
+        f"The Postgres database is at version {DB_REVISION!r}, not 0006/0007. If it is new "
+        "and empty, fill it with: python migrate_to_postgres.py path/to/boutique.db"
     )
 
 
@@ -500,19 +506,34 @@ def data_check(
 # Download a consistent copy of the whole database (for backups on your PC)
 @app.get("/api/v1/admin/backup")
 def download_backup(current_user: models.Employee = Depends(OWNER), db: Session = Depends(get_db)):
-    db_path = engine.url.database
-    if not db_path or not os.path.exists(db_path):
-        raise HTTPException(status_code=500, detail="Database file not found")
-
     handle, temp_path = tempfile.mkstemp(suffix=".db")
     os.close(handle)
-    source = sqlite3.connect(db_path)
-    target = sqlite3.connect(temp_path)
-    try:
-        source.backup(target)  # consistent copy, even while the app is writing
-    finally:
-        target.close()
-        source.close()
+
+    if IS_SQLITE:
+        db_path = engine.url.database
+        if not db_path or not os.path.exists(db_path):
+            os.remove(temp_path)
+            raise HTTPException(status_code=500, detail="Database file not found")
+        source = sqlite3.connect(db_path)
+        target = sqlite3.connect(temp_path)
+        try:
+            source.backup(target)  # consistent copy, even while the app is writing
+        finally:
+            target.close()
+            source.close()
+    else:
+        # Postgres (Neon): copy every table into a fresh SQLite file, so the
+        # backup is the same kind of .db file as before and can be restored
+        # with migrate_to_postgres.py.
+        os.remove(temp_path)  # the copy needs an empty file
+        backup_engine = make_engine(f"sqlite:///{temp_path}")
+        try:
+            copy_database(engine, backup_engine, log=lambda message: None)
+        except Exception as error:
+            traceback.print_exc()
+            raise HTTPException(status_code=500, detail=f"Backup failed: {error}")
+        finally:
+            backup_engine.dispose()
 
     activity.log(db, current_user, "backup", None, "downloaded")
     db.commit()
