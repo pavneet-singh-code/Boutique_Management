@@ -65,7 +65,7 @@ export function BillDocument({ bill, settings }) {
 
   return (
     <article className="print-area overflow-hidden rounded-2xl border border-line bg-white text-[#111b21] shadow-sm">
-      <div className="h-2 bg-[#8c5d4c]" />
+      <div className="bg-sunset h-2.5" />
       <div className="p-5 md:p-8">
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -105,7 +105,7 @@ export function BillDocument({ bill, settings }) {
           <tbody>
             {bill.lines.map((line) => (
               <tr key={line.order_id} className="border-t border-[#e9edef]">
-                <td className="whitespace-nowrap py-3 pr-3 align-top text-sm font-semibold text-[#8a5644]">
+                <td className="whitespace-nowrap py-3 pr-3 align-top text-sm font-semibold text-accent-ink">
                   {line.photo_url && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -160,7 +160,7 @@ export function BillDocument({ bill, settings }) {
         </dl>
 
         {bill.status === "paid" && (
-          <p className="mt-4 flex items-center gap-2 rounded-xl bg-[#f4e6df] px-4 py-2.5 text-sm font-medium text-[#6e4234]">
+          <p className="mt-4 flex items-center gap-2 rounded-xl bg-accent-soft px-4 py-2.5 text-sm font-semibold text-accent-soft-ink">
             <CircleCheck size={17} />
             {t("bills.paidOn", { date: formatDate(bill.paid_on, locale) })}
           </p>

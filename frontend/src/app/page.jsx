@@ -15,64 +15,65 @@ export default function Home() {
   const enter = () => router.push(getToken() ? homeFor(getMe()?.role) : "/login");
 
   return (
-    <main className="min-h-dvh bg-[#f5f1ea] text-[#1c1c1a]">
-      <nav className="flex items-center justify-between gap-3 px-5 py-5 md:px-12 md:py-6">
-        <div className="flex items-center gap-2.5 text-base font-semibold tracking-[0.2em] md:text-lg">
-          <Image src="/brand/icon-96.png" alt="" width={36} height={36} priority className="h-9 w-9 rounded-xl" />
-          FAB_ART
+    <main className="min-h-dvh overflow-hidden text-ink">
+      <nav className="relative z-10 flex items-center justify-between gap-3 px-5 py-5 md:px-12 md:py-6">
+        <div className="glass flex items-center gap-2.5 rounded-full py-1.5 pl-1.5 pr-4 shadow-sm ring-1 ring-white">
+          <Image src="/brand/icon-96.png" alt="" width={36} height={36} priority className="h-9 w-9 rounded-full bg-white" />
+          <span className="font-display text-lg font-bold">Fab_art</span>
         </div>
-        <div className="flex items-center gap-4">
-          <LanguageToggle className="!border-[#e3d8ca] !bg-white/60" />
+        <div className="flex items-center gap-3">
+          <LanguageToggle />
           <button
             onClick={enter}
-            className="group hidden items-center gap-2 text-sm font-medium tracking-wide transition-opacity hover:opacity-60 sm:flex"
+            className="press hidden h-10 items-center gap-2 rounded-full bg-card px-4 text-sm font-bold shadow-sm ring-1 ring-line sm:flex"
           >
             {t("landing.access")}
-            <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
+            <ArrowRight size={16} />
           </button>
         </div>
       </nav>
 
-      <section className="relative flex min-h-[calc(100dvh-84px)] items-center justify-center overflow-hidden px-6">
-        <div className="pointer-events-none absolute left-[8%] top-[18%] h-32 w-32 rounded-full border border-[#1c1c1a]/10" />
-        <div className="pointer-events-none absolute bottom-[15%] right-[8%] h-48 w-48 rounded-full border border-[#1c1c1a]/10" />
-        <div className="pointer-events-none absolute left-[12%] top-[22%]">
-          <Sparkles size={18} strokeWidth={1} className="opacity-40" />
+      <section className="relative flex min-h-[calc(100dvh-88px)] items-center justify-center px-6 pb-16">
+        {/* Soft floating bubbles (decoration only) */}
+        <div aria-hidden="true" className="bg-sunset grain pointer-events-none absolute -right-24 top-4 h-72 w-72 rounded-full opacity-80 md:h-96 md:w-96" />
+        <div aria-hidden="true" className="bg-lilac-glow grain pointer-events-none absolute -left-28 bottom-10 h-64 w-64 rounded-full opacity-70 md:h-80 md:w-80" />
+        <div aria-hidden="true" className="pointer-events-none absolute left-[14%] top-[20%] text-accent">
+          <Sparkles size={22} strokeWidth={1.6} />
         </div>
 
-        <div className="relative z-10 mx-auto max-w-5xl text-center">
-          <Image
-            src="/brand/logo.jpg"
-            alt="Fab_art Studio — Artistry in Every Stitch"
-            width={720}
-            height={720}
-            priority
-            className="mx-auto mb-6 h-44 w-44 rounded-full mix-blend-multiply md:h-56 md:w-56"
-          />
-          <p className="mb-8 text-xs font-medium uppercase tracking-[0.35em] text-[#1c1c1a]/50">
+        <div className="relative z-10 mx-auto max-w-3xl text-center">
+          <div className="mx-auto mb-7 flex h-44 w-44 items-center justify-center rounded-full bg-white shadow-lg ring-8 ring-white/60 md:h-52 md:w-52">
+            <Image
+              src="/brand/logo.jpg"
+              alt="Fab_art Studio — Artistry in Every Stitch"
+              width={720}
+              height={720}
+              priority
+              className="h-full w-full rounded-full object-cover"
+            />
+          </div>
+          <p className="mb-4 inline-flex rounded-full bg-accent-soft px-4 py-1.5 text-xs font-bold text-accent-soft-ink">
             {t("landing.eyebrow")}
           </p>
-          <h1 className="text-5xl font-light leading-[1.05] tracking-[-0.03em] sm:text-6xl md:text-8xl lg:text-9xl">
+          <h1 className="font-display text-5xl font-bold leading-[1.05] sm:text-6xl md:text-7xl">
             {t("landing.title1")}
             <br />
-            <span className="font-serif italic">{t("landing.title2")}</span>
+            <span className="bg-sunset bg-clip-text text-transparent">{t("landing.title2")}</span>
           </h1>
-          <p className="mx-auto mt-10 max-w-xl text-base leading-7 text-[#1c1c1a]/60 md:text-lg">
+          <p className="mx-auto mt-6 max-w-xl text-base font-medium leading-7 text-muted md:text-lg">
             {t("landing.body")}
           </p>
           <button
             onClick={enter}
-            className="group mt-10 inline-flex items-center gap-3 rounded-full bg-[#1c1c1a] px-7 py-4 text-base font-medium text-[#f5f1ea] transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+            className="press bg-sunset mt-9 inline-flex h-14 items-center gap-3 rounded-full px-8 text-base font-bold text-white shadow-lg shadow-accent/35"
           >
             {t("landing.enter")}
-            <ArrowRight size={17} className="transition-transform duration-300 group-hover:translate-x-1" />
+            <ArrowRight size={18} />
           </button>
         </div>
 
-        <div className="absolute bottom-8 left-0 right-0 flex justify-center">
-          <p className="text-[10px] uppercase tracking-[0.3em] text-[#1c1c1a]/35">
-            {t("landing.footer")}
-          </p>
+        <div className="absolute bottom-6 left-0 right-0 flex justify-center">
+          <p className="text-xs font-semibold text-muted/70">{t("landing.footer")}</p>
         </div>
       </section>
     </main>

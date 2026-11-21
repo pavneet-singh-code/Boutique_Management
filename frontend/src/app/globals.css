@@ -1,44 +1,39 @@
 @import "tailwindcss";
 
 /*
- * Colours come from the Fab_art logo (rose-gold / mocha on white).
- * Phones keep the WhatsApp-style layout (chat lists, bottom tabs, round + button)
- * but use these boutique colours - not WhatsApp green.
- * Tablets/desktops use a slightly warmer background.
- * Components only ever use these tokens (bg-card, text-ink, ...).
+ * Fab_art "bubbly" look: warm cream background with soft peach / lilac glows,
+ * bright orange actions, deep plum text, big round corners and soft shadows.
+ * Phones keep the app-like layout (chat lists, floating tab bar, round + button);
+ * tablets / laptops get a floating sidebar.
+ * Components only ever use these tokens (bg-card, text-ink, ...), so the whole
+ * app follows this file.
  */
 :root {
-  --bg: #fbf8f6;
+  --bg: #fff7f1;
   --card: #ffffff;
-  --card-2: #f5efeb;
-  --line: #ece2dc;
-  --ink: #2b211d;
-  --ink-2: #4d3d36;
-  --muted: #74625a;
-  --accent: #8c5d4c;
-  --accent-hover: #774b3c;
-  --accent-ink: #8a5644;
-  --accent-soft: #f4e6df;
-  --accent-soft-ink: #6e4234;
-  --warn-soft: #fdf0dc;
-  --warn-ink: #94541a;
-  --danger: #b3402e;
-  --danger-soft: #fbebe7;
-  --wallpaper: #f6efea;
-  --bubble-out: #f4e6df;
+  --card-2: #fff0e6;
+  --line: #f6e3d6;
+  --ink: #3b2339;
+  --ink-2: #5b3f57;
+  --muted: #8a7186;
+  --accent: #ec6a22;
+  --accent-hover: #d85a14;
+  --accent-ink: #c2530f;
+  --accent-soft: #ffe7d6;
+  --accent-soft-ink: #9c420c;
+  --lilac: #8c74d8;
+  --lilac-soft: #efe9ff;
+  --lilac-ink: #58429f;
+  --warn-soft: #fff1d1;
+  --warn-ink: #8a5300;
+  --danger: #d1453b;
+  --danger-soft: #ffe9e5;
+  --wallpaper: #fff3ea;
+  --bubble-out: #ffe7d6;
   --bubble-in: #ffffff;
 
-  --font-stack: var(--font-geist-sans), var(--font-deva), ui-sans-serif,
-    system-ui, sans-serif;
-}
-
-@media (min-width: 768px) {
-  :root {
-    --bg: #f7f2ee;
-    --card: #fffdfb;
-    --card-2: #f8f2ee;
-    --line: #e8dbd3;
-  }
+  --font-stack: var(--font-body), var(--font-deva), ui-sans-serif, system-ui, sans-serif;
+  --font-display-stack: var(--font-display), var(--font-deva), ui-rounded, system-ui, sans-serif;
 }
 
 @theme inline {
@@ -54,6 +49,9 @@
   --color-accent-ink: var(--accent-ink);
   --color-accent-soft: var(--accent-soft);
   --color-accent-soft-ink: var(--accent-soft-ink);
+  --color-lilac: var(--lilac);
+  --color-lilac-soft: var(--lilac-soft);
+  --color-lilac-ink: var(--lilac-ink);
   --color-warn-soft: var(--warn-soft);
   --color-warn-ink: var(--warn-ink);
   --color-danger: var(--danger);
@@ -62,6 +60,22 @@
   --color-bubble-out: var(--bubble-out);
   --color-bubble-in: var(--bubble-in);
   --font-sans: var(--font-stack);
+  /* Headings that used the serif now use the round, bubbly display font. */
+  --font-serif: var(--font-display-stack);
+  --font-display: var(--font-display-stack);
+}
+
+/* Curvier everything: Tailwind's corner sizes, made rounder. */
+@theme {
+  --radius-lg: 0.9rem;
+  --radius-xl: 1.15rem;
+  --radius-2xl: 1.6rem;
+  --radius-3xl: 2.1rem;
+
+  /* Soft, warm shadows instead of hard borders. */
+  --shadow-sm: 0 2px 4px -2px rgb(59 35 57 / 0.05), 0 8px 24px -10px rgb(214 110 50 / 0.22);
+  --shadow-md: 0 4px 10px -4px rgb(59 35 57 / 0.07), 0 16px 36px -14px rgb(214 110 50 / 0.3);
+  --shadow-lg: 0 8px 18px -8px rgb(59 35 57 / 0.1), 0 24px 56px -18px rgb(214 110 50 / 0.35);
 }
 
 * {
@@ -76,14 +90,61 @@ body {
 }
 
 body {
-  background: var(--bg);
   color: var(--ink);
   font-family: var(--font-stack);
+  /* Cream with a peach glow top-right and a lilac glow on the left. */
+  background:
+    radial-gradient(42rem 30rem at 105% -8%, #ffd6bd 0%, transparent 62%),
+    radial-gradient(36rem 30rem at -18% 38%, #ece3ff 0%, transparent 60%),
+    radial-gradient(30rem 24rem at 60% 115%, #ffe1cf 0%, transparent 60%),
+    var(--bg);
+  background-attachment: fixed;
 }
 
 /* Devanagari needs a bit more line height to stay readable */
 html[lang="hi"] body {
   line-height: 1.6;
+}
+
+.font-display {
+  font-family: var(--font-display-stack);
+}
+
+/* ---------------- Bubbly surfaces ---------------- */
+
+/* The bright orange of the Home banner, Login header and main buttons. */
+.bg-sunset {
+  background-image: linear-gradient(135deg, #ffb36b 0%, #f7853a 45%, #e85d1c 100%);
+}
+.bg-lilac-glow {
+  background-image: linear-gradient(135deg, #d9ccff 0%, #a994ea 55%, #8c74d8 100%);
+}
+.bg-peach {
+  background-image: linear-gradient(160deg, #fff3ea 0%, #ffe2cf 100%);
+}
+
+/* A soft film grain, like the reference's illustrations (decorative only). */
+.grain {
+  position: relative;
+  isolation: isolate;
+}
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0.18;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+/* Frosted bars (headers, floating tab bar). */
+.glass {
+  background: rgb(255 255 255 / 0.78);
+  -webkit-backdrop-filter: saturate(1.4) blur(16px);
+  backdrop-filter: saturate(1.4) blur(16px);
 }
 
 .pb-safe {
@@ -97,10 +158,10 @@ html[lang="hi"] body {
   scrollbar-width: none;
 }
 
-/* Subtle doodle-free wallpaper, like a chat background */
+/* Chat background for the customer timeline: tiny peach dots. */
 .chat-wallpaper {
   background-color: var(--wallpaper);
-  background-image: radial-gradient(rgba(0, 0, 0, 0.035) 1px, transparent 1px);
+  background-image: radial-gradient(rgb(236 106 34 / 0.09) 1.2px, transparent 1.2px);
   background-size: 18px 18px;
 }
 
@@ -112,6 +173,9 @@ html[lang="hi"] [class*="tracking-"] {
 
 /* Printing a bill: only the bill itself is printed */
 @media print {
+  body {
+    background: #fff;
+  }
   body * {
     visibility: hidden;
   }
@@ -127,11 +191,11 @@ html[lang="hi"] [class*="tracking-"] {
   }
 }
 
-/* A screen fades in softly when you open it (skipped if the phone asks for less motion) */
+/* A screen floats in softly when you open it (skipped if the phone asks for less motion) */
 @keyframes page-enter {
   from {
     opacity: 0;
-    transform: translateY(4px);
+    transform: translateY(6px) scale(0.995);
   }
   to {
     opacity: 1;
@@ -139,10 +203,22 @@ html[lang="hi"] [class*="tracking-"] {
   }
 }
 .page-enter {
-  animation: page-enter 180ms ease-out;
+  animation: page-enter 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
+
+/* Buttons and cards give a little "squish" when pressed. */
+.press {
+  transition: transform 140ms ease, box-shadow 140ms ease, background-color 140ms ease, opacity 140ms ease;
+}
+.press:active {
+  transform: scale(0.97);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .page-enter {
     animation: none;
+  }
+  .press:active {
+    transform: none;
   }
 }

@@ -1,10 +1,19 @@
-import { Geist, Noto_Sans_Devanagari } from "next/font/google";
+import { Baloo_2, Noto_Sans_Devanagari, Nunito } from "next/font/google";
 import Providers from "./providers";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Round, friendly body text.
+const body = Nunito({
+  variable: "--font-body",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+});
+
+// Bubbly headings, in English and Hindi.
+const display = Baloo_2({
+  variable: "--font-display",
+  subsets: ["latin", "devanagari"],
+  weight: ["500", "600", "700", "800"],
 });
 
 const devanagari = Noto_Sans_Devanagari({
@@ -28,7 +37,7 @@ export const viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#ffffff",
+  themeColor: "#fff7f1",
 };
 
 export default function RootLayout({ children }) {
@@ -36,7 +45,7 @@ export default function RootLayout({ children }) {
     <html
       lang="hi"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${devanagari.variable} h-full antialiased`}
+      className={`${body.variable} ${display.variable} ${devanagari.variable} h-full antialiased`}
     >
       <body className="min-h-full">
         <Providers>{children}</Providers>

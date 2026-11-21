@@ -33,10 +33,10 @@ function LanguageChoice() {
               aria-checked={active}
               onClick={() => setLang(option.value)}
               className={cx(
-                "rounded-2xl border-2 px-4 py-3 text-left transition",
+                "press rounded-3xl border-2 px-4 py-3 text-left",
                 active
-                  ? "border-accent bg-accent-soft"
-                  : "border-line bg-card hover:border-muted/40"
+                  ? "border-accent bg-accent-soft shadow-sm shadow-accent/20"
+                  : "border-line bg-card hover:border-accent/40"
               )}
             >
               <span className="block text-lg font-semibold text-ink">{option.label}</span>
@@ -82,37 +82,41 @@ function LoginForm() {
   };
 
   const inputClass =
-    "h-14 w-full rounded-2xl border border-line bg-card px-4 text-[16px] outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/15 disabled:opacity-60";
+    "h-14 w-full rounded-full border-2 border-line bg-card-2/60 px-5 text-[16px] font-semibold outline-none transition focus:border-accent focus:bg-card focus:ring-4 focus:ring-accent/15 disabled:opacity-60";
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-bg px-5 py-10 text-ink">
-      <div className="w-full max-w-md">
-        <Link
-          href="/"
-          className="mb-10 inline-flex items-center gap-2 text-sm text-muted transition hover:text-ink"
-        >
-          <ArrowLeft size={16} />
-          {t("common.back")}
-        </Link>
-
-        <div className="mb-8">
-          <Image
-            src="/brand/logo.jpg"
-            alt="Fab_art Studio"
-            width={720}
-            height={720}
-            priority
-            className="mb-4 -ml-3 h-36 w-36 rounded-3xl md:h-44 md:w-44"
-          />
-          <h1 className="text-3xl font-semibold tracking-tight md:font-serif md:text-5xl md:font-light">
-            {t("login.title")}
-          </h1>
-          <p className="mt-3 text-muted">
-            {mode === "pin" ? t("login.subtitlePin") : t("login.subtitle")}
-          </p>
+    <main className="min-h-dvh text-ink md:flex md:items-center md:justify-center md:py-10">
+      <div className="w-full md:max-w-md">
+        {/* Bright header with the logo, like a greeting card */}
+        <div className="bg-sunset grain relative overflow-hidden rounded-b-[3rem] px-6 pb-24 pt-6 text-white md:rounded-[2.5rem]">
+          <span aria-hidden="true" className="absolute -right-12 -top-10 h-48 w-48 rounded-full bg-white/20" />
+          <span aria-hidden="true" className="absolute -bottom-20 -left-10 h-52 w-52 rounded-full bg-[#ff9a4d]/40 blur-sm" />
+          <Link
+            href="/"
+            className="press relative inline-flex h-10 items-center gap-2 rounded-full bg-white px-4 text-sm font-bold text-ink shadow-sm"
+          >
+            <ArrowLeft size={16} />
+            {t("common.back")}
+          </Link>
+          <div className="relative mt-6 flex flex-col items-center text-center">
+            <Image
+              src="/brand/logo.jpg"
+              alt="Fab_art Studio"
+              width={720}
+              height={720}
+              priority
+              className="h-32 w-32 rounded-full bg-white object-cover shadow-lg ring-4 ring-white/60 md:h-36 md:w-36"
+            />
+            <h1 className="mt-4 font-display text-[2.1rem] font-bold leading-tight">{t("login.title")}</h1>
+            <p className="mt-1 max-w-xs text-sm font-medium text-white/90">
+              {mode === "pin" ? t("login.subtitlePin") : t("login.subtitle")}
+            </p>
+          </div>
         </div>
 
-        <div className="mb-8">
+        <div className="relative -mt-16 px-4 pb-10 md:px-0">
+        <div className="rounded-[2rem] bg-card p-6 shadow-lg ring-1 ring-white">
+        <div className="mb-7">
           <LanguageChoice />
         </div>
 
@@ -174,12 +178,12 @@ function LoginForm() {
               placeholder={t("login.placeholder")}
               disabled={loading}
               autoComplete="current-password"
-              className="h-14 w-full rounded-2xl border border-line bg-card px-4 pr-12 text-[16px] outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/15 disabled:opacity-60"
+              className="h-14 w-full rounded-full border-2 border-line bg-card-2/60 px-5 pr-12 text-[16px] font-semibold outline-none transition focus:border-accent focus:bg-card focus:ring-4 focus:ring-accent/15 disabled:opacity-60"
             />
             <button
               type="button"
               onClick={() => setShowPassword((value) => !value)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-muted hover:text-ink"
+              className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-muted hover:text-ink"
               aria-label={showPassword ? t("login.hide") : t("login.show")}
             >
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -197,7 +201,7 @@ function LoginForm() {
           <button
             type="submit"
             disabled={loading}
-            className="mt-6 flex h-14 w-full items-center justify-center gap-2 rounded-full bg-accent text-base font-semibold text-white transition hover:bg-accent-hover disabled:opacity-60 md:rounded-2xl"
+            className="press bg-sunset mt-6 flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-bold text-white shadow-md shadow-accent/30 hover:brightness-105 disabled:opacity-60"
           >
             {loading && <LoaderCircle size={18} className="animate-spin" />}
             {loading ? t("login.loading") : t("login.submit")}
@@ -214,6 +218,8 @@ function LoginForm() {
             {mode === "pin" ? t("login.usePassword") : t("login.usePin")}
           </button>
         </form>
+        </div>
+        </div>
       </div>
     </main>
   );

@@ -20,21 +20,22 @@ export function cx(...classes) {
 
 const buttonVariants = {
   primary:
-    "bg-accent text-white hover:bg-accent-hover shadow-sm disabled:opacity-50",
+    "bg-sunset text-white font-semibold shadow-md shadow-accent/25 hover:brightness-105 disabled:opacity-50",
   secondary:
-    "border border-line bg-card text-ink-2 hover:bg-card-2 disabled:opacity-50",
-  danger: "bg-danger text-white hover:opacity-90 disabled:opacity-50",
-  ghost: "text-ink-2 hover:bg-card-2 disabled:opacity-50",
+    "bg-card text-ink-2 font-semibold shadow-sm ring-1 ring-line hover:bg-card-2 disabled:opacity-50",
+  danger: "bg-danger text-white font-semibold shadow-sm hover:opacity-90 disabled:opacity-50",
+  ghost: "text-ink-2 font-medium hover:bg-card-2 disabled:opacity-50",
 };
 
+/** Round "pill" buttons everywhere (phone, tablet and laptop). */
 export function buttonClass(variant = "primary", size = "md") {
   const sizes = {
-    sm: "h-9 px-3 text-sm rounded-full md:rounded-lg",
-    md: "h-11 px-5 text-[15px] rounded-full md:rounded-xl md:text-sm",
-    lg: "h-12 px-6 text-base rounded-full md:rounded-xl",
+    sm: "h-9 px-4 text-sm",
+    md: "h-11 px-5 text-[15px]",
+    lg: "h-13 px-7 text-base",
   };
   return cx(
-    "inline-flex items-center justify-center gap-2 font-medium transition disabled:cursor-not-allowed",
+    "press inline-flex items-center justify-center gap-2 rounded-full disabled:cursor-not-allowed",
     sizes[size],
     buttonVariants[variant]
   );
@@ -60,7 +61,7 @@ export function Card({ className, children, ...props }) {
   return (
     <section
       className={cx(
-        "rounded-2xl border border-line bg-card md:shadow-sm",
+        "rounded-3xl border border-white bg-card shadow-sm",
         className
       )}
       {...props}
@@ -74,7 +75,7 @@ export function SectionTitle({ title, help, action }) {
   return (
     <div className="mb-3 flex items-end justify-between gap-3 px-4 md:px-0">
       <div className="min-w-0">
-        <h2 className="text-[15px] font-semibold text-ink md:font-serif md:text-xl md:font-normal">
+        <h2 className="font-display text-lg font-bold leading-tight text-ink md:text-2xl">
           {title}
         </h2>
         {help && <p className="mt-0.5 text-xs text-muted">{help}</p>}
@@ -90,11 +91,11 @@ export function PageHeading({ eyebrow, title, subtitle, actions }) {
     <div className="mb-6 hidden flex-col gap-4 md:flex lg:flex-row lg:items-end lg:justify-between">
       <div>
         {eyebrow && (
-          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-accent-ink">
+          <p className="inline-flex rounded-full bg-accent-soft px-3 py-1 text-xs font-bold text-accent-soft-ink">
             {eyebrow}
           </p>
         )}
-        <h1 className="mt-2 font-serif text-3xl tracking-tight text-ink md:text-4xl">
+        <h1 className="mt-2 font-display text-4xl font-bold leading-tight tracking-tight text-ink lg:text-[2.75rem]">
           {title}
         </h1>
         {subtitle && (
@@ -108,28 +109,31 @@ export function PageHeading({ eyebrow, title, subtitle, actions }) {
   );
 }
 
+// Each tile tone: background, label colour, icon bubble.
+const TILE_TONES = {
+  default: ["bg-card shadow-sm border border-white", "text-muted", "bg-accent-soft text-accent-ink", "text-ink"],
+  accent: ["bg-sunset grain shadow-md shadow-accent/25", "text-white/85", "bg-white/25 text-white", "text-white"],
+  peach: ["bg-peach shadow-sm border border-white", "text-accent-soft-ink/80", "bg-white text-accent-ink", "text-ink"],
+  lilac: ["bg-lilac-soft shadow-sm border border-white", "text-lilac-ink/80", "bg-white text-lilac-ink", "text-ink"],
+};
+
+/** A number with a label, as a soft rounded tile (like "Energy 80" in the reference). */
 export function StatTile({ label, value, note, icon: Icon, tone = "default" }) {
+  const [surface, labelColor, iconBubble, valueColor] = TILE_TONES[tone] || TILE_TONES.default;
   return (
-    <div
-      className={cx(
-        "rounded-2xl border p-4 md:p-5",
-        tone === "accent"
-          ? "border-transparent bg-accent-soft"
-          : "border-line bg-card md:shadow-sm"
-      )}
-    >
+    <div className={cx("press h-full overflow-hidden rounded-3xl p-4 md:p-5", surface)}>
       <div className="flex items-start justify-between gap-2">
-        <p className="text-[13px] leading-5 text-muted md:text-sm">{label}</p>
+        <p className={cx("text-[13px] font-semibold leading-5 md:text-sm", labelColor)}>{label}</p>
         {Icon && (
-          <span className="hidden rounded-xl bg-accent-soft p-2.5 text-accent-ink md:block">
-            <Icon size={18} strokeWidth={1.8} />
+          <span className={cx("flex h-9 w-9 shrink-0 items-center justify-center rounded-full", iconBubble)}>
+            <Icon size={17} strokeWidth={2} />
           </span>
         )}
       </div>
-      <p className="mt-1 text-xl font-semibold tracking-tight text-ink md:mt-2 md:text-2xl">
+      <p className={cx("mt-2 font-display text-[1.7rem] font-semibold leading-none tracking-tight md:mt-3 md:text-[2.1rem]", valueColor)}>
         {value}
       </p>
-      {note && <p className="mt-1 text-xs text-muted">{note}</p>}
+      {note && <p className={cx("mt-2 text-xs", labelColor)}>{note}</p>}
     </div>
   );
 }
@@ -204,10 +208,10 @@ export function Chip({ active, children, ...props }) {
       type="button"
       aria-pressed={active}
       className={cx(
-        "h-8 shrink-0 whitespace-nowrap rounded-full px-3.5 text-sm transition",
+        "press h-9 shrink-0 whitespace-nowrap rounded-full px-4 text-sm font-semibold",
         active
-          ? "bg-accent-soft font-medium text-accent-soft-ink"
-          : "bg-card-2 text-muted hover:text-ink"
+          ? "bg-sunset text-white shadow-sm shadow-accent/30"
+          : "bg-card text-ink-2 shadow-sm ring-1 ring-line hover:bg-card-2"
       )}
       {...props}
     >
@@ -328,7 +332,7 @@ export function ConfirmDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-title"
-        className="pb-safe relative w-full rounded-t-3xl bg-card p-6 shadow-2xl sm:max-w-md sm:rounded-2xl"
+        className="pb-safe relative w-full rounded-t-[2.25rem] bg-card p-6 shadow-2xl sm:max-w-md sm:rounded-[2rem]"
       >
         <button
           type="button"
@@ -379,7 +383,7 @@ export function LanguageToggle({ className, size = "md" }) {
       role="radiogroup"
       aria-label={t("lang.label")}
       className={cx(
-        "inline-flex rounded-full border border-line bg-card-2 p-1",
+        "inline-flex rounded-full bg-card p-1 shadow-sm ring-1 ring-line",
         className
       )}
     >
@@ -391,10 +395,10 @@ export function LanguageToggle({ className, size = "md" }) {
           aria-checked={lang === option.value}
           onClick={() => setLang(option.value)}
           className={cx(
-            "rounded-full font-medium transition",
+            "rounded-full font-semibold transition",
             size === "lg" ? "px-5 py-2 text-base" : "px-3.5 py-1.5 text-sm",
             lang === option.value
-              ? "bg-card text-ink shadow-sm"
+              ? "bg-sunset text-white shadow-sm shadow-accent/30"
               : "text-muted hover:text-ink"
           )}
         >

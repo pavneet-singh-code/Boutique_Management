@@ -149,38 +149,36 @@ function Sidebar() {
   };
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-line bg-[#faf7f1] md:flex">
-      <Link href="/dashboard" className="flex items-center gap-3 px-6 pb-7 pt-8">
+    <aside className="glass fixed inset-y-3 left-3 z-40 hidden w-60 flex-col rounded-[2rem] shadow-md ring-1 ring-white md:flex">
+      <Link href="/dashboard" className="press m-3 flex items-center gap-3 rounded-[1.6rem] bg-peach p-3">
         <Image
           src="/brand/icon-96.png"
           alt=""
           width={48}
           height={48}
           priority
-          className="h-12 w-12 shrink-0 rounded-2xl border border-line bg-white"
+          className="h-12 w-12 shrink-0 rounded-full bg-white p-0.5 shadow-sm ring-2 ring-white"
         />
         <span className="min-w-0">
-          <span className="block font-serif text-[22px] leading-tight tracking-tight text-[#30271f]">
+          <span className="block font-display text-xl font-bold leading-tight text-ink">
             {t("app.name")}
           </span>
-          <span className="mt-1 block text-[10px] font-semibold uppercase tracking-[0.2em] text-[#94816c]">
+          <span className="block text-[11px] font-semibold text-accent-soft-ink/80">
             {t("app.tagline")}
           </span>
         </span>
       </Link>
-
-      <div className="mx-5 border-t border-line" />
 
       <nav
         ref={navRef}
         onScroll={(event) => {
           sidebarScroll = event.currentTarget.scrollTop;
         }}
-        className="flex-1 overflow-y-auto overscroll-contain px-4 py-6"
+        className="no-scrollbar flex-1 overflow-y-auto overscroll-contain px-3 pb-6 pt-2 [mask-image:linear-gradient(to_bottom,black_88%,transparent)]"
       >
         {sections.map((section, index) => (
-          <div key={section.heading} className={index === 0 ? "" : "mt-7"}>
-            <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#a08e7b]">
+          <div key={section.heading} className={index === 0 ? "" : "mt-5"}>
+            <p className="mb-2 px-3 text-[11px] font-bold uppercase tracking-[0.14em] text-muted/80">
               {t(section.heading)}
             </p>
             <div className="space-y-1">
@@ -196,18 +194,25 @@ function Sidebar() {
                     href={item.path}
                     aria-current={active ? "page" : undefined}
                     className={cx(
-                      "group flex items-center gap-3 rounded-xl px-3 py-2.5 transition",
+                      "press group flex items-center gap-3 rounded-full px-2 py-1.5",
                       active
-                        ? "bg-[#eae0d2] font-semibold text-[#493727] ring-1 ring-inset ring-[#e1d3c1]"
-                        : "font-medium text-[#706355] hover:bg-[#f0e9df] hover:text-[#493727]"
+                        ? "bg-sunset font-bold text-white shadow-md shadow-accent/25"
+                        : "font-semibold text-ink-2 hover:bg-accent-soft/70"
                     )}
                   >
-                    <Icon
-                      size={18}
-                      strokeWidth={active ? 2.1 : 1.7}
-                      className={active ? "text-[#80664b]" : "text-[#9b8975]"}
-                    />
-                    <span className="text-[13.5px]">{t(item.label)}</span>
+                    <span
+                      className={cx(
+                        "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
+                        active ? "bg-white/25" : "bg-card shadow-sm ring-1 ring-line"
+                      )}
+                    >
+                      <Icon
+                        size={16}
+                        strokeWidth={active ? 2.4 : 2}
+                        className={active ? "text-white" : "text-accent-ink"}
+                      />
+                    </span>
+                    <span className="text-[14px]">{t(item.label)}</span>
                   </Link>
                 );
               })}
@@ -216,11 +221,11 @@ function Sidebar() {
         ))}
       </nav>
 
-      <div className="border-t border-line px-4 py-4">
+      <div className="px-3 pb-3">
         {me && (
           <Link
             href="/settings"
-            className="mb-2 flex items-center gap-3 rounded-xl px-3 py-2 transition hover:bg-[#f0e9df]"
+            className="press mb-1 flex items-center gap-3 rounded-full bg-lilac-soft px-2 py-2"
           >
             <EmployeeAvatar employee={me} size={34} />
             <span className="min-w-0">
@@ -234,32 +239,41 @@ function Sidebar() {
         <button
           type="button"
           onClick={handleLogout}
-          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[#827366] transition hover:bg-[#eee4d8] hover:text-[#704a3e]"
+          className="press flex w-full items-center gap-3 rounded-full px-4 py-2.5 text-muted hover:bg-danger-soft hover:text-danger"
         >
-          <LogOut size={18} strokeWidth={1.7} />
-          <span className="text-sm font-medium">{t("nav.logout")}</span>
+          <LogOut size={18} strokeWidth={2} />
+          <span className="text-sm font-semibold">{t("nav.logout")}</span>
         </button>
       </div>
     </aside>
   );
 }
 
-function TopBar({ title, subtitle, actions }) {
-  const { t } = useI18n();
+/**
+ * Tablet / laptop bar. List screens show their own big heading, so here they
+ * only get the language switch; detail screens (no heading) show their title.
+ */
+function TopBar({ title, subtitle, actions, showTitle }) {
+  if (!showTitle) {
+    return (
+      <header className="pointer-events-none sticky top-3 z-30 hidden justify-end px-6 md:flex lg:px-8">
+        <div className="glass pointer-events-auto rounded-full p-1 shadow-sm ring-1 ring-white">
+          <LanguageToggle />
+        </div>
+      </header>
+    );
+  }
   return (
-    <header className="sticky top-0 z-30 hidden border-b border-line bg-[#faf7f1]/95 backdrop-blur-md md:block">
-      <div className="flex min-h-20 items-center justify-between gap-5 px-8 py-4">
+    <header className="sticky top-3 z-30 hidden px-6 md:block lg:px-8">
+      <div className="glass flex min-h-16 items-center justify-between gap-5 rounded-full py-2.5 pl-7 pr-3 shadow-sm ring-1 ring-white">
         <div className="min-w-0">
-          <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#998875]">
-            {t("app.name")}
-          </p>
-          <p className="truncate font-serif text-2xl text-ink">{title}</p>
+          <p className="truncate font-display text-xl font-bold leading-tight text-ink">{title}</p>
           {subtitle && (
-            <p className="mt-0.5 hidden text-sm text-muted lg:block">{subtitle}</p>
+            <p className="hidden truncate text-xs font-medium text-muted lg:block">{subtitle}</p>
           )}
         </div>
         <div className="flex items-center gap-2">
-          {actions && <div className="flex items-center">{actions}</div>}
+          {actions && <div className="flex items-center gap-1.5">{actions}</div>}
           <LanguageToggle />
         </div>
       </div>
@@ -269,7 +283,7 @@ function TopBar({ title, subtitle, actions }) {
 
 export function HeaderIconButton({ label, href, onClick, children }) {
   const className =
-    "flex h-10 w-10 items-center justify-center rounded-full text-ink-2 transition hover:bg-card-2 active:bg-card-2";
+    "press flex h-10 w-10 items-center justify-center rounded-full bg-card text-ink-2 shadow-sm ring-1 ring-line hover:text-accent-ink";
   if (href) {
     // Pages inside the app use Link (no reload); phone / WhatsApp links stay plain.
     if (href.startsWith("/")) {
@@ -308,8 +322,8 @@ function MobileHeader({ title, mobileTitle, brand, back, actions }) {
   };
 
   return (
-    <header className="sticky top-0 z-30 border-b border-line bg-card md:hidden">
-      <div className="flex h-14 items-center gap-1 px-2">
+    <header className="glass sticky top-0 z-30 md:hidden">
+      <div className="flex h-16 items-center gap-2 px-3">
         {back ? (
           <HeaderIconButton label={t("common.back")} onClick={goBack}>
             <ArrowLeft size={22} />
@@ -319,24 +333,24 @@ function MobileHeader({ title, mobileTitle, brand, back, actions }) {
         )}
         <div className="min-w-0 flex-1 px-1">
           {mobileTitle || (brand ? (
-            <h1 className="flex items-center gap-2 truncate text-[22px] font-bold tracking-tight text-accent">
-              <Image src="/brand/icon-96.png" alt="" width={30} height={30} priority className="h-[30px] w-[30px] rounded-lg" />
+            <h1 className="flex items-center gap-2 truncate font-display text-2xl font-bold text-ink">
+              <Image src="/brand/icon-96.png" alt="" width={32} height={32} priority className="h-8 w-8 rounded-full bg-white shadow-sm" />
               {title}
             </h1>
           ) : (
             <h1
               className={cx(
-                "truncate",
+                "truncate font-display",
                 brand
-                  ? "text-[22px] font-bold tracking-tight text-accent"
-                  : "text-[19px] font-semibold text-ink"
+                  ? "text-2xl font-bold text-ink"
+                  : "text-[21px] font-bold text-ink"
               )}
             >
               {title}
             </h1>
           ))}
         </div>
-        {actions && <div className="flex items-center">{actions}</div>}
+        {actions && <div className="flex items-center gap-1.5">{actions}</div>}
       </div>
     </header>
   );
@@ -351,9 +365,12 @@ function BottomNav() {
   return (
     <nav
       aria-label="Main"
-      className="pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-line bg-card md:hidden"
+      className="fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-40 md:hidden"
     >
-      <div className="grid" style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}>
+      <div
+        className="glass grid rounded-full p-1.5 shadow-lg ring-1 ring-white"
+        style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}
+      >
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const active = tab.match.some((path) => matches(pathname, path));
@@ -362,20 +379,20 @@ function BottomNav() {
               key={tab.label}
               href={tab.path}
               aria-current={active ? "page" : undefined}
-              className="flex flex-col items-center gap-1 pb-2 pt-2.5"
+              className="press flex flex-col items-center gap-0.5 rounded-full py-1"
             >
               <span
                 className={cx(
-                  "flex h-8 w-14 items-center justify-center rounded-full transition",
-                  active ? "bg-accent-soft text-accent-soft-ink" : "text-ink-2"
+                  "flex h-9 w-9 items-center justify-center rounded-full transition",
+                  active ? "bg-sunset text-white shadow-md shadow-accent/30" : "text-ink-2"
                 )}
               >
-                <Icon size={21} strokeWidth={active ? 2.3 : 1.8} />
+                <Icon size={19} strokeWidth={active ? 2.4 : 1.9} />
               </span>
               <span
                 className={cx(
-                  "text-[11.5px] leading-none",
-                  active ? "font-semibold text-ink" : "text-ink-2"
+                  "text-[11px] leading-none",
+                  active ? "font-bold text-accent-ink" : "font-semibold text-muted"
                 )}
               >
                 {t(tab.label)}
@@ -394,9 +411,9 @@ function Fab({ href, label, icon: Icon = Plus }) {
       href={href}
       aria-label={label}
       title={label}
-      className="fixed bottom-[calc(84px+env(safe-area-inset-bottom))] right-4 z-40 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent text-white shadow-lg shadow-black/20 transition active:scale-95 md:hidden"
+      className="press bg-sunset fixed bottom-[calc(96px+env(safe-area-inset-bottom))] right-4 z-40 flex h-15 w-15 items-center justify-center rounded-full text-white shadow-lg shadow-accent/40 ring-4 ring-white/70 md:hidden"
     >
-      <Icon size={24} />
+      <Icon size={25} strokeWidth={2.3} />
     </Link>
   );
 }
@@ -409,10 +426,10 @@ function NoAccess({ role }) {
   const { t } = useI18n();
   return (
     <div className="flex flex-col items-center px-6 py-16 text-center">
-      <span className="flex h-14 w-14 items-center justify-center rounded-full bg-card-2 text-muted">
+      <span className="flex h-16 w-16 items-center justify-center rounded-full bg-lilac-soft text-lilac-ink">
         <Lock size={26} />
       </span>
-      <h2 className="mt-4 text-lg font-semibold text-ink">{t("noAccess.title")}</h2>
+      <h2 className="mt-4 font-display text-xl font-bold text-ink">{t("noAccess.title")}</h2>
       <p className="mt-1 text-sm text-muted">{t("noAccess.body")}</p>
       <LinkButton href={homeFor(role)} className="mt-5">
         {t("noAccess.home")}
@@ -452,11 +469,11 @@ export default function AppShell({
   const allowed = !feature || !me || can(me.role, feature);
 
   return (
-    <div className="min-h-dvh bg-bg text-ink">
+    <div className="min-h-dvh text-ink">
       <Sidebar />
-      <div className="flex min-h-dvh min-w-0 flex-col md:ml-64">
+      <div className="flex min-h-dvh min-w-0 flex-col md:ml-[16.5rem]">
         {/* Detail screens have no page heading on desktop, so their buttons go here. */}
-        <TopBar title={title} subtitle={subtitle} actions={hideTabs ? actions : null} />
+        <TopBar title={title} subtitle={subtitle} actions={hideTabs ? actions : null} showTitle={hideTabs} />
         <MobileHeader
           title={title}
           mobileTitle={mobileTitle}
@@ -466,8 +483,8 @@ export default function AppShell({
         />
         <main
           className={cx(
-            "min-w-0 flex-1 md:px-8 md:py-7",
-            hideTabs ? "pb-6" : "pb-[calc(88px+env(safe-area-inset-bottom))] md:pb-10"
+            "min-w-0 flex-1 md:px-6 md:py-7 lg:px-8",
+            hideTabs ? "pb-8" : "pb-[calc(110px+env(safe-area-inset-bottom))] md:pb-10"
           )}
         >
           <div className="page-enter mx-auto w-full max-w-[1400px]">

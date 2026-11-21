@@ -42,14 +42,15 @@ export default function MyWorkPage() {
       }
     >
       <div className="mx-auto max-w-2xl space-y-4 px-4 py-5 md:px-0 md:py-0">
-        <div className="flex items-center gap-3">
-          {me && <EmployeeAvatar employee={me} size={48} />}
-          <div>
-            <p className="text-xl font-semibold text-ink md:font-serif md:text-3xl md:font-normal">
+        <div className="bg-sunset grain relative flex items-center gap-4 overflow-hidden rounded-[2.25rem] rounded-tr-[4rem] p-5 text-white shadow-lg shadow-accent/30 md:p-7">
+          <span aria-hidden="true" className="absolute -right-10 -top-12 h-40 w-40 rounded-full bg-white/20" />
+          {me && <EmployeeAvatar employee={me} size={54} className="relative ring-4 ring-white/50" />}
+          <div className="relative min-w-0">
+            <p className="font-display text-2xl font-bold leading-tight md:text-3xl">
               {t("mywork.hello", { name: me?.name || "" })}
             </p>
             {me && (
-              <p className="text-sm text-muted">
+              <p className="mt-1 inline-flex rounded-full bg-white/25 px-3 py-0.5 text-sm font-semibold">
                 {me.employee_code} · {t(`role.${me.role}`)}
               </p>
             )}

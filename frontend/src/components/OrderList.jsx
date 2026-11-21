@@ -66,7 +66,7 @@ export function OrderRow({ order, showDelivery = true, rightText }) {
     <li>
       <Link
         href={orderPath(order)}
-        className="flex items-center gap-3 px-4 py-3 transition hover:bg-card-2 active:bg-card-2"
+        className="flex items-center gap-3 px-4 py-3 transition hover:bg-card-2 active:bg-card-2 press"
       >
         <OrderAvatar order={order} size={48} />
         <div className="min-w-0 flex-1">
@@ -128,7 +128,7 @@ export function OrderRow({ order, showDelivery = true, rightText }) {
 
 export function OrderChatList({ orders, showDelivery, rightText }) {
   return (
-    <ul className="bg-card md:overflow-hidden md:rounded-2xl md:border md:border-line">
+    <ul className="mx-3 overflow-hidden rounded-3xl bg-card shadow-sm ring-1 ring-white md:mx-0">
       {orders.map((order) => (
         <OrderRow
           key={order.id}

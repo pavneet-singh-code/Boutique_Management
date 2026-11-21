@@ -116,8 +116,8 @@ export default function DashboardPage() {
       subtitle={t("dash.subtitle")}
       brand
       mobileTitle={
-        <span className="flex items-center gap-2 truncate text-[22px] font-bold tracking-tight text-accent">
-          <Image src="/brand/icon-96.png" alt="" width={30} height={30} priority className="h-[30px] w-[30px] rounded-lg" />
+        <span className="flex items-center gap-2 truncate font-display text-2xl font-bold text-ink">
+          <Image src="/brand/icon-96.png" alt="" width={32} height={32} priority className="h-8 w-8 rounded-full bg-white shadow-sm" />
           Fab_art
         </span>
       }
@@ -150,16 +150,25 @@ export default function DashboardPage() {
         }
       />
 
-      {/* Greeting banner (coloured, so Home doesn't feel pale) */}
-      <div className="px-4 pb-1 pt-4 md:mb-6 md:px-0 md:pt-0">
-        <div className="flex items-center gap-4 rounded-3xl bg-gradient-to-br from-accent to-accent-hover p-5 text-white shadow-md md:p-6">
-          {me && <EmployeeAvatar employee={me} size={52} className="ring-2 ring-white/70" />}
-          <div className="min-w-0">
-            <p className="text-xl font-semibold md:font-serif md:text-3xl md:font-normal">
-              {t("dash.hello")} {me?.name && me.name !== "Owner" ? me.name : ""}
-            </p>
-            <p className="text-sm text-white/85">{greetingDate}</p>
+      {/* Greeting banner: a bright, bubbly "sunset" card */}
+      <div className="px-4 pb-1 pt-4 md:mb-7 md:px-0 md:pt-0">
+        <div className="bg-sunset grain relative overflow-hidden rounded-[2.25rem] rounded-tr-[4.5rem] p-6 text-white shadow-lg shadow-accent/30 md:p-8">
+          {/* Soft bubbles in the corner (decoration only) */}
+          <span aria-hidden="true" className="absolute -right-10 -top-12 h-44 w-44 rounded-full bg-white/20 blur-[2px]" />
+          <span aria-hidden="true" className="absolute right-16 top-16 h-16 w-16 rounded-full bg-[#ffd3a8]/60" />
+          <span aria-hidden="true" className="absolute -bottom-16 right-1/3 h-40 w-40 rounded-full bg-[#ff9a4d]/40 blur-sm" />
+          <div className="relative flex items-center gap-4">
+            {me && <EmployeeAvatar employee={me} size={56} className="ring-4 ring-white/50" />}
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-white/85">{t("dash.hello")}</p>
+              <p className="truncate font-display text-[1.9rem] font-bold leading-tight md:text-[2.6rem]">
+                {me?.name && me.name !== "Owner" ? me.name : t("app.name")}
+              </p>
+            </div>
           </div>
+          <p className="relative mt-4 inline-flex rounded-full bg-white/25 px-3.5 py-1.5 text-sm font-semibold backdrop-blur-sm">
+            {greetingDate}
+          </p>
         </div>
       </div>
 
@@ -194,12 +203,14 @@ export default function DashboardPage() {
                 label={t("dash.received")}
                 value={formatMoney(data.receivedThisMonth, locale)}
                 icon={Wallet}
+                tone="peach"
               />
               <Link href="/bills" className="block">
                 <StatTile
                   label={t("dash.toCollect")}
                   value={formatMoney(data.toCollect, locale)}
                   icon={Clock3}
+                  tone="lilac"
                 />
               </Link>
               <Link href="/bills/new" className="block">
@@ -217,9 +228,9 @@ export default function DashboardPage() {
           {data.work.confirm.length > 0 && (
             <Link
               href="/orders/check-delivery"
-              className="mx-4 flex items-center gap-3 rounded-2xl bg-warn-soft p-4 transition hover:opacity-90 md:mx-0"
+              className="mx-4 flex items-center gap-3 press rounded-3xl bg-warn-soft p-4 shadow-sm ring-1 ring-white md:mx-0"
             >
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#f59e0b] text-white">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#f5a524] text-white shadow-sm">
                 <CircleHelp size={20} />
               </span>
               <span className="min-w-0 flex-1">
@@ -236,9 +247,9 @@ export default function DashboardPage() {
           {(data.work.late.length + data.work.ready.length + data.work.unassigned.length) > 0 && (
             <Link
               href="/pending"
-              className="mx-4 flex items-center gap-3 rounded-2xl border border-line bg-card p-4 transition hover:bg-card-2 md:mx-0"
+              className="mx-4 flex items-center gap-3 press rounded-3xl bg-card p-4 shadow-sm ring-1 ring-white hover:bg-card-2 md:mx-0"
             >
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#e6effb] text-[#1e4f91]">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-lilac-soft text-lilac-ink">
                 <ListTodo size={20} />
               </span>
               <span className="min-w-0 flex-1">
@@ -259,7 +270,7 @@ export default function DashboardPage() {
           {numberProblems > 0 && (
             <Link
               href="/orders/data-check"
-              className="mx-4 flex items-center gap-3 rounded-2xl bg-danger-soft p-4 transition hover:opacity-90 md:mx-0"
+              className="mx-4 flex items-center gap-3 press rounded-3xl bg-danger-soft p-4 shadow-sm ring-1 ring-white md:mx-0"
             >
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-danger text-white">
                 <Hash size={20} />
@@ -278,9 +289,9 @@ export default function DashboardPage() {
           {data.review > 0 && (
             <Link
               href="/orders?review=review&allMonths=true"
-              className="mx-4 flex items-center gap-3 rounded-2xl bg-warn-soft p-4 transition hover:opacity-90 md:mx-0"
+              className="mx-4 flex items-center gap-3 press rounded-3xl bg-warn-soft p-4 shadow-sm ring-1 ring-white md:mx-0"
             >
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#f59e0b] text-white">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#f5a524] text-white shadow-sm">
                 <TriangleAlert size={20} />
               </span>
               <span className="min-w-0 flex-1">
