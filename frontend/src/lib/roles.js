@@ -8,7 +8,8 @@ import { getMe, subscribeMe } from "./api";
  * request; this only decides which buttons and screens to show.
  */
 const FEATURES = {
-  money: ["owner", "uploader"],
+  money: ["owner", "uploader"], // amounts on orders and bills (to bill and record payments)
+  earnings: ["owner"], // totals of money received, value of orders, monthly / yearly reviews
   orders: ["owner", "uploader", "social_media"],
   editOrders: ["owner", "uploader"],
   deleteOrders: ["owner"],

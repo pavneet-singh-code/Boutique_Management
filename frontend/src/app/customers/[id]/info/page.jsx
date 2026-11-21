@@ -189,6 +189,7 @@ export default function CustomerInfoPage() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const canMerge = useCan("mergeCustomers");
+  const seeEarnings = useCan("earnings");
   const me = useMe();
 
   const remove = async () => {
@@ -223,9 +224,9 @@ export default function CustomerInfoPage() {
           {customer.phone && <p className="text-[15px] text-muted">{customer.phone}</p>}
         </div>
 
-        <div className="grid grid-cols-3 gap-2 px-4 md:px-0">
+        <div className={seeEarnings ? "grid grid-cols-3 gap-2 px-4 md:px-0" : "grid grid-cols-2 gap-2 px-4 md:px-0"}>
           <StatTile label={t("dash.orders")} value={customer.order_count} />
-          <StatTile label={t("pay.received")} value={formatMoney(customer.received, locale)} />
+          {seeEarnings && <StatTile label={t("pay.received")} value={formatMoney(customer.received, locale)} />}
           <StatTile label={t("pay.balance")} value={formatMoney(customer.balance_due, locale)} />
         </div>
 

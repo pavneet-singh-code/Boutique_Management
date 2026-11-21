@@ -50,7 +50,7 @@ import {
   summarise,
 } from "../../lib/orders";
 import { getDataCheck } from "../../lib/api";
-import { pendingGroups } from "../../lib/work";
+import { isOpen, pendingGroups } from "../../lib/work";
 import { useOrders } from "../../lib/useOrders";
 import { can, useMe } from "../../lib/roles";
 
@@ -58,6 +58,7 @@ export default function DashboardPage() {
   const { t, locale } = useI18n();
   const me = useMe();
   const { orders, ready, loading, error, reload } = useOrders({ enabled: can(me?.role, "reports") });
+  const seeEarnings = can(me?.role, "earnings");
   const [numberProblems, setNumberProblems] = useState(0);
 
   useEffect(() => {
@@ -97,6 +98,8 @@ export default function DashboardPage() {
       stats: summarise(thisMonth),
       receivedThisMonth: receivedBetween(orders, from, to),
       toCollect: all.balance,
+      inWork: orders.filter((order) => isOpen(order) && order.status_confirmed !== false).length,
+      unpaid: orders.filter((order) => order.payment_state === "billed").length,
       unbilled: all.unbilled,
       review: orders.filter((order) => order.needs_review).length,
       upcoming,
@@ -188,7 +191,7 @@ export default function DashboardPage() {
             <SectionTitle
               title={t("dash.thisMonth")}
               action={
-                <Link
+                seeEarnings && <Link
                   href="/monthly-review"
                   className="flex items-center text-sm font-medium text-accent-ink"
                 >
@@ -204,20 +207,40 @@ export default function DashboardPage() {
                 icon={ShoppingBag}
                 tone="accent"
               />
-              <StatTile
-                label={t("dash.received")}
-                value={formatMoney(data.receivedThisMonth, locale)}
-                icon={Wallet}
-                tone="sand"
-              />
-              <Link href="/bills" className="block">
-                <StatTile
-                  label={t("dash.toCollect")}
-                  value={formatMoney(data.toCollect, locale)}
-                  icon={Clock3}
-                  tone="taupe"
-                />
-              </Link>
+              {seeEarnings ? (
+                <>
+                  <StatTile
+                    label={t("dash.received")}
+                    value={formatMoney(data.receivedThisMonth, locale)}
+                    icon={Wallet}
+                    tone="sand"
+                  />
+                  <Link href="/bills" className="block">
+                    <StatTile
+                      label={t("dash.toCollect")}
+                      value={formatMoney(data.toCollect, locale)}
+                      icon={Clock3}
+                      tone="taupe"
+                    />
+                  </Link>
+                </>
+              ) : (
+                <>
+                  {/* Uploader: how much work is open and who still has to pay, not how much came in. */}
+                  <Link href="/pending" className="block">
+                    <StatTile label={t("dash.inWork")} value={data.inWork.toLocaleString(locale)} icon={Clock3} tone="sand" />
+                  </Link>
+                  <Link href="/bills" className="block">
+                    <StatTile
+                      label={t("dash.unpaid")}
+                      value={data.unpaid.toLocaleString(locale)}
+                      note={t("dash.unpaidNote")}
+                      icon={Wallet}
+                      tone="taupe"
+                    />
+                  </Link>
+                </>
+              )}
               <Link href="/bills/new" className="block">
                 <StatTile
                   label={t("dash.notBilled")}

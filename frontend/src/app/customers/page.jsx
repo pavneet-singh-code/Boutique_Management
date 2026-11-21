@@ -119,6 +119,7 @@ export default function CustomersPage() {
   const [search, setSearch] = useState("");
   const [dismissed, setDismissed] = useState(readDismissed);
   const canMerge = useCan("mergeCustomers");
+  const seeEarnings = useCan("earnings");
   const [merging, setMerging] = useState(null);
   const [busy, setBusy] = useState(false);
   const [mergeError, setMergeError] = useState("");
@@ -260,10 +261,12 @@ export default function CustomersPage() {
                       </div>
                       <div className="mt-0.5 flex items-center justify-between gap-2">
                         <p className="truncate text-[14.5px] text-muted">
-                          {t("customers.orders", {
-                            count: customer.order_count,
-                            value: formatMoney(customer.total_value, locale),
-                          })}
+                          {seeEarnings
+                            ? t("customers.orders", {
+                                count: customer.order_count,
+                                value: formatMoney(customer.total_value, locale),
+                              })
+                            : t("common.orderCount", { count: customer.order_count })}
                         </p>
                         {customer.balance_due > 0 ? (
                           <span className="shrink-0 rounded-full bg-warn-soft px-2 py-0.5 text-[11px] font-semibold text-warn-ink">

@@ -62,7 +62,9 @@ One line is enough. Screenshots help.
   login, saving orders, bills and photos would catch mistakes before they go live.
 
 ### Open questions (ROADMAP section 11)
-- [ ] Should the uploader see all earnings and reports?
+- [x] Should the uploader see all earnings and reports? **No** (21 Nov): the uploader sees order counts, what's
+  still being made and who hasn't paid, but not money received, order values or the monthly / yearly reviews.
+  (They still see amounts on single orders and bills, to make bills and record payments.)
 - [ ] Should workers see customer names?
 - [ ] Should the social media person see prices?
 - [ ] Which platforms do you post on?

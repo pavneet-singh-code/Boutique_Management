@@ -146,6 +146,7 @@ export function OrdersTable({ orders }) {
   const { t, locale } = useI18n();
   const router = useRouter();
   const seeMoney = useCan("money");
+  const seeEarnings = useCan("earnings");
   const canEdit = useCan("editOrders");
 
   return (
@@ -162,7 +163,7 @@ export function OrdersTable({ orders }) {
             {seeMoney && (
               <>
                 <th className="px-4 py-3.5 text-right">{t("field.total")}</th>
-                <th className="px-4 py-3.5 text-right">{t("pay.received")}</th>
+                {seeEarnings && <th className="px-4 py-3.5 text-right">{t("pay.received")}</th>}
                 <th className="px-4 py-3.5">{t("pay.title")}</th>
               </>
             )}
@@ -229,9 +230,11 @@ export function OrdersTable({ orders }) {
               <td className="whitespace-nowrap px-4 py-3.5 text-right text-sm font-medium text-ink">
                 {formatMoney(orderValue(order), locale)}
               </td>
-              <td className="whitespace-nowrap px-4 py-3.5 text-right text-sm text-ink-2">
-                {formatMoney(order.received ?? 0, locale)}
-              </td>
+              {seeEarnings && (
+                <td className="whitespace-nowrap px-4 py-3.5 text-right text-sm text-ink-2">
+                  {formatMoney(order.received ?? 0, locale)}
+                </td>
+              )}
               <td className="whitespace-nowrap px-4 py-3.5 text-xs text-ink-2">
                 {t(`pay.state.${order.payment_state || "none"}`)}
                 {order.bill_number && <span className="block text-muted">{order.bill_number}</span>}

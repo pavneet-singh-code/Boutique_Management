@@ -76,7 +76,7 @@ function MonthlyContent() {
 
   return (
     <AppShell
-      feature="reports" title={t("monthly.title")} subtitle={t("monthly.subtitle")}>
+      feature="earnings" title={t("monthly.title")} subtitle={t("monthly.subtitle")}>
       <ReportTabs current="month" />
       <PageHeading
         eyebrow={t("nav.overview")}

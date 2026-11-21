@@ -799,6 +799,10 @@ const en = {
   "photo.remove": "Remove photo",
   "photo.someFailed": "{count} photo(s) couldn't be uploaded. You can add them again on the order page.",
   "photo.added": "{count} photo(s) added.",
+  // Home for the uploader (counts, no money totals)
+  "dash.inWork": "Still being made",
+  "dash.unpaid": "Bills not paid yet",
+  "dash.unpaidNote": "Suits billed, waiting for payment",
 };
 
 const hi = {
@@ -1577,6 +1581,10 @@ const hi = {
   "photo.remove": "फ़ोटो हटाएँ",
   "photo.someFailed": "{count} फ़ोटो अपलोड नहीं हो पाईं। ऑर्डर के पेज पर फिर से जोड़ सकते हैं।",
   "photo.added": "{count} फ़ोटो जुड़ गईं।",
+  // Home for the uploader (counts, no money totals)
+  "dash.inWork": "अभी बन रहे हैं",
+  "dash.unpaid": "बिल जिनका भुगतान बाकी है",
+  "dash.unpaidNote": "बिल भेजा, भुगतान का इंतज़ार",
 };
 
 export const dictionaries = { en, hi };

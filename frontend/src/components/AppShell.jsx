@@ -43,8 +43,8 @@ const sidebarSections = [
       { label: "nav.myWork", path: "/my-work", icon: BriefcaseBusiness, feature: "myWork" },
       { label: "nav.calendar", path: "/calendar", icon: CalendarCheck },
       { label: "nav.content", path: "/content", icon: Clapperboard, feature: "contentView" },
-      { label: "nav.monthly", path: "/monthly-review", icon: CalendarDays, feature: "reports" },
-      { label: "nav.yearly", path: "/yearly-review", icon: CalendarRange, feature: "reports" },
+      { label: "nav.monthly", path: "/monthly-review", icon: CalendarDays, feature: "earnings" },
+      { label: "nav.yearly", path: "/yearly-review", icon: CalendarRange, feature: "earnings" },
     ],
   },
   {

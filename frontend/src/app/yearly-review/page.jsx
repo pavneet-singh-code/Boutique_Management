@@ -75,7 +75,7 @@ export default function YearlyReviewPage() {
 
   return (
     <AppShell
-      feature="reports" title={t("yearly.title")} subtitle={t("yearly.subtitle")}>
+      feature="earnings" title={t("yearly.title")} subtitle={t("yearly.subtitle")}>
       <ReportTabs current="year" />
       <PageHeading
         eyebrow={t("nav.overview")}

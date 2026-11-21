@@ -50,6 +50,7 @@ function OrdersContent() {
   const { orders, ready, loading, error, reload } = useOrders();
   const canEdit = useCan("editOrders");
   const seeMoney = useCan("money");
+  const seeEarnings = useCan("earnings");
 
   const [search, setSearch] = useState(() => searchParams.get("search") || "");
   const [month, setMonth] = useState(() => searchParams.get("month") || currentMonthKey());
@@ -262,14 +263,14 @@ function OrdersContent() {
           {/* Summary */}
           <p className="border-y border-line bg-card-2 px-4 py-2 text-[13px] text-muted md:hidden">
             {periodLabel} ·{" "}
-            {seeMoney
+            {seeEarnings
               ? t("orders.monthTotal", { count: stats.count, value: formatMoney(stats.value, locale) })
               : t("common.orderCount", { count: stats.count })}
           </p>
           <div className={seeMoney ? "mb-6 hidden grid-cols-4 gap-4 md:grid" : "hidden"}>
             <StatTile label={t("dash.orders")} value={stats.count} note={periodLabel} />
-            <StatTile label={t("dash.value")} value={formatMoney(stats.value, locale)} />
-            <StatTile label={t("dash.advance")} value={formatMoney(stats.advance, locale)} />
+            {seeEarnings && <StatTile label={t("dash.value")} value={formatMoney(stats.value, locale)} />}
+            {seeEarnings && <StatTile label={t("dash.advance")} value={formatMoney(stats.advance, locale)} />}
             <StatTile label={t("dash.balance")} value={formatMoney(stats.balance, locale)} />
           </div>
 

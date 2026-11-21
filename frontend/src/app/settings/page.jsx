@@ -150,7 +150,7 @@ export default function SettingsPage() {
           {can(role, "myWork") && role !== "worker" && role !== "social_media" && (
             <Row icon={BriefcaseBusiness} title={t("nav.myWork")} help={t("mywork.empty")} href="/my-work" />
           )}
-          {can(role, "reports") && (
+          {can(role, "earnings") && (
             <Row
               icon={ChartNoAxesColumn}
               title={t("tab.reports")}

@@ -134,6 +134,7 @@ export default function CustomerPage() {
   const { data: customer, error, reload } = useResource(loader, true, `customer:${id}`);
   const endRef = useRef(null);
   const canBill = useCan("makeBills");
+  const seeEarnings = useCan("earnings");
 
   // Orders and bills in one chat timeline, oldest first.
   const timeline = useMemo(() => {
@@ -163,10 +164,9 @@ export default function CustomerPage() {
   }
 
   const phone = phoneForLinks(customer.phone);
-  const subtitle = t("customers.orders", {
-    count: customer.order_count,
-    value: formatMoney(customer.total_value, locale),
-  });
+  const subtitle = seeEarnings
+    ? t("customers.orders", { count: customer.order_count, value: formatMoney(customer.total_value, locale) })
+    : t("common.orderCount", { count: customer.order_count });
   const newOrderHref = `/orders/new?customer=${encodeURIComponent(customer.name)}&customerId=${customer.id}${
     customer.phone ? `&phone=${encodeURIComponent(customer.phone)}` : ""
   }`;
