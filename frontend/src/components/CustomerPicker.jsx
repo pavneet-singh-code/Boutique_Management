@@ -2,11 +2,12 @@
 
 import { useCallback, useId, useMemo, useState } from "react";
 import { CircleCheck, Search, UserPlus, X } from "lucide-react";
-import { getCustomers } from "../lib/api";
+import { createCustomer, forgetCustomers, getCustomers } from "../lib/api";
+import { showToast } from "../lib/toast";
 import { useI18n } from "../lib/i18n";
 import { clean, customerKey, similarNames } from "../lib/orders";
 import { useResource } from "../lib/useResource";
-import { Avatar, cx } from "./ui";
+import { Avatar, ConfirmDialog, Notice, cx } from "./ui";
 
 const phoneDigits = (value) => {
   const digits = String(value || "").replace(/\D/g, "");
@@ -19,11 +20,15 @@ const phoneDigits = (value) => {
  * onChange(changes): called with the fields that changed.
  */
 export default function CustomerPicker({ value, onChange, inputClassName, warn }) {
-  const { t } = useI18n();
+  const { t, tError } = useI18n();
   const listId = useId();
   const [open, setOpen] = useState(false);
   const loader = useCallback(() => getCustomers(), []);
-  const { data: customers } = useResource(loader, true, "customers");
+  const { data: customers, reload } = useResource(loader, true, "customers");
+  // "Add as a new customer" pop-up (stays on this screen, so nothing typed or scanned is lost).
+  const [adding, setAdding] = useState(null); // { name, phone } while the pop-up is open
+  const [addBusy, setAddBusy] = useState(false);
+  const [addError, setAddError] = useState("");
 
   const name = value.customer_name ?? "";
   const selected = customers?.find((c) => c.id === value.customer_id) || null;
@@ -62,9 +67,36 @@ export default function CustomerPicker({ value, onChange, inputClassName, warn }
     onChange({
       customer_id: customer.id,
       customer_name: customer.name,
-      ...(customer.phone && !clean(value.contact_number) ? { contact_number: customer.phone } : {}),
+      ...(customer.phone ? { contact_number: customer.phone } : {}),
     });
     setOpen(false);
+  };
+
+  const startAdding = () => {
+    setAddError("");
+    setAdding({ name: clean(name) || "", phone: clean(value.contact_number) || "" });
+    setOpen(false);
+  };
+
+  const saveNewCustomer = async () => {
+    if (!clean(adding.name)) {
+      setAddError(t("new.needName"));
+      return;
+    }
+    setAddBusy(true);
+    setAddError("");
+    try {
+      const created = await createCustomer({ name: adding.name, phone: clean(adding.phone) || null });
+      forgetCustomers();
+      await reload();
+      choose(created);
+      setAdding(null);
+      showToast({ title: t("toast.customerAdded", { name: created.name }), body: t("toast.customerAddedBody") });
+    } catch (err) {
+      setAddError(err.code === "phone_in_use" ? t("customers.phoneTaken") : tError(err));
+    } finally {
+      setAddBusy(false);
+    }
   };
 
   return (
@@ -82,7 +114,12 @@ export default function CustomerPicker({ value, onChange, inputClassName, warn }
           onFocus={() => setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 150)}
           onChange={(event) => {
-            onChange({ customer_name: event.target.value, customer_id: null });
+            onChange({
+              customer_name: event.target.value,
+              customer_id: null,
+              // The phone came with the customer chosen before; it isn't this person's.
+              ...(selected?.phone && value.contact_number === selected.phone ? { contact_number: "" } : {}),
+            });
             setOpen(true);
           }}
           className={cx(inputClassName, "!mt-0 pl-10", selected && "pr-10")}
@@ -125,11 +162,16 @@ export default function CustomerPicker({ value, onChange, inputClassName, warn }
             </li>
           ))}
           {clean(name) && !suggestions.some((c) => customerKey(c.name) === customerKey(name)) && (
-            <li className="border-t border-line px-3 py-2 text-sm text-muted">
-              <span className="flex items-center gap-2">
+            <li className="border-t border-line">
+              <button
+                type="button"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={startAdding}
+                className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-semibold text-accent-ink hover:bg-card-2"
+              >
                 <UserPlus size={16} />
-                {t("customers.newCustomer", { name: clean(name) })}
-              </span>
+                {t("customers.addAsNew", { name: clean(name) })}
+              </button>
             </li>
           )}
         </ul>
@@ -150,14 +192,68 @@ export default function CustomerPicker({ value, onChange, inputClassName, warn }
           {autoMatch.exact ? "" : "? "}
           {autoMatch.customer.name} · {t("customers.existing", { count: autoMatch.customer.order_count })}
         </button>
-      ) : clean(name) ? (
-        <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted">
-          <UserPlus size={13} />
-          {t("customers.willCreate")}
-        </p>
+      ) : null}
+      {!warn && !selected && autoMatch && !autoMatch.exact && clean(name) && (
+        <button
+          type="button"
+          onClick={startAdding}
+          className="press mt-1.5 inline-flex h-8 items-center gap-1.5 rounded-full bg-card px-3 text-xs font-bold text-accent-ink ring-1 ring-line"
+        >
+          <UserPlus size={14} />
+          {t("customers.addAsNewShort")}
+        </button>
+      )}
+      {warn || selected || autoMatch ? null : clean(name) ? (
+        <div className="mt-1.5 flex flex-wrap items-center gap-2">
+          <span className="text-xs text-muted">{t("customers.notSavedYet")}</span>
+          <button
+            type="button"
+            onClick={startAdding}
+            className="press inline-flex h-8 items-center gap-1.5 rounded-full bg-accent-soft px-3 text-xs font-bold text-accent-soft-ink"
+          >
+            <UserPlus size={14} />
+            {t("customers.addAsNewShort")}
+          </button>
+        </div>
       ) : (
         <p className="mt-1.5 text-xs text-muted">{t("customers.pickHelp")}</p>
       )}
+
+      <ConfirmDialog
+        open={adding !== null}
+        tone="accent"
+        title={t("customers.addTitle")}
+        body={t("customers.addHelp")}
+        confirmLabel={t("customers.add")}
+        busy={addBusy}
+        onCancel={() => setAdding(null)}
+        onConfirm={saveNewCustomer}
+      >
+        {adding && (
+          <div className="space-y-3">
+            <label className="block">
+              <span className="text-[13px] font-semibold text-ink-2">{t("field.customer")}</span>
+              <input
+                type="text"
+                value={adding.name}
+                onChange={(event) => setAdding({ ...adding, name: event.target.value })}
+                className="mt-1 h-11 w-full rounded-xl border border-line bg-card px-3.5 text-[16px] text-ink outline-none focus:border-accent"
+              />
+            </label>
+            <label className="block">
+              <span className="text-[13px] font-semibold text-ink-2">{t("field.contact")}</span>
+              <input
+                type="tel"
+                inputMode="tel"
+                value={adding.phone}
+                onChange={(event) => setAdding({ ...adding, phone: event.target.value })}
+                className="mt-1 h-11 w-full rounded-xl border border-line bg-card px-3.5 text-[16px] text-ink outline-none focus:border-accent"
+              />
+            </label>
+            {addError && <Notice tone="error">{addError}</Notice>}
+          </div>
+        )}
+      </ConfirmDialog>
     </div>
   );
 }

@@ -28,7 +28,8 @@ import {
 import { analyzeOrderPdf, saveOrders } from "../../lib/api";
 import { PendingPhotos, uploadPendingPhotos } from "../../components/Photos";
 import { useI18n } from "../../lib/i18n";
-import { clean } from "../../lib/orders";
+import { clean, duplicateMessage } from "../../lib/orders";
+import { showToast } from "../../lib/toast";
 import { useOrders } from "../../lib/useOrders";
 
 function Steps({ step }) {
@@ -68,7 +69,7 @@ function Steps({ step }) {
 let pageId = 0;
 
 export default function UploadOrdersPage() {
-  const { t, tError } = useI18n();
+  const { t, tError, locale } = useI18n();
   const { orders: savedOrders } = useOrders();
   const inputRef = useRef(null);
 
@@ -197,13 +198,22 @@ export default function UploadOrdersPage() {
       }
       setPhotoProgress(null);
       setPhotoResult({ added: total - failed, failed });
+      showToast({
+        title: saved.length === 1 ? t("toast.orderAdded", { number: clean(saved[0].order_number) || saved[0].id }) : t("toast.ordersAdded", { count: saved.length }),
+        body: t("toast.ordersAddedBody"),
+      });
       setSavedCount(saved.length);
       setPages([]);
       setFiles([]);
       setPhase("done");
       window.scrollTo({ top: 0 });
     } catch (err) {
-      setSaveError(tError(err));
+      if (err.code === "duplicate_order_numbers" && err.numbers?.length) {
+        // Someone saved one of these numbers a moment ago: say which order has it.
+        setSaveError(err.numbers.map((number) => duplicateMessage(number, savedOrders, t, locale)).join(" "));
+      } else {
+        setSaveError(tError(err));
+      }
     } finally {
       setSaving(false);
     }
@@ -232,7 +242,7 @@ export default function UploadOrdersPage() {
   const pageProblem = (item, index) => {
     const number = clean(item.form.order_number);
     if (!number) return t("upload.missingNumber", { n: index + 1 });
-    if (existingNumbers.has(number)) return t("upload.duplicate", { number });
+    if (existingNumbers.has(number)) return duplicateMessage(number, savedOrders, t, locale);
     if (numberCounts[number] > 1) return t("upload.sameNumberTwice", { number });
     return null;
   };

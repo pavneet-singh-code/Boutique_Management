@@ -354,3 +354,26 @@ export function summarise(orders) {
   // `advance` kept for older screens: money received so far.
   return { count: orders.length, value, received, advance: received, balance, review, unbilled };
 }
+
+/* ---------------- Order numbers already in use ---------------- */
+
+/** The saved order that has this order number, if any. */
+export function findOrderByNumber(orders, number) {
+  const wanted = clean(number);
+  if (!wanted) return null;
+  return (orders || []).find((order) => clean(order.order_number) === wanted) || null;
+}
+
+/**
+ * Why an order with this number can't be saved, in plain words: which saved
+ * order already has the number (customer and date), and what to do.
+ */
+export function duplicateMessage(number, orders, t, locale) {
+  const existing = findOrderByNumber(orders, number);
+  if (!existing) return t("number.duplicateUnknown", { number: clean(number) });
+  return t("number.duplicateDetail", {
+    number: clean(number),
+    name: displayName(existing, t),
+    date: formatDate(existing.order_date || existing.created_at, locale),
+  });
+}

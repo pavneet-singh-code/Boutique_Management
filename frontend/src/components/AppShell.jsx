@@ -34,6 +34,7 @@ import { useI18n } from "../lib/i18n";
 import { can, homeFor, useMe } from "../lib/roles";
 import { EmployeeAvatar, LanguageToggle, LinkButton, cx } from "./ui";
 import { DoodleBackdrop } from "./Doodles";
+import Toaster from "./Toaster";
 
 const sidebarSections = [
   {
@@ -523,6 +524,7 @@ export default function AppShell({
   return (
     <div className="min-h-dvh text-ink">
       <DoodleBackdrop />
+      <Toaster />
       <Sidebar />
       <div className="flex min-h-dvh min-w-0 flex-col md:ml-[16.5rem]">
         {/* Detail screens have no page heading on desktop, so their buttons go here. */}

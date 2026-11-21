@@ -126,6 +126,28 @@ export function PinCushionDoodle({ className, tone = "color" }) {
   );
 }
 
+/** A tailor's pencil drawing a little stitched line (used for "saved" notifications). */
+export function PencilDoodle({ className, tone = "color" }) {
+  const c = COLORS[tone];
+  return (
+    <Svg viewBox="0 0 110 80" className={className}>
+      {/* the line it just drew: a dashed stitch */}
+      <path d="M 8 66 C 24 58 34 72 50 64 C 62 58 70 66 80 62" stroke={c.red} strokeWidth="3" strokeDasharray="6 5" />
+      <g transform="translate(40 52) rotate(-38)">
+        {/* eraser + metal band */}
+        <rect x="58" y="-8" width="14" height="16" rx="4" fill={c.red} stroke={c.ink} strokeWidth="3" />
+        <rect x="50" y="-8" width="10" height="16" fill={c.cream} stroke={c.ink} strokeWidth="3" />
+        {/* body */}
+        <rect x="6" y="-8" width="45" height="16" fill={c.mustard} stroke={c.ink} strokeWidth="3" />
+        <path d="M 8 0 L 49 0" stroke={c.ink} strokeWidth="1.5" opacity="0.5" />
+        {/* sharpened wood and the lead */}
+        <path d="M 6 -8 L -10 0 L 6 8 Z" fill={c.cream} stroke={c.ink} strokeWidth="3" />
+        <path d="M -4 -3 L -10 0 L -4 3 Z" fill={c.ink} />
+      </g>
+    </Svg>
+  );
+}
+
 export function SparkleDoodle({ className, tone = "color", color }) {
   const c = COLORS[tone];
   return (

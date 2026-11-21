@@ -804,6 +804,22 @@ const en = {
   "dash.unpaid": "Bills not paid yet",
   "dash.unpaidNote": "Suits billed, waiting for payment",
   "orders.sortNumber": "Order number (biggest first)",
+  // Customer pop-up, repeated order numbers, notifications
+  "number.duplicateDetail": "Order not saved: number {number} is already used by {name}'s order from {date}. Every order needs its own number. Check the number written on the form, or open that order if it's the same suit.",
+  "number.duplicateUnknown": "Order not saved: number {number} is already used by another order. Every order needs its own number. Check the number written on the form.",
+  "number.openExisting": "Open order {number}",
+  "toast.orderAdded": "Order {number} added",
+  "toast.orderAddedBody": "Saved for {name}.",
+  "toast.ordersAdded": "{count} orders added",
+  "toast.ordersAddedBody": "You'll find them in All Orders.",
+  "toast.customerAdded": "{name} added as a customer",
+  "toast.customerAddedBody": "Chosen on this order, with their phone number.",
+  "customers.addAsNew": "Add \"{name}\" as a new customer",
+  "customers.addAsNewShort": "Add as a new customer",
+  "customers.notSavedYet": "Not in your customers yet.",
+  "customers.addTitle": "New customer",
+  "customers.addHelp": "Save them once, and next time their name and phone fill in by themselves.",
+  "customers.phoneTaken": "This phone number already belongs to another customer. Search for them instead.",
 };
 
 const hi = {
@@ -1587,6 +1603,22 @@ const hi = {
   "dash.unpaid": "बिल जिनका भुगतान बाकी है",
   "dash.unpaidNote": "बिल भेजा, भुगतान का इंतज़ार",
   "orders.sortNumber": "ऑर्डर नंबर (सबसे बड़ा पहले)",
+  // Customer pop-up, repeated order numbers, notifications
+  "number.duplicateDetail": "ऑर्डर सेव नहीं हुआ: नंबर {number} पहले से {name} के ऑर्डर ({date}) का है। हर ऑर्डर का अपना नंबर होना चाहिए। फ़ॉर्म पर लिखा नंबर जाँचें, या अगर यही सूट है तो वह ऑर्डर खोलें।",
+  "number.duplicateUnknown": "ऑर्डर सेव नहीं हुआ: नंबर {number} पहले से किसी दूसरे ऑर्डर का है। हर ऑर्डर का अपना नंबर होना चाहिए। फ़ॉर्म पर लिखा नंबर जाँचें।",
+  "number.openExisting": "ऑर्डर {number} खोलें",
+  "toast.orderAdded": "ऑर्डर {number} जुड़ गया",
+  "toast.orderAddedBody": "{name} के लिए सेव हुआ।",
+  "toast.ordersAdded": "{count} ऑर्डर जुड़ गए",
+  "toast.ordersAddedBody": "ये सभी ऑर्डर में मिलेंगे।",
+  "toast.customerAdded": "{name} ग्राहक के रूप में जुड़ गए",
+  "toast.customerAddedBody": "इस ऑर्डर पर फ़ोन नंबर के साथ चुन लिया गया।",
+  "customers.addAsNew": "\"{name}\" को नया ग्राहक जोड़ें",
+  "customers.addAsNewShort": "नया ग्राहक जोड़ें",
+  "customers.notSavedYet": "यह ग्राहक अभी आपकी सूची में नहीं है।",
+  "customers.addTitle": "नया ग्राहक",
+  "customers.addHelp": "एक बार सेव करें, अगली बार नाम और फ़ोन अपने-आप भर जाएँगे।",
+  "customers.phoneTaken": "यह फ़ोन नंबर पहले से किसी दूसरे ग्राहक का है। उन्हें खोजकर चुनें।",
 };
 
 export const dictionaries = { en, hi };

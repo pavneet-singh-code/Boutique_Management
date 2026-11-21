@@ -4,17 +4,18 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import AppShell from "../../../components/AppShell";
 import OrderForm, { toFormValues, toPayload } from "../../../components/OrderForm";
-import { Notice, PageHeading } from "../../../components/ui";
-import { orderPath, saveOrders } from "../../../lib/api";
+import { LinkButton, Notice, PageHeading } from "../../../components/ui";
+import { getCachedOrders, getOrders, orderPath, saveOrders } from "../../../lib/api";
+import { showToast } from "../../../lib/toast";
 import { useI18n } from "../../../lib/i18n";
-import { clean, toISODate } from "../../../lib/orders";
+import { clean, displayName, duplicateMessage, findOrderByNumber, toISODate } from "../../../lib/orders";
 import SaveBar from "../../../components/SaveBar";
 import { PendingPhotos, uploadPendingPhotos } from "../../../components/Photos";
 
 function NewOrderContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { t, tError } = useI18n();
+  const { t, tError, locale } = useI18n();
 
   const [form, setForm] = useState(() => ({
     ...toFormValues({}),
@@ -25,12 +26,14 @@ function NewOrderContent() {
   }));
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [duplicateOf, setDuplicateOf] = useState(null); // the saved order that already has this number
   const [photos, setPhotos] = useState([]); // waiting until the order is saved
   const [photoProgress, setPhotoProgress] = useState(null);
 
   const onChange = (field, value) => {
     setForm((previous) => ({ ...previous, [field]: value }));
     setSaveError("");
+    setDuplicateOf(null);
   };
 
   const onSubmit = async (event) => {
@@ -43,15 +46,36 @@ function NewOrderContent() {
       setSaveError(t("number.required"));
       return;
     }
+    // Stop before saving if this order number is already used, and say by which order.
+    const known = getCachedOrders() || (await getOrders().catch(() => []));
+    const existing = findOrderByNumber(known, form.order_number);
+    if (existing) {
+      setSaveError(duplicateMessage(form.order_number, known, t, locale));
+      setDuplicateOf(existing);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
     setSaving(true);
     let saved;
     try {
       [saved] = await saveOrders([{ ...toPayload(form), filename: null }]);
     } catch (err) {
-      setSaveError(tError(err));
+      if (err.code === "duplicate_order_numbers") {
+        // Saved from another phone a moment ago: explain the same way.
+        const fresh = await getOrders({ force: true }).catch(() => known);
+        setSaveError(duplicateMessage(form.order_number, fresh, t, locale));
+        setDuplicateOf(findOrderByNumber(fresh, form.order_number));
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        setSaveError(tError(err));
+      }
       setSaving(false);
       return;
     }
+    showToast({
+      title: t("toast.orderAdded", { number: clean(saved.order_number) || saved.id }),
+      body: t("toast.orderAddedBody", { name: displayName(saved, t) }),
+    });
     // The order is saved; now its photos (a failed photo never loses the order).
     let failed = 0;
     if (photos.length) {
@@ -74,6 +98,11 @@ function NewOrderContent() {
           {saveError && (
             <Notice tone="error" className="mb-4">
               {saveError}
+              {duplicateOf && (
+                <LinkButton href={orderPath(duplicateOf)} variant="secondary" size="sm" className="mt-2">
+                  {t("number.openExisting", { number: clean(duplicateOf.order_number) })}
+                </LinkButton>
+              )}
             </Notice>
           )}
           <OrderForm value={form} onChange={onChange} />
