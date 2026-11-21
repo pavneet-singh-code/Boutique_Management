@@ -26,6 +26,7 @@ import {
   cx,
 } from "../../components/ui";
 import { analyzeOrderPdf, saveOrders } from "../../lib/api";
+import { PendingPhotos, uploadPendingPhotos } from "../../components/Photos";
 import { useI18n } from "../../lib/i18n";
 import { clean } from "../../lib/orders";
 import { useOrders } from "../../lib/useOrders";
@@ -82,6 +83,8 @@ export default function UploadOrdersPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [savedCount, setSavedCount] = useState(0);
+  const [photoProgress, setPhotoProgress] = useState(null); // { done, total } while uploading
+  const [photoResult, setPhotoResult] = useState(null); // { added, failed } after saving
   const [deleteIndex, setDeleteIndex] = useState(null);
   const [confirmReset, setConfirmReset] = useState(false);
 
@@ -133,6 +136,7 @@ export default function UploadOrdersPage() {
             source: item.filename || file.name,
             original: item,
             form: toFormValues(item),
+            photos: [], // fabric / design photos, uploaded after saving
           });
         }
       } catch (err) {
@@ -156,6 +160,10 @@ export default function UploadOrdersPage() {
     );
   };
 
+  const changePhotos = (photos) => {
+    setPages((previous) => previous.map((page, index) => (index === current ? { ...page, photos } : page)));
+  };
+
   const removePage = () => {
     setPages((previous) => {
       const next = previous.filter((_, index) => index !== deleteIndex);
@@ -175,6 +183,20 @@ export default function UploadOrdersPage() {
         filename: page.source,
       }));
       const saved = await saveOrders(payload);
+      // The orders are saved (in the same order as the pages); now their photos.
+      const total = pages.reduce((sum, page) => sum + (page.photos?.length || 0), 0);
+      let done = 0;
+      let failed = 0;
+      for (let i = 0; i < pages.length; i += 1) {
+        const photos = pages[i].photos || [];
+        if (!photos.length || !saved[i]) continue;
+        failed += await uploadPendingPhotos(saved[i].id, photos, () => {
+          done += 1;
+          setPhotoProgress({ done, total });
+        });
+      }
+      setPhotoProgress(null);
+      setPhotoResult({ added: total - failed, failed });
       setSavedCount(saved.length);
       setPages([]);
       setFiles([]);
@@ -194,6 +216,7 @@ export default function UploadOrdersPage() {
     setNotice("");
     setSaveError("");
     setPhase("pick");
+    setPhotoResult(null);
     setConfirmReset(false);
   };
 
@@ -404,6 +427,8 @@ export default function UploadOrdersPage() {
 
               <OrderForm key={page.id} value={page.form} onChange={changeField} original={page.original} />
 
+              <PendingPhotos key={`photos-${page.id}`} photos={page.photos || []} onChange={changePhotos} />
+
               <div className="flex items-center justify-between">
                 <Button
                   variant="secondary"
@@ -438,6 +463,10 @@ export default function UploadOrdersPage() {
                 </Notice>
               )}
 
+              {photoProgress && (
+                <Notice tone="success">{t("photo.uploading", photoProgress)}</Notice>
+              )}
+
               <form
                 id="save-upload"
                 onSubmit={(event) => {
@@ -470,6 +499,14 @@ export default function UploadOrdersPage() {
                   ? t("upload.savedOne")
                   : t("upload.saved", { count: savedCount })}
               </p>
+              {photoResult?.added > 0 && (
+                <p className="mt-1 text-sm text-muted">{t("photo.added", { count: photoResult.added })}</p>
+              )}
+              {photoResult?.failed > 0 && (
+                <Notice tone="warn" className="mt-3 text-left">
+                  {t("photo.someFailed", { count: photoResult.failed })}
+                </Notice>
+              )}
               <div className="mt-6 flex w-full max-w-sm flex-col gap-2 sm:flex-row sm:justify-center">
                 <LinkButton href="/orders?sort=newest&allMonths=true">
                   {t("upload.viewOrders")}

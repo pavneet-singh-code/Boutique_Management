@@ -261,6 +261,12 @@ function OrderDetailContent() {
           </Notice>
         )}
 
+        {Number(searchParams.get("photosFailed")) > 0 && (
+          <Notice tone="warn" className="mx-4 md:mx-0">
+            {t("photo.someFailed", { count: Number(searchParams.get("photosFailed")) })}
+          </Notice>
+        )}
+
         {order.needs_review && canEdit && (
           <div className="mx-4 flex flex-col gap-3 rounded-2xl bg-warn-soft p-4 sm:flex-row sm:items-center md:mx-0">
             <TriangleAlert size={20} className="shrink-0 text-warn-ink" />

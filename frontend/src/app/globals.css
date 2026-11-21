@@ -245,3 +245,8 @@ html[lang="hi"] [class*="tracking-"] {
     transform: none;
   }
 }
+
+/* Past days in the week calendar: fine diagonal lines. */
+.hatch {
+  background-image: repeating-linear-gradient(135deg, rgb(84 68 59 / 0.07) 0 1px, transparent 1px 9px);
+}

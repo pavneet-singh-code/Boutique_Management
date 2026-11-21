@@ -790,6 +790,15 @@ const en = {
   "act.order.photo_added": "{actor} added a photo to order {label}",
   "act.order.photo_updated": "{actor} changed a photo on order {label}",
   "act.order.photo_deleted": "{actor} deleted a photo from order {label}",
+  // Week calendar, photos while adding orders
+  "cal.week": "Week",
+  "cal.overview": "Overview",
+  "cal.thisWeek": "This week",
+  "cal.nothingThisWeek": "Nothing this week.",
+  "photo.pendingHelp": "Fabric or design photos. They are uploaded when you save.",
+  "photo.remove": "Remove photo",
+  "photo.someFailed": "{count} photo(s) couldn't be uploaded. You can add them again on the order page.",
+  "photo.added": "{count} photo(s) added.",
 };
 
 const hi = {
@@ -1559,6 +1568,15 @@ const hi = {
   "act.order.photo_added": "{actor} ने ऑर्डर {label} में फ़ोटो जोड़ी",
   "act.order.photo_updated": "{actor} ने ऑर्डर {label} की फ़ोटो बदली",
   "act.order.photo_deleted": "{actor} ने ऑर्डर {label} से फ़ोटो हटाई",
+  // Week calendar, photos while adding orders
+  "cal.week": "हफ़्ता",
+  "cal.overview": "सामान्य",
+  "cal.thisWeek": "यह हफ़्ता",
+  "cal.nothingThisWeek": "इस हफ़्ते कुछ नहीं है।",
+  "photo.pendingHelp": "कपड़े या डिज़ाइन की फ़ोटो। सेव करने पर अपलोड होंगी।",
+  "photo.remove": "फ़ोटो हटाएँ",
+  "photo.someFailed": "{count} फ़ोटो अपलोड नहीं हो पाईं। ऑर्डर के पेज पर फिर से जोड़ सकते हैं।",
+  "photo.added": "{count} फ़ोटो जुड़ गईं।",
 };
 
 export const dictionaries = { en, hi };

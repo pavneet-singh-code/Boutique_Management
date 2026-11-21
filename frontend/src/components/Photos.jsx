@@ -267,6 +267,118 @@ export function PhotoViewer({ photos, index = 0, onClose, canEdit = false }) {
   );
 }
 
+/* ---------------- Photos picked before the order exists ---------------- */
+
+let pendingId = 0;
+
+/**
+ * Photos chosen while adding or uploading an order. They wait here (with a
+ * preview) and are uploaded by `uploadPendingPhotos` once the order is saved.
+ * `photos`: [{ id, file, kind, preview }]
+ */
+export function PendingPhotos({ photos, onChange, defaultKind = "fabric" }) {
+  const { t } = useI18n();
+  const input = useRef(null);
+
+  // Free the previews when this screen closes.
+  const latest = useRef(photos);
+  useEffect(() => {
+    latest.current = photos;
+  }, [photos]);
+  useEffect(() => () => latest.current.forEach((p) => URL.revokeObjectURL(p.preview)), []);
+
+  const add = (event) => {
+    const files = [...(event.target.files || [])].filter((file) => file.type.startsWith("image/") || !file.type);
+    event.target.value = "";
+    if (!files.length) return;
+    const room = Math.max(0, 20 - photos.length);
+    onChange([
+      ...photos,
+      ...files.slice(0, room).map((file) => ({
+        id: `p${(pendingId += 1)}`,
+        file,
+        kind: defaultKind,
+        preview: URL.createObjectURL(file),
+      })),
+    ]);
+  };
+
+  const remove = (photo) => {
+    URL.revokeObjectURL(photo.preview);
+    onChange(photos.filter((p) => p.id !== photo.id));
+  };
+
+  const setKind = (photo, kind) => onChange(photos.map((p) => (p.id === photo.id ? { ...p, kind } : p)));
+
+  return (
+    <div className="rounded-3xl bg-card p-4 shadow-sm ring-1 ring-white md:p-5">
+      <p className="font-display text-lg font-bold text-ink">{t("photo.section")}</p>
+      <p className="text-sm text-muted">{t("photo.pendingHelp")}</p>
+
+      {photos.length > 0 && (
+        <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {photos.map((photo) => (
+            <li key={photo.id} className="overflow-hidden rounded-2xl bg-card-2 ring-1 ring-line">
+              <div className="relative aspect-square">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={photo.preview} alt="" className="h-full w-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => remove(photo)}
+                  aria-label={t("photo.remove")}
+                  className="press absolute right-1.5 top-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-black/55 text-white"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              <select
+                value={photo.kind}
+                onChange={(event) => setKind(photo, event.target.value)}
+                aria-label={t("photo.kindLabel")}
+                className="h-10 w-full border-0 bg-transparent px-2.5 text-sm font-semibold text-ink-2 outline-none"
+              >
+                {PHOTO_KINDS.map((kind) => (
+                  <option key={kind} value={kind}>
+                    {t(`photo.kind.${kind}`)}
+                  </option>
+                ))}
+              </select>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <input ref={input} type="file" accept="image/*" multiple className="hidden" onChange={add} />
+      <button
+        type="button"
+        onClick={() => input.current?.click()}
+        disabled={photos.length >= 20}
+        className="press mt-3 inline-flex h-10 items-center gap-2 rounded-full bg-card px-4 text-sm font-semibold text-ink-2 shadow-sm ring-1 ring-line disabled:opacity-50"
+      >
+        <ImagePlus size={17} />
+        {t("photo.add")}
+      </button>
+    </div>
+  );
+}
+
+/**
+ * Uploads waiting photos to a saved order, one by one.
+ * Returns how many could not be uploaded (they can be added again later).
+ */
+export async function uploadPendingPhotos(orderId, photos, onProgress) {
+  let failed = 0;
+  for (let i = 0; i < photos.length; i += 1) {
+    try {
+      await uploadOrderPhoto(orderId, photos[i].file, { kind: photos[i].kind });
+    } catch {
+      failed += 1;
+    }
+    onProgress?.(i + 1, photos.length);
+  }
+  return failed;
+}
+
 /* ---------------- The order page's Photos section ---------------- */
 
 export function OrderPhotos({ order, canEdit }) {

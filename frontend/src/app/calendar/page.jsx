@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { CalendarDays, List, RefreshCw } from "lucide-react";
+import { CalendarDays, Columns3, List, RefreshCw } from "lucide-react";
 import AppShell, { HeaderIconButton } from "../../components/AppShell";
-import { DayHeading, DayList, LateBlock, MonthGrid } from "../../components/Calendar";
+import { DayHeading, DayList, LateBlock, MonthGrid, WeekBoard, weekStartOf } from "../../components/Calendar";
 import { PeriodStepper } from "../../components/PeriodPicker";
 import { Button, Card, Chip, EmployeeAvatar, EmptyState, ErrorBox, PageHeading, Spinner, cx } from "../../components/ui";
 import { getMyTasks } from "../../lib/api";
@@ -28,7 +28,9 @@ export default function CalendarPage() {
   const tasksLoader = useCallback(() => getMyTasks(), []);
   const mine = useResource(tasksLoader, Boolean(me) && !seesOrders, "myTasks");
 
+  // "list" / "month" on phones (the usual calendar), or "week" (the week board).
   const [view, setView] = useState("list");
+  const [weekStart, setWeekStart] = useState(() => weekStartOf(new Date()));
   const [kind, setKind] = useState("all");
   const [person, setPerson] = useState(null);
   const [month, setMonth] = useState(currentMonthKey);
@@ -59,6 +61,13 @@ export default function CalendarPage() {
   const subtitle = seesOrders ? t("cal.subtitle") : t("cal.mine");
   const refresh = () => (seesOrders ? reload() : mine.reload());
 
+  const shiftWeek = (weeks) =>
+    setWeekStart((start) => new Date(start.getFullYear(), start.getMonth(), start.getDate() + weeks * 7));
+  const weekEnd = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 6);
+  const weekLabel = `${weekStart.toLocaleDateString(locale, { day: "numeric", month: "short" })} – ${weekEnd.toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" })}`;
+  const weekKinds = !seesOrders ? ["step"] : kind === "all" ? ["delivery", "trial", "step"] : [kind];
+  const isWeek = view === "week";
+
   const pickDay = (iso) => {
     setSelected(iso);
     const key = monthKeyOf(parseDate(iso));
@@ -79,10 +88,11 @@ export default function CalendarPage() {
 
       {/* View switch (phones) + filters */}
       <div className="space-y-3 bg-card px-4 pb-3 pt-3 md:mb-5 md:bg-transparent md:p-0">
-        <div className="grid grid-cols-2 rounded-full bg-card-2 p-1 md:hidden">
+        <div className="grid grid-cols-3 rounded-full bg-card-2 p-1 md:hidden">
           {[
             ["list", t("cal.list"), List],
             ["month", t("cal.month"), CalendarDays],
+            ["week", t("cal.week"), Columns3],
           ].map(([value, label, Icon]) => (
             <button
               key={value}
@@ -98,6 +108,29 @@ export default function CalendarPage() {
               {label}
             </button>
           ))}
+        </div>
+        <div className="hidden w-fit grid-cols-2 rounded-full bg-card p-1 shadow-sm ring-1 ring-line md:grid">
+          {[
+            ["list", t("cal.overview"), CalendarDays],
+            ["week", t("cal.week"), Columns3],
+          ].map(([value, label, Icon]) => {
+            const active = value === "week" ? isWeek : !isWeek;
+            return (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={active}
+                onClick={() => setView(value)}
+                className={cx(
+                  "flex h-9 items-center justify-center gap-2 rounded-full px-5 text-sm font-semibold transition",
+                  active ? "bg-cocoa text-white shadow-sm" : "text-muted hover:text-ink"
+                )}
+              >
+                <Icon size={16} />
+                {label}
+              </button>
+            );
+          })}
         </div>
         {seesOrders && (
           <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 md:mx-0 md:px-0">
@@ -129,6 +162,21 @@ export default function CalendarPage() {
 
       {!isReady && !failed ? (
         <Spinner />
+      ) : isReady && isWeek ? (
+        <div className="space-y-3">
+          <PeriodStepper
+            className="mx-3 md:mx-0"
+            label={weekLabel}
+            onPrev={() => shiftWeek(-1)}
+            onNext={() => shiftWeek(1)}
+          />
+          <div className="flex justify-center">
+            <Button variant="secondary" size="sm" onClick={() => setWeekStart(weekStartOf(new Date()))}>
+              {t("cal.thisWeek")}
+            </Button>
+          </div>
+          <WeekBoard items={items} start={weekStart} kinds={weekKinds} linkOrders={seesOrders} />
+        </div>
       ) : isReady ? (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.4fr_1fr]">
           {/* Month view: always on desktop, on phones when chosen */}

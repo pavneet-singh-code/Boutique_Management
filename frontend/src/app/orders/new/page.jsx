@@ -9,6 +9,7 @@ import { orderPath, saveOrders } from "../../../lib/api";
 import { useI18n } from "../../../lib/i18n";
 import { clean, toISODate } from "../../../lib/orders";
 import SaveBar from "../../../components/SaveBar";
+import { PendingPhotos, uploadPendingPhotos } from "../../../components/Photos";
 
 function NewOrderContent() {
   const router = useRouter();
@@ -24,6 +25,8 @@ function NewOrderContent() {
   }));
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [photos, setPhotos] = useState([]); // waiting until the order is saved
+  const [photoProgress, setPhotoProgress] = useState(null);
 
   const onChange = (field, value) => {
     setForm((previous) => ({ ...previous, [field]: value }));
@@ -41,13 +44,21 @@ function NewOrderContent() {
       return;
     }
     setSaving(true);
+    let saved;
     try {
-      const [saved] = await saveOrders([{ ...toPayload(form), filename: null }]);
-      router.replace(orderPath(saved));
+      [saved] = await saveOrders([{ ...toPayload(form), filename: null }]);
     } catch (err) {
       setSaveError(tError(err));
       setSaving(false);
+      return;
     }
+    // The order is saved; now its photos (a failed photo never loses the order).
+    let failed = 0;
+    if (photos.length) {
+      failed = await uploadPendingPhotos(saved.id, photos, (done, total) => setPhotoProgress({ done, total }));
+    }
+    const path = orderPath(saved);
+    router.replace(failed ? `${path}${path.includes("?") ? "&" : "?"}photosFailed=${failed}` : path);
   };
 
   return (
@@ -66,6 +77,14 @@ function NewOrderContent() {
             </Notice>
           )}
           <OrderForm value={form} onChange={onChange} />
+          <div className="mt-4">
+            <PendingPhotos photos={photos} onChange={setPhotos} />
+          </div>
+          {photoProgress && (
+            <Notice tone="success" className="mt-4">
+              {t("photo.uploading", photoProgress)}
+            </Notice>
+          )}
           <SaveBar saving={saving} form="new-order-form" />
         </form>
       </div>
