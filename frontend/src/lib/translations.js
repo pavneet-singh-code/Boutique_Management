@@ -66,10 +66,12 @@ const en = {
 
   // Landing
   "landing.access": "Studio Access",
-  "landing.eyebrow": "Boutique Order Studio",
-  "landing.title1": "Handwritten",
-  "landing.title2": "orders.",
-  "landing.body": "A private workspace that turns handwritten orders into neatly organised digital records.",
+  "landing.eyebrow": "Artistry in every stitch",
+  "landing.title1": "Every stitch",
+  "landing.title2": "tells a",
+  "landing.title3": "story.",
+  "landing.body": "Orders, fittings, bills and the whole team: all of Fab_art Studio's work, beautifully in one place.",
+  "landing.upload": "Upload orders",
   "landing.enter": "Enter Studio",
   "landing.footer": "Crafted with care · Fab_art Studio",
 
@@ -851,10 +853,12 @@ const hi = {
   "error.generic": "कुछ गड़बड़ हो गई। कृपया फिर से कोशिश करें।",
 
   "landing.access": "स्टूडियो खोलें",
-  "landing.eyebrow": "बुटीक ऑर्डर स्टूडियो",
-  "landing.title1": "हाथ से लिखे",
-  "landing.title2": "ऑर्डर।",
-  "landing.body": "एक निजी जगह जो हाथ से लिखे ऑर्डर को साफ़-सुथरे डिजिटल रिकॉर्ड में बदल देती है।",
+  "landing.eyebrow": "हर टाँके में कला",
+  "landing.title1": "हर टाँका",
+  "landing.title2": "एक कहानी",
+  "landing.title3": "कहता है।",
+  "landing.body": "ऑर्डर, ट्रायल, बिल और पूरी टीम: Fab_art Studio का सारा काम, सुंदर ढंग से एक ही जगह।",
+  "landing.upload": "ऑर्डर अपलोड करें",
   "landing.enter": "स्टूडियो में जाएँ",
   "landing.footer": "प्यार से बनाया गया · Fab_art Studio",
 

@@ -1,81 +1,111 @@
 "use client";
 
 import Image from "next/image";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { getMe, getToken } from "../lib/api";
 import { homeFor } from "../lib/roles";
 import { useI18n } from "../lib/i18n";
 import { LanguageToggle } from "../components/ui";
+import DressFormArt from "../components/DressFormArt";
+
+const GOWN_RED = "#7b1e2c"; // the colour of the gown in the illustration
 
 export default function Home() {
   const router = useRouter();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
 
   const enter = () => router.push(getToken() ? homeFor(getMe()?.role) : "/login");
+  const upload = () => router.push(getToken() ? "/upload-orders" : "/login");
 
   return (
-    <main className="min-h-dvh overflow-hidden text-ink">
-      <nav className="relative z-10 flex items-center justify-between gap-3 px-5 py-5 md:px-12 md:py-6">
-        <div className="glass flex items-center gap-2.5 rounded-full py-1.5 pl-1.5 pr-4 shadow-sm ring-1 ring-white">
-          <Image src="/brand/icon-96.png" alt="" width={36} height={36} priority className="h-9 w-9 rounded-full bg-white" />
-          <span className="font-display text-lg font-bold">Fab_art</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <LanguageToggle />
-          <button
-            onClick={enter}
-            className="press hidden h-10 items-center gap-2 rounded-full bg-card px-4 text-sm font-bold shadow-sm ring-1 ring-line sm:flex"
-          >
-            {t("landing.access")}
-            <ArrowRight size={16} />
-          </button>
-        </div>
-      </nav>
-
-      <section className="relative flex min-h-[calc(100dvh-88px)] items-center justify-center px-6 pb-16">
-        {/* Soft floating bubbles (decoration only) */}
-        <div aria-hidden="true" className="bg-cocoa grain pointer-events-none absolute -right-24 top-4 h-72 w-72 rounded-full opacity-80 md:h-96 md:w-96" />
-        <div aria-hidden="true" className="bg-taupe-glow grain pointer-events-none absolute -left-28 bottom-10 h-64 w-64 rounded-full opacity-70 md:h-80 md:w-80" />
-        <div aria-hidden="true" className="pointer-events-none absolute left-[14%] top-[20%] text-accent">
-          <Sparkles size={22} strokeWidth={1.6} />
-        </div>
-
-        <div className="relative z-10 mx-auto max-w-3xl text-center">
-          <div className="mx-auto mb-7 flex h-44 w-44 items-center justify-center rounded-full bg-white shadow-lg ring-8 ring-white/60 md:h-52 md:w-52">
+    <main className="min-h-dvh text-ink md:p-4">
+      {/* A big rounded "poster" panel on tablets / laptops */}
+      <div className="relative flex min-h-dvh flex-col overflow-hidden bg-[#f4eee6] md:min-h-[calc(100dvh-2rem)] md:rounded-[2.75rem] md:shadow-md md:ring-1 md:ring-white">
+        <nav className="relative z-10 flex items-center justify-between gap-3 px-5 py-5 md:px-12 md:py-8">
+          <div className="flex items-center gap-2.5">
             <Image
-              src="/brand/logo.jpg"
-              alt="Fab_art Studio — Artistry in Every Stitch"
-              width={720}
-              height={720}
+              src="/brand/icon-96.png"
+              alt=""
+              width={48}
+              height={48}
               priority
-              className="h-full w-full rounded-full object-cover"
+              className="h-11 w-11 rounded-full bg-white shadow-sm ring-2 ring-white md:h-12 md:w-12"
             />
+            <span className="font-display text-xl font-extrabold leading-none md:text-2xl">
+              Fab_art
+              <span className="block text-xs font-bold tracking-wide text-muted">Studio</span>
+            </span>
           </div>
-          <p className="mb-4 inline-flex rounded-full bg-accent-soft px-4 py-1.5 text-xs font-bold text-accent-soft-ink">
-            {t("landing.eyebrow")}
-          </p>
-          <h1 className="font-display text-5xl font-bold leading-[1.05] sm:text-6xl md:text-7xl">
-            {t("landing.title1")}
-            <br />
-            <span className="bg-cocoa bg-clip-text text-transparent">{t("landing.title2")}</span>
-          </h1>
-          <p className="mx-auto mt-6 max-w-xl text-base font-medium leading-7 text-muted md:text-lg">
-            {t("landing.body")}
-          </p>
-          <button
-            onClick={enter}
-            className="press bg-cocoa mt-9 inline-flex h-14 items-center gap-3 rounded-full px-8 text-base font-bold text-white shadow-lg shadow-accent/35"
-          >
-            {t("landing.enter")}
-            <ArrowRight size={18} />
-          </button>
-        </div>
+          <div className="flex items-center gap-2.5">
+            <LanguageToggle />
+            <button
+              onClick={enter}
+              className="press bg-cocoa hidden h-11 items-center gap-2 rounded-full px-5 text-sm font-bold text-white shadow-md shadow-accent/25 sm:flex"
+            >
+              {t("landing.access")}
+              <ArrowRight size={16} />
+            </button>
+          </div>
+        </nav>
 
-        <div className="absolute bottom-6 left-0 right-0 flex justify-center">
-          <p className="text-xs font-semibold text-muted/70">{t("landing.footer")}</p>
-        </div>
-      </section>
+        <section className="relative mx-auto grid w-full max-w-7xl flex-1 items-center gap-6 px-5 pb-10 md:grid-cols-[1.1fr_1fr] md:gap-4 md:px-12 md:pb-14">
+          {/* Words */}
+          <div className="relative">
+            <Sparkles
+              aria-hidden="true"
+              size={34}
+              strokeWidth={1.6}
+              className="-mb-2 -ml-1 -rotate-12 text-[#c1872e] md:-mb-1 md:-ml-6"
+            />
+            <p className="mb-4 inline-flex rounded-full bg-white px-4 py-1.5 text-xs font-bold text-accent-ink shadow-sm">
+              {t("landing.eyebrow")}
+            </p>
+            <h1 className={`font-display text-[3.4rem] font-extrabold tracking-tight sm:text-7xl lg:text-[6.4rem] ${
+                // Hindi vowel signs need room above and below the line.
+                lang === "hi" ? "leading-[1.15]" : "leading-[0.95]"
+              }`}>
+              <span className="block">{t("landing.title1")}</span>
+              <span className="block">{t("landing.title2")}</span>
+              <span className="block" style={{ color: GOWN_RED }}>
+                {t("landing.title3")}
+              </span>
+            </h1>
+            <p className="mt-6 max-w-md text-base font-semibold leading-7 tracking-wide text-ink-2 md:text-lg">
+              {t("landing.body")}
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <button
+                onClick={enter}
+                className="press bg-cocoa inline-flex h-14 items-center justify-center gap-3 rounded-full pl-2 pr-7 text-base font-bold text-white shadow-lg shadow-accent/30"
+              >
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20">
+                  <Sparkles size={18} />
+                </span>
+                {t("landing.enter")}
+              </button>
+              <button
+                onClick={upload}
+                className="press inline-flex h-14 items-center justify-center gap-3 rounded-full border-2 border-ink bg-transparent pl-2 pr-7 text-base font-bold text-ink hover:bg-white/60"
+              >
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm">
+                  <Upload size={18} />
+                </span>
+                {t("landing.upload")}
+              </button>
+            </div>
+          </div>
+
+          {/* Picture: a dress form in a deep red gown */}
+          <div className="relative mx-auto w-full max-w-[22rem] sm:max-w-md md:max-w-[34rem]">
+            <DressFormArt className="h-auto w-full drop-shadow-sm" />
+          </div>
+        </section>
+
+        <footer className="relative pb-6 text-center text-xs font-semibold text-muted/80">
+          {t("landing.footer")}
+        </footer>
+      </div>
     </main>
   );
 }
