@@ -17,14 +17,10 @@ import { addEmployee, getEmployees, resetEmployeePin, updateEmployee } from "../
 import { useI18n } from "../../lib/i18n";
 import { ROLES, useMe } from "../../lib/roles";
 import { SPECIALITIES } from "../../lib/work";
+import { EMPLOYEE_COLORS, employeeColor } from "../../lib/colors";
 import { serverTime } from "../../lib/orders";
 import { useResource } from "../../lib/useResource";
 
-// Same set as the server (models.EMPLOYEE_COLORS): never the status colours.
-const EMPLOYEE_COLORS = [
-  "#2563eb", "#7c3aed", "#0d9488", "#db2777", "#4f46e5",
-  "#0284c7", "#9333ea", "#92400e", "#475569", "#c026d3",
-];
 
 const inputClass =
   "mt-1.5 h-12 w-full rounded-xl border border-line bg-card px-3.5 text-[16px] text-ink outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 md:h-11 md:text-sm";
@@ -186,7 +182,7 @@ function EmployeeCard({ employee, isMe, onChanged }) {
     name: employee.name,
     phone: employee.phone || "",
     role: employee.role,
-    color: employee.color,
+    color: employee.color ? employeeColor(employee) : null,
     skills: employee.skills || [],
   });
   const [pin, setPin] = useState("");

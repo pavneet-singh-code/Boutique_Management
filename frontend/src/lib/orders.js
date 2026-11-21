@@ -258,14 +258,14 @@ function editDistance(a, b) {
 /* ---------------- Avatars ---------------- */
 
 const AVATAR_COLORS = [
-  ["#dff3e9", "#0a7a4b"],
-  ["#e3ecfb", "#2f5fb3"],
-  ["#fbe7e1", "#b4482b"],
-  ["#f3e6fa", "#8a3fb5"],
-  ["#fff0d6", "#9a6400"],
-  ["#e0f4f6", "#127784"],
-  ["#fbe3ee", "#b3326b"],
-  ["#ebeef0", "#4b5a64"],
+  ["#e3e7d6", "#4b5530"], // sage
+  ["#dfe5eb", "#3c566c"], // slate blue
+  ["#f5e0d6", "#8f4b32"], // terracotta
+  ["#f2dfdb", "#864a45"], // dusty rose
+  ["#f4e6c9", "#74500f"], // mustard
+  ["#dce8e5", "#2f5c57"], // teal
+  ["#e8e4d3", "#5c5c2e"], // olive
+  ["#ece4dc", "#5a4c43"], // sand / cocoa
 ];
 
 export function avatarColors(seed) {

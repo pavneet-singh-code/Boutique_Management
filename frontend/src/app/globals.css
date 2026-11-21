@@ -25,10 +25,22 @@
   --taupe: #9a8a80;
   --taupe-soft: #e2dbd4;
   --taupe-ink: #5a4c43;
-  --warn-soft: #f6ecd9;
-  --warn-ink: #7a5513;
-  --danger: #b4423a;
-  --danger-soft: #f6e4e1;
+  /* Earthy status colours (from the mustard / sage / rust palette) */
+  --warn: #c1872e;          /* mustard: needs review, waiting */
+  --warn-soft: #f4e6c9;
+  --warn-ink: #74500f;
+  --danger: #9a4a30;        /* rust: late, delete, errors */
+  --danger-soft: #f5e0d6;
+  --sage: #7d8a54;          /* olive / sage: done, ready, paid */
+  --sage-soft: #e3e7d6;
+  --sage-ink: #4b5530;
+  --teal: #5e8c86;          /* dusty teal: in progress */
+  --teal-soft: #dce8e5;
+  --teal-ink: #2f5c57;
+  --slate-soft: #dfe5eb;    /* slate blue: planned */
+  --slate-ink: #3c566c;
+  --rose-soft: #f2dfdb;     /* dusty rose / clay: shooting, editing */
+  --rose-ink: #864a45;
   --wallpaper: #efedea;
   --bubble-out: #e9e2db;
   --bubble-in: #ffffff;
@@ -53,8 +65,19 @@
   --color-taupe: var(--taupe);
   --color-taupe-soft: var(--taupe-soft);
   --color-taupe-ink: var(--taupe-ink);
+  --color-warn: var(--warn);
   --color-warn-soft: var(--warn-soft);
   --color-warn-ink: var(--warn-ink);
+  --color-sage: var(--sage);
+  --color-sage-soft: var(--sage-soft);
+  --color-sage-ink: var(--sage-ink);
+  --color-teal: var(--teal);
+  --color-teal-soft: var(--teal-soft);
+  --color-teal-ink: var(--teal-ink);
+  --color-slate-soft: var(--slate-soft);
+  --color-slate-ink: var(--slate-ink);
+  --color-rose-soft: var(--rose-soft);
+  --color-rose-ink: var(--rose-ink);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
   --color-wallpaper: var(--wallpaper);

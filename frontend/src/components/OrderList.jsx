@@ -92,7 +92,7 @@ export function OrderRow({ order, showDelivery = true, rightText }) {
             </p>
             {order.needs_review ? (
               <span
-                className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-[#f59e0b] px-1 text-white"
+                className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-warn px-1 text-white"
                 title={t("review.needs")}
               >
                 <TriangleAlert size={12} strokeWidth={2.5} />

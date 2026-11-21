@@ -44,11 +44,11 @@ export const CONTENT_STAGES = ["idea", "planned", "shooting", "editing", "ready_
 // Platform colours are kept apart from employee and status colours, and every
 // badge carries a short name, so colour is never the only signal.
 const PLATFORM_STYLE = {
-  instagram: { code: "IG", className: "bg-[#fce7f3] text-[#9d174d]" },
-  facebook: { code: "FB", className: "bg-[#dbeafe] text-[#1e3a8a]" },
-  youtube: { code: "YT", className: "bg-[#fde2e1] text-[#8f1d18]" },
-  whatsapp: { code: "WA", className: "bg-[#dcf8e6] text-[#14532d]" },
-  pinterest: { code: "PIN", className: "bg-[#ffe4e6] text-[#be123c]" },
+  instagram: { code: "IG", className: "bg-rose-soft text-rose-ink" },
+  facebook: { code: "FB", className: "bg-slate-soft text-slate-ink" },
+  youtube: { code: "YT", className: "bg-danger-soft text-danger" },
+  whatsapp: { code: "WA", className: "bg-sage-soft text-sage-ink" },
+  pinterest: { code: "PIN", className: "bg-warn-soft text-warn-ink" },
 };
 
 const FORMAT_ICON = {
@@ -128,11 +128,11 @@ export function PlatformBadges({ platforms = [], full = false }) {
 
 const STAGE_TONE = {
   idea: "bg-card-2 text-ink-2",
-  planned: "bg-[#e6effb] text-[#1e4f91]",
-  shooting: "bg-[#efe7fb] text-[#5b21b6]",
-  editing: "bg-[#efe7fb] text-[#5b21b6]",
+  planned: "bg-slate-soft text-slate-ink",
+  shooting: "bg-rose-soft text-rose-ink",
+  editing: "bg-rose-soft text-rose-ink",
   ready_to_post: "bg-warn-soft text-warn-ink",
-  posted: "bg-accent-soft text-accent-soft-ink",
+  posted: "bg-sage-soft text-sage-ink",
 };
 
 export function ContentStageChip({ status }) {
@@ -154,7 +154,7 @@ export function ReelBadge({ content = [] }) {
     <span
       className={cx(
         "inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold",
-        posted ? "bg-[#fce7f3] text-[#9d174d]" : "bg-card-2 text-ink-2"
+        posted ? "bg-sage-soft text-sage-ink" : "bg-card-2 text-ink-2"
       )}
     >
       <Clapperboard size={12} />

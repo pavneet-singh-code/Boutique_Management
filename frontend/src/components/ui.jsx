@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useI18n } from "../lib/i18n";
 import { avatarColors, initials } from "../lib/orders";
+import { employeeColor } from "../lib/colors";
 
 export function cx(...classes) {
   return classes.filter(Boolean).join(" ");
@@ -175,7 +176,7 @@ export function EmployeeAvatar({ employee, size = 40, className }) {
       style={{
         width: size,
         height: size,
-        background: employee?.color || "#475569",
+        background: employeeColor(employee),
         fontSize: Math.round(size * 0.38),
       }}
     >
@@ -193,7 +194,7 @@ export function ReviewBadge({ needsReview, compact = false }) {
         "inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium",
         needsReview
           ? "bg-warn-soft text-warn-ink"
-          : "bg-accent-soft text-accent-soft-ink"
+          : "bg-sage-soft text-sage-ink"
       )}
     >
       {needsReview ? <TriangleAlert size={12} /> : <CircleCheck size={12} />}
@@ -278,7 +279,7 @@ export function ErrorBox({ error, onRetry, className }) {
 
 export function Notice({ tone = "success", children, className }) {
   const tones = {
-    success: "bg-accent-soft text-accent-soft-ink",
+    success: "bg-sage-soft text-sage-ink",
     error: "bg-danger-soft text-danger",
     warn: "bg-warn-soft text-warn-ink",
   };

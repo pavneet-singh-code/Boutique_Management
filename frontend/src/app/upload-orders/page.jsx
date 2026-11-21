@@ -385,7 +385,7 @@ export default function UploadOrdersPage() {
                     {problems[index] ? (
                       <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-card bg-danger" />
                     ) : item.form.needs_review ? (
-                      <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-card bg-[#f59e0b]" />
+                      <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-card bg-warn" />
                     ) : null}
                   </button>
                 ))}

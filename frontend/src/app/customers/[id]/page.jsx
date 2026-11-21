@@ -92,7 +92,7 @@ function OrderBubble({ order }) {
         {date ? date.toLocaleDateString(locale, { day: "numeric", month: "short" }) : ""}
         <CheckCheck
           size={15}
-          className={order.needs_review ? "text-[#8696a0]" : "text-[#53bdeb]"}
+          className={order.needs_review ? "text-[#8696a0]" : "text-teal"}
           aria-label={order.needs_review ? t("review.needs") : t("review.ok")}
         />
       </p>
@@ -213,7 +213,7 @@ export default function CustomerPage() {
         {customer.notes && (
           <Link
             href={`/customers/${customer.id}/info`}
-            className="mx-auto mt-3 max-w-[90%] rounded-lg bg-[#fff8c5] px-3 py-1.5 text-center text-xs text-[#54656f] shadow-sm"
+            className="mx-auto mt-3 max-w-[90%] rounded-lg bg-warn-soft px-3 py-1.5 text-center text-xs text-[#54656f] shadow-sm"
           >
             📏 {customer.notes}
           </Link>

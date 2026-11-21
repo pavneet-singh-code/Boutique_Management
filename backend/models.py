@@ -208,20 +208,20 @@ class AppSetting(Base):
 
 ROLES = ("owner", "uploader", "worker", "social_media")
 
-# Employee colours: clear and easy to tell apart, and never the status colours
-# (green = ready, orange = needs review, red = late). Always shown with the
+# Employee colours: earthy and easy to tell apart, and never the status colours
+# (sage = ready, mustard = needs review, rust = late). Always shown with the
 # person's initials or name, so colour is never the only signal.
 EMPLOYEE_COLORS = (
-    "#2563eb",  # blue
-    "#7c3aed",  # violet
-    "#0d9488",  # teal
-    "#db2777",  # pink
-    "#4f46e5",  # indigo
-    "#0284c7",  # sky
-    "#9333ea",  # purple
-    "#92400e",  # brown
-    "#475569",  # slate
-    "#c026d3",  # magenta
+    "#3f7a78",  # teal
+    "#4f6f8c",  # slate blue
+    "#7a5675",  # plum
+    "#2e5e52",  # pine
+    "#a0616a",  # dusty rose
+    "#6b5040",  # walnut
+    "#5e8c86",  # sea glass
+    "#8c6a7e",  # mauve
+    "#3b5b7a",  # denim
+    "#5a5f66",  # graphite
 )
 
 

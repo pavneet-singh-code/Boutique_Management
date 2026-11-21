@@ -212,7 +212,7 @@ export default function ContentPlanPage() {
                           {date.getDate()}
                         </span>
                         {dayItems.length > 0 && (
-                          <span className="rounded bg-[#fce7f3] px-1 text-[10px] font-bold leading-4 text-[#9d174d]">
+                          <span className="rounded bg-rose-soft px-1 text-[10px] font-bold leading-4 text-rose-ink">
                             🎬{dayItems.length > 1 ? dayItems.length : ""}
                           </span>
                         )}

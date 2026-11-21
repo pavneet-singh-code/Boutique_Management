@@ -38,8 +38,8 @@ import { sortForWork } from "../lib/photos";
 
 const STAGE_TONES = {
   received: "bg-card-2 text-ink-2",
-  in_work: "bg-[#e6effb] text-[#1e4f91]",
-  ready: "bg-accent-soft text-accent-soft-ink",
+  in_work: "bg-teal-soft text-teal-ink",
+  ready: "bg-sage-soft text-sage-ink",
   delivered: "bg-card-2 text-muted",
   cancelled: "bg-card-2 text-muted line-through",
 };
@@ -94,7 +94,7 @@ export function ProgressBar({ value, className }) {
       aria-valuenow={value}
     >
       <span
-        className={cx("block h-full rounded-full", value >= 100 ? "bg-accent" : "bg-[#3b82f6]")}
+        className={cx("block h-full rounded-full", value >= 100 ? "bg-sage" : "bg-teal")}
         style={{ width: `${Math.max(value, value > 0 ? 6 : 0)}%` }}
       />
     </span>
@@ -119,9 +119,9 @@ function TaskStatusChip({ status }) {
       className={cx(
         "rounded-full px-2 py-px text-[11px] font-semibold",
         status === "done"
-          ? "bg-accent-soft text-accent-soft-ink"
+          ? "bg-sage-soft text-sage-ink"
           : status === "in_progress"
-            ? "bg-[#e6effb] text-[#1e4f91]"
+            ? "bg-teal-soft text-teal-ink"
             : "bg-card-2 text-ink-2"
       )}
     >

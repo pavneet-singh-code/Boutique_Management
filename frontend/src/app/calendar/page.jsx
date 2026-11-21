@@ -162,7 +162,7 @@ export default function CalendarPage() {
                   <EmptyState icon={CalendarDays} title={t("cal.nothingSoon")} />
                 </Card>
               ) : (
-                <div className="overflow-hidden bg-card md:rounded-2xl md:border md:border-line">
+                <div className="mx-3 overflow-hidden rounded-3xl bg-card shadow-sm ring-1 ring-white md:mx-0">
                   {list.days.map((day) => (
                     <section key={day.iso}>
                       <DayHeading date={day.date} />

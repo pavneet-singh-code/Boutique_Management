@@ -226,7 +226,7 @@ export default function OrderForm({ value, onChange, original = {} }) {
             onChange={(event) => onChange("needs_review", event.target.checked)}
             className="peer sr-only"
           />
-          <span className="h-7 w-12 rounded-full bg-line transition peer-checked:bg-[#f59e0b] peer-focus-visible:ring-2 peer-focus-visible:ring-accent/40" />
+          <span className="h-7 w-12 rounded-full bg-line transition peer-checked:bg-warn peer-focus-visible:ring-2 peer-focus-visible:ring-accent/40" />
           <span className="absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow transition peer-checked:translate-x-5" />
         </span>
       </label>

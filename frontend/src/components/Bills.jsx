@@ -30,7 +30,7 @@ export function BillStatus({ status }) {
   const tones = {
     draft: "bg-card-2 text-ink-2",
     sent: "bg-warn-soft text-warn-ink",
-    paid: "bg-accent-soft text-accent-soft-ink",
+    paid: "bg-sage-soft text-sage-ink",
   };
   return (
     <span

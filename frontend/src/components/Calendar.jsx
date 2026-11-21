@@ -11,6 +11,7 @@ import { EmployeeAvatar, cx } from "./ui";
 import { LateChip, ProgressBar, PushedChip, StageChip } from "./Work";
 import { CoverThumb } from "./Photos";
 import { isUnfinished } from "../lib/photos";
+import { NO_PERSON_COLOR, employeeColor } from "../lib/colors";
 
 /* ---------------- One calendar item ---------------- */
 
@@ -131,7 +132,7 @@ export function MonthGrid({ monthKey, days, selected, onSelect }) {
           const deliveries = items.filter((item) => item.kind === "delivery").length;
           const trials = items.filter((item) => item.kind === "trial").length;
           const steps = items.filter((item) => item.kind === "step");
-          const colors = [...new Map(steps.map((s) => [s.employee?.id ?? "none", s.employee?.color || "#94a3b8"])).values()];
+          const colors = [...new Map(steps.map((s) => [s.employee?.id ?? "none", s.employee ? employeeColor(s.employee) : NO_PERSON_COLOR])).values()];
           return (
             <button
               key={iso}
@@ -188,7 +189,7 @@ export function LateBlock({ items, linkOrders }) {
   const { t } = useI18n();
   if (!items.length) return null;
   return (
-    <section className="overflow-hidden bg-card md:rounded-2xl md:border md:border-danger/30">
+    <section className="mx-3 overflow-hidden rounded-3xl bg-card shadow-sm ring-1 ring-danger/20 md:mx-0">
       <h2 className="flex items-center gap-2 bg-danger-soft px-4 py-2 text-sm font-semibold text-danger md:px-5">
         <TriangleAlert size={15} />
         {t("cal.late")} ({items.length})

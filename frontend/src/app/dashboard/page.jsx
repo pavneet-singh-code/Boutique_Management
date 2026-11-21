@@ -230,7 +230,7 @@ export default function DashboardPage() {
               href="/orders/check-delivery"
               className="mx-4 flex items-center gap-3 press rounded-3xl bg-warn-soft p-4 shadow-sm ring-1 ring-white md:mx-0"
             >
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#f5a524] text-white shadow-sm">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-warn text-white shadow-sm">
                 <CircleHelp size={20} />
               </span>
               <span className="min-w-0 flex-1">
@@ -291,7 +291,7 @@ export default function DashboardPage() {
               href="/orders?review=review&allMonths=true"
               className="mx-4 flex items-center gap-3 press rounded-3xl bg-warn-soft p-4 shadow-sm ring-1 ring-white md:mx-0"
             >
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#f5a524] text-white shadow-sm">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-warn text-white shadow-sm">
                 <TriangleAlert size={20} />
               </span>
               <span className="min-w-0 flex-1">
