@@ -377,3 +377,15 @@ export function duplicateMessage(number, orders, t, locale) {
     date: formatDate(existing.order_date || existing.created_at, locale),
   });
 }
+
+/**
+ * The month an order number says ("2026-10" for 261033) when the order date is
+ * in a different month, else null. Used to warn before such an order is saved.
+ */
+export function numberDateMismatch(orderNumber, orderDate) {
+  const number = parseOrderNumber(orderNumber);
+  const date = parseDate(orderDate);
+  if (!number || !date) return null;
+  const fromNumber = `${number.year}-${pad(number.month)}`;
+  return fromNumber === monthKeyOf(date) ? null : fromNumber;
+}

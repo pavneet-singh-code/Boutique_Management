@@ -6,7 +6,10 @@ import {
   amount,
   clean,
   formatMoney,
+  formatMonth,
   isUnclear,
+  monthKeyOf,
+  numberDateMismatch,
   parseDate,
   toISODate,
 } from "../lib/orders";
@@ -115,6 +118,16 @@ export default function OrderForm({ value, onChange, original = {} }) {
     />
   );
 
+  // The order number says which month the order belongs to (261033 = October 2026).
+  const mismatchMonth = numberDateMismatch(value.order_number, value.order_date);
+  const dateMismatch = mismatchMonth
+    ? t("number.dateMismatch", {
+        number: clean(value.order_number),
+        month: formatMonth(mismatchMonth, locale),
+        dateMonth: formatMonth(monthKeyOf(parseDate(value.order_date)), locale),
+      })
+    : null;
+
   const estimate = amount(value.estimated_total);
   const advance = amount(value.advance_amount) ?? 0;
   const expected = estimate != null ? Math.max(0, estimate - advance) : null;
@@ -145,7 +158,7 @@ export default function OrderForm({ value, onChange, original = {} }) {
           {text("order_number", { inputMode: "numeric" })}
         </Field>
         <div className="hidden sm:block" />
-        <Field label={t("field.orderDate")} warn={warnFor("order_date")}>
+        <Field label={t("field.orderDate")} warn={warnFor("order_date") || dateMismatch}>
           <input
             type="date"
             value={value.order_date ?? ""}

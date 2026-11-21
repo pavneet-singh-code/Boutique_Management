@@ -451,6 +451,15 @@ def find_duplicate_numbers(db: Session, numbers, exclude_id=None):
 
 # Order-number / data problems for the "Order number check" screen
 ORDER_NUMBER_FORMAT = re.compile(r"^\d{6}$")
+ORDER_NUMBER_PARTS = re.compile(r"^(\d{2})(\d{2})(\d{2,3})$")
+
+
+def month_from_order_number(order_number):
+    """(2026, 10) for "261033" (YY MM NN), or None if the number doesn't follow that pattern."""
+    match = ORDER_NUMBER_PARTS.match((order_number or "").strip())
+    if not match or not 1 <= int(match.group(2)) <= 12:
+        return None
+    return 2000 + int(match.group(1)), int(match.group(2))
 
 
 @app.get("/api/v1/orders/data-check")
@@ -495,6 +504,11 @@ def data_check(
             reasons.append("delivery_before_order")
         if order.import_notes and "could not be read" in order.import_notes:
             reasons.append("unreadable_date")
+        # Order numbers are YY MM NN (261033 = October 2026): the order date
+        # should be in that month.
+        number_month = month_from_order_number(order.order_number)
+        if number_month and order.order_date and (order.order_date.year, order.order_date.month) != number_month:
+            reasons.append("date_number_mismatch")
         if reasons:
             date_problems.append({"order": as_dict(order), "reasons": reasons})
 

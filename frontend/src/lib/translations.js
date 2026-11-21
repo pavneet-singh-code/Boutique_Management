@@ -830,6 +830,8 @@ const en = {
   "toast.billChatOpened": "{name}'s chat is open",
   "toast.billChatOpenedBody": "To send the picture too, use \"Share bill picture\".",
   "order.progress": "{value}% done",
+  "number.dateMismatch": "Order number {number} is from {month}, but this date is in {dateMonth}. Check the date.",
+  "check.reason.date_number_mismatch": "Order date is not in the month of the order number",
 };
 
 const hi = {
@@ -1639,6 +1641,8 @@ const hi = {
   "toast.billChatOpened": "{name} की चैट खुल गई",
   "toast.billChatOpenedBody": "फ़ोटो भी भेजने के लिए \"बिल की फ़ोटो भेजें\" दबाएँ।",
   "order.progress": "{value}% पूरा",
+  "number.dateMismatch": "ऑर्डर नंबर {number} {month} का है, पर यह तारीख {dateMonth} की है। तारीख जाँचें।",
+  "check.reason.date_number_mismatch": "ऑर्डर की तारीख ऑर्डर नंबर वाले महीने की नहीं है",
 };
 
 export const dictionaries = { en, hi };
