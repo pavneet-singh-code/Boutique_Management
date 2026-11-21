@@ -158,22 +158,48 @@ export function SparkleDoodle({ className, tone = "color", color }) {
 }
 
 /**
- * Faint doodles scattered behind every screen. They sit under the cards,
- * so they only show in the gaps ("here and there").
+ * Doodles scattered behind every screen, in their real colours (like the
+ * welcome page). Cards sit on top, so they show in the gaps around them.
  */
 export function DoodleBackdrop() {
   return (
-    <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 overflow-hidden opacity-[0.2]">
-      <ScissorsDoodle className="absolute right-[4%] top-[13%] w-24 rotate-[-18deg] md:w-32" />
-      <SpoolDoodle className="absolute bottom-[22%] left-[3%] w-16 rotate-[10deg] md:left-[19rem] md:w-20" />
-      <TapeDoodle className="absolute bottom-[6%] right-[10%] w-32 rotate-[8deg] md:w-44" />
-      <NeedleDoodle className="absolute left-[44%] top-[3%] hidden w-16 rotate-[20deg] md:block" />
-      <ButtonDoodle className="absolute right-[30%] top-[48%] w-9 md:w-11" />
-      <HangerDoodle className="absolute bottom-[40%] right-[2%] hidden w-24 rotate-[-8deg] lg:block" />
-      <PinCushionDoodle className="absolute left-[6%] top-[42%] w-14 md:hidden" />
-      <SparkleDoodle className="absolute left-[30%] top-[22%] w-5" />
-      <SparkleDoodle className="absolute bottom-[30%] right-[22%] w-6" color="#7b1e2c" />
-      <SparkleDoodle className="absolute bottom-[14%] left-[34%] w-4" color="#8f9a6e" />
+    <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 overflow-hidden opacity-60">
+      <ScissorsDoodle className="absolute -right-3 top-[11%] w-24 rotate-[-18deg] md:right-[1%] md:top-[56%] md:w-32" />
+      <SpoolDoodle className="absolute -left-4 bottom-[24%] w-16 rotate-[10deg] md:left-[17.5rem] md:w-20" />
+      <TapeDoodle className="absolute -right-6 bottom-[16%] w-36 rotate-[8deg] md:right-[6%] md:w-48" />
+      <NeedleDoodle className="absolute left-[46%] top-[2%] hidden w-16 rotate-[20deg] md:block" />
+      <ButtonDoodle className="absolute -left-3 top-[30%] w-10 md:left-[17.25rem] md:top-[88%] md:w-12" />
+      <ButtonDoodle className="absolute right-[24%] top-[58%] hidden w-9 md:block" />
+      <HangerDoodle className="absolute bottom-[42%] right-[1%] hidden w-28 rotate-[-8deg] lg:block" />
+      <PinCushionDoodle className="absolute -right-2 top-[44%] w-14 md:right-[2%] md:top-[30%] md:w-16" />
+      <SparkleDoodle className="absolute left-[30%] top-[20%] w-5" />
+      <SparkleDoodle className="absolute bottom-[34%] right-[20%] w-6" color="#7b1e2c" />
+      <SparkleDoodle className="absolute bottom-[10%] left-[32%] w-5" color="#8f9a6e" />
+      <SparkleDoodle className="absolute left-[8%] top-[62%] w-4 md:left-[19rem]" color="#7b1e2c" />
+    </div>
+  );
+}
+
+const TITLE_DOODLES = [ScissorsDoodle, SpoolDoodle, NeedleDoodle, ButtonDoodle, PinCushionDoodle, TapeDoodle];
+
+/** A small sewing doodle for a section title; the same title always gets the same one. */
+export function TitleDoodle({ title, className }) {
+  const text = String(title || "");
+  let hash = 0;
+  for (let i = 0; i < text.length; i += 1) hash = (hash * 31 + text.charCodeAt(i)) >>> 0;
+  const Doodle = TITLE_DOODLES[hash % TITLE_DOODLES.length];
+  return <Doodle className={className} />;
+}
+
+/** A little row of tools at the bottom of every screen. */
+export function DoodleFooter() {
+  return (
+    <div aria-hidden="true" className="pointer-events-none mt-10 flex items-end justify-center gap-5 pb-2 opacity-80">
+      <ScissorsDoodle className="w-14 -rotate-12" />
+      <SparkleDoodle className="mb-6 w-4" />
+      <TapeDoodle className="w-20" />
+      <SparkleDoodle className="mb-7 w-3" color="#7b1e2c" />
+      <SpoolDoodle className="w-11 rotate-6" />
     </div>
   );
 }

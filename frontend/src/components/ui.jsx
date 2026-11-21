@@ -12,7 +12,7 @@ import {
 import { useI18n } from "../lib/i18n";
 import { avatarColors, initials } from "../lib/orders";
 import { employeeColor } from "../lib/colors";
-import { ButtonDoodle, NeedleDoodle, ScissorsDoodle, SparkleDoodle, SpoolDoodle } from "./Doodles";
+import { ButtonDoodle, NeedleDoodle, ScissorsDoodle, SparkleDoodle, SpoolDoodle, TitleDoodle } from "./Doodles";
 
 export function cx(...classes) {
   return classes.filter(Boolean).join(" ");
@@ -77,8 +77,9 @@ export function SectionTitle({ title, help, action }) {
   return (
     <div className="mb-3 flex items-end justify-between gap-3 px-4 md:px-0">
       <div className="min-w-0">
-        <h2 className="font-display text-lg font-bold leading-tight text-ink md:text-2xl">
+        <h2 className="flex items-center gap-2 font-display text-lg font-bold leading-tight text-ink md:text-2xl">
           {title}
+          <TitleDoodle title={title} className="h-7 w-7 shrink-0 md:h-8 md:w-8" />
         </h2>
         {help && <p className="mt-0.5 text-xs text-muted">{help}</p>}
       </div>

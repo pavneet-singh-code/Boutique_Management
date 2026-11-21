@@ -33,7 +33,7 @@ import { getToken, logout, refreshMe } from "../lib/api";
 import { useI18n } from "../lib/i18n";
 import { can, homeFor, useMe } from "../lib/roles";
 import { EmployeeAvatar, LanguageToggle, LinkButton, cx } from "./ui";
-import { DoodleBackdrop } from "./Doodles";
+import { DoodleBackdrop, DoodleFooter } from "./Doodles";
 import Toaster from "./Toaster";
 
 const sidebarSections = [
@@ -544,6 +544,7 @@ export default function AppShell({
         >
           <div className="page-enter mx-auto w-full max-w-[1400px]">
             {allowed ? children : <NoAccess role={me?.role} />}
+            <DoodleFooter />
           </div>
         </main>
         {!hideTabs && <BottomNav />}
