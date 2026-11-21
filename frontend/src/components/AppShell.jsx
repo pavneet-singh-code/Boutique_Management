@@ -356,50 +356,101 @@ function MobileHeader({ title, mobileTitle, brand, back, actions }) {
   );
 }
 
+/**
+ * Everything this person can open, for the phone's tab bar: their main tabs
+ * first (short names), then every other screen from the sidebar.
+ */
+function phoneTabsFor(role) {
+  const items = tabsFor(role).map((tab) => ({ label: tab.label, path: tab.path, icon: tab.icon }));
+  const seen = new Set(items.map((item) => item.path));
+  for (const section of sidebarSections) {
+    for (const item of section.items) {
+      if (seen.has(item.path) || (item.feature && !can(role, item.feature))) continue;
+      seen.add(item.path);
+      items.push({ label: item.label, path: item.path, icon: item.icon });
+    }
+  }
+  return items;
+}
+
+/** The tab for this page: the longest path that matches (so /orders/new is "Add order", not "Orders"). */
+function activePath(pathname, items) {
+  let best = null;
+  for (const item of items) {
+    if (matches(pathname, item.path) && (!best || item.path.length > best.length)) best = item.path;
+  }
+  return best;
+}
+
+// The tab bar is drawn again on every screen, so remember where it was scrolled.
+let tabBarScroll = null;
+
 function BottomNav() {
   const { t } = useI18n();
   const pathname = usePathname();
   const me = useMe();
-  const tabs = tabsFor(me?.role);
+  const tabs = phoneTabsFor(me?.role);
+  const current = activePath(pathname, tabs);
+  const scroller = useRef(null);
+
+  // Keep the scroll position between screens, and make sure the open screen's tab is visible.
+  useLayoutEffect(() => {
+    const bar = scroller.current;
+    if (!bar) return;
+    if (tabBarScroll !== null) bar.scrollLeft = tabBarScroll;
+    const active = bar.querySelector('[aria-current="page"]');
+    if (active) {
+      const left = active.offsetLeft;
+      const right = left + active.offsetWidth;
+      if (left < bar.scrollLeft || right > bar.scrollLeft + bar.clientWidth) {
+        bar.scrollLeft = left - (bar.clientWidth - active.offsetWidth) / 2;
+      }
+    }
+  }, [pathname, tabs.length]);
 
   return (
     <nav
       aria-label="Main"
       className="fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-40 md:hidden"
     >
-      <div
-        className="glass grid rounded-full p-1.5 shadow-lg ring-1 ring-white"
-        style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}
-      >
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const active = tab.match.some((path) => matches(pathname, path));
-          return (
-            <Link
-              key={tab.label}
-              href={tab.path}
-              aria-current={active ? "page" : undefined}
-              className="press flex flex-col items-center gap-0.5 rounded-full py-1"
-            >
-              <span
-                className={cx(
-                  "flex h-9 w-9 items-center justify-center rounded-full transition",
-                  active ? "bg-cocoa text-white shadow-md shadow-accent/30" : "text-ink-2"
-                )}
+      <div className="glass overflow-hidden rounded-full shadow-lg ring-1 ring-white">
+        <div
+          ref={scroller}
+          onScroll={(event) => {
+            tabBarScroll = event.currentTarget.scrollLeft;
+          }}
+          className="no-scrollbar flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain p-1.5 [mask-image:linear-gradient(to_right,transparent,black_14px,black_calc(100%-14px),transparent)]"
+        >
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const active = tab.path === current;
+            return (
+              <Link
+                key={tab.path}
+                href={tab.path}
+                aria-current={active ? "page" : undefined}
+                className="press flex w-[4.3rem] shrink-0 snap-start flex-col items-center gap-0.5 rounded-full py-1"
               >
-                <Icon size={19} strokeWidth={active ? 2.4 : 1.9} />
-              </span>
-              <span
-                className={cx(
-                  "text-[11px] leading-none",
-                  active ? "font-bold text-accent-ink" : "font-semibold text-muted"
-                )}
-              >
-                {t(tab.label)}
-              </span>
-            </Link>
-          );
-        })}
+                <span
+                  className={cx(
+                    "flex h-9 w-9 items-center justify-center rounded-full transition",
+                    active ? "bg-cocoa text-white shadow-md shadow-accent/30" : "text-ink-2"
+                  )}
+                >
+                  <Icon size={19} strokeWidth={active ? 2.4 : 1.9} />
+                </span>
+                <span
+                  className={cx(
+                    "line-clamp-2 w-full px-0.5 text-center text-[10.5px] leading-tight",
+                    active ? "font-bold text-accent-ink" : "font-semibold text-muted"
+                  )}
+                >
+                  {t(tab.label)}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </nav>
   );
