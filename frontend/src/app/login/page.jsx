@@ -88,9 +88,9 @@ function LoginForm() {
     <main className="min-h-dvh text-ink md:flex md:items-center md:justify-center md:py-10">
       <div className="w-full md:max-w-md">
         {/* Bright header with the logo, like a greeting card */}
-        <div className="bg-sunset grain relative overflow-hidden rounded-b-[3rem] px-6 pb-24 pt-6 text-white md:rounded-[2.5rem]">
+        <div className="bg-cocoa grain relative overflow-hidden rounded-b-[3rem] px-6 pb-24 pt-6 text-white md:rounded-[2.5rem]">
           <span aria-hidden="true" className="absolute -right-12 -top-10 h-48 w-48 rounded-full bg-white/20" />
-          <span aria-hidden="true" className="absolute -bottom-20 -left-10 h-52 w-52 rounded-full bg-[#ff9a4d]/40 blur-sm" />
+          <span aria-hidden="true" className="absolute -bottom-20 -left-10 h-52 w-52 rounded-full bg-black/15 blur-sm" />
           <Link
             href="/"
             className="press relative inline-flex h-10 items-center gap-2 rounded-full bg-white px-4 text-sm font-bold text-ink shadow-sm"
@@ -201,7 +201,7 @@ function LoginForm() {
           <button
             type="submit"
             disabled={loading}
-            className="press bg-sunset mt-6 flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-bold text-white shadow-md shadow-accent/30 hover:brightness-105 disabled:opacity-60"
+            className="press bg-cocoa mt-6 flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-bold text-white shadow-md shadow-accent/30 hover:brightness-105 disabled:opacity-60"
           >
             {loading && <LoaderCircle size={18} className="animate-spin" />}
             {loading ? t("login.loading") : t("login.submit")}

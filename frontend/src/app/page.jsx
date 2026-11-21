@@ -35,8 +35,8 @@ export default function Home() {
 
       <section className="relative flex min-h-[calc(100dvh-88px)] items-center justify-center px-6 pb-16">
         {/* Soft floating bubbles (decoration only) */}
-        <div aria-hidden="true" className="bg-sunset grain pointer-events-none absolute -right-24 top-4 h-72 w-72 rounded-full opacity-80 md:h-96 md:w-96" />
-        <div aria-hidden="true" className="bg-lilac-glow grain pointer-events-none absolute -left-28 bottom-10 h-64 w-64 rounded-full opacity-70 md:h-80 md:w-80" />
+        <div aria-hidden="true" className="bg-cocoa grain pointer-events-none absolute -right-24 top-4 h-72 w-72 rounded-full opacity-80 md:h-96 md:w-96" />
+        <div aria-hidden="true" className="bg-taupe-glow grain pointer-events-none absolute -left-28 bottom-10 h-64 w-64 rounded-full opacity-70 md:h-80 md:w-80" />
         <div aria-hidden="true" className="pointer-events-none absolute left-[14%] top-[20%] text-accent">
           <Sparkles size={22} strokeWidth={1.6} />
         </div>
@@ -58,14 +58,14 @@ export default function Home() {
           <h1 className="font-display text-5xl font-bold leading-[1.05] sm:text-6xl md:text-7xl">
             {t("landing.title1")}
             <br />
-            <span className="bg-sunset bg-clip-text text-transparent">{t("landing.title2")}</span>
+            <span className="bg-cocoa bg-clip-text text-transparent">{t("landing.title2")}</span>
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-base font-medium leading-7 text-muted md:text-lg">
             {t("landing.body")}
           </p>
           <button
             onClick={enter}
-            className="press bg-sunset mt-9 inline-flex h-14 items-center gap-3 rounded-full px-8 text-base font-bold text-white shadow-lg shadow-accent/35"
+            className="press bg-cocoa mt-9 inline-flex h-14 items-center gap-3 rounded-full px-8 text-base font-bold text-white shadow-lg shadow-accent/35"
           >
             {t("landing.enter")}
             <ArrowRight size={18} />

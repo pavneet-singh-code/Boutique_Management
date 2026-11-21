@@ -65,7 +65,7 @@ export function BillDocument({ bill, settings }) {
 
   return (
     <article className="print-area overflow-hidden rounded-2xl border border-line bg-white text-[#111b21] shadow-sm">
-      <div className="bg-sunset h-2.5" />
+      <div className="bg-cocoa h-2.5" />
       <div className="p-5 md:p-8">
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-center gap-3">

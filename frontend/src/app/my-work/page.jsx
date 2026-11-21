@@ -42,7 +42,7 @@ export default function MyWorkPage() {
       }
     >
       <div className="mx-auto max-w-2xl space-y-4 px-4 py-5 md:px-0 md:py-0">
-        <div className="bg-sunset grain relative flex items-center gap-4 overflow-hidden rounded-[2.25rem] rounded-tr-[4rem] p-5 text-white shadow-lg shadow-accent/30 md:p-7">
+        <div className="bg-cocoa grain relative flex items-center gap-4 overflow-hidden rounded-[2.25rem] rounded-tr-[4rem] p-5 text-white shadow-lg shadow-accent/30 md:p-7">
           <span aria-hidden="true" className="absolute -right-10 -top-12 h-40 w-40 rounded-full bg-white/20" />
           {me && <EmployeeAvatar employee={me} size={54} className="relative ring-4 ring-white/50" />}
           <div className="relative min-w-0">

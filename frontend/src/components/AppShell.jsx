@@ -150,7 +150,7 @@ function Sidebar() {
 
   return (
     <aside className="glass fixed inset-y-3 left-3 z-40 hidden w-60 flex-col rounded-[2rem] shadow-md ring-1 ring-white md:flex">
-      <Link href="/dashboard" className="press m-3 flex items-center gap-3 rounded-[1.6rem] bg-peach p-3">
+      <Link href="/dashboard" className="press m-3 flex items-center gap-3 rounded-[1.6rem] bg-sand p-3">
         <Image
           src="/brand/icon-96.png"
           alt=""
@@ -196,7 +196,7 @@ function Sidebar() {
                     className={cx(
                       "press group flex items-center gap-3 rounded-full px-2 py-1.5",
                       active
-                        ? "bg-sunset font-bold text-white shadow-md shadow-accent/25"
+                        ? "bg-cocoa font-bold text-white shadow-md shadow-accent/25"
                         : "font-semibold text-ink-2 hover:bg-accent-soft/70"
                     )}
                   >
@@ -225,7 +225,7 @@ function Sidebar() {
         {me && (
           <Link
             href="/settings"
-            className="press mb-1 flex items-center gap-3 rounded-full bg-lilac-soft px-2 py-2"
+            className="press mb-1 flex items-center gap-3 rounded-full bg-taupe-soft px-2 py-2"
           >
             <EmployeeAvatar employee={me} size={34} />
             <span className="min-w-0">
@@ -384,7 +384,7 @@ function BottomNav() {
               <span
                 className={cx(
                   "flex h-9 w-9 items-center justify-center rounded-full transition",
-                  active ? "bg-sunset text-white shadow-md shadow-accent/30" : "text-ink-2"
+                  active ? "bg-cocoa text-white shadow-md shadow-accent/30" : "text-ink-2"
                 )}
               >
                 <Icon size={19} strokeWidth={active ? 2.4 : 1.9} />
@@ -411,7 +411,7 @@ function Fab({ href, label, icon: Icon = Plus }) {
       href={href}
       aria-label={label}
       title={label}
-      className="press bg-sunset fixed bottom-[calc(96px+env(safe-area-inset-bottom))] right-4 z-40 flex h-15 w-15 items-center justify-center rounded-full text-white shadow-lg shadow-accent/40 ring-4 ring-white/70 md:hidden"
+      className="press bg-cocoa fixed bottom-[calc(96px+env(safe-area-inset-bottom))] right-4 z-40 flex h-15 w-15 items-center justify-center rounded-full text-white shadow-lg shadow-accent/40 ring-4 ring-white/70 md:hidden"
     >
       <Icon size={25} strokeWidth={2.3} />
     </Link>
@@ -426,7 +426,7 @@ function NoAccess({ role }) {
   const { t } = useI18n();
   return (
     <div className="flex flex-col items-center px-6 py-16 text-center">
-      <span className="flex h-16 w-16 items-center justify-center rounded-full bg-lilac-soft text-lilac-ink">
+      <span className="flex h-16 w-16 items-center justify-center rounded-full bg-taupe-soft text-taupe-ink">
         <Lock size={26} />
       </span>
       <h2 className="mt-4 font-display text-xl font-bold text-ink">{t("noAccess.title")}</h2>

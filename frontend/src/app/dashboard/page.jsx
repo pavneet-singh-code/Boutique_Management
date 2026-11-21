@@ -150,13 +150,13 @@ export default function DashboardPage() {
         }
       />
 
-      {/* Greeting banner: a bright, bubbly "sunset" card */}
+      {/* Greeting banner: a rounded cocoa card */}
       <div className="px-4 pb-1 pt-4 md:mb-7 md:px-0 md:pt-0">
-        <div className="bg-sunset grain relative overflow-hidden rounded-[2.25rem] rounded-tr-[4.5rem] p-6 text-white shadow-lg shadow-accent/30 md:p-8">
+        <div className="bg-cocoa grain relative overflow-hidden rounded-[2.25rem] rounded-tr-[4.5rem] p-6 text-white shadow-lg shadow-accent/30 md:p-8">
           {/* Soft bubbles in the corner (decoration only) */}
           <span aria-hidden="true" className="absolute -right-10 -top-12 h-44 w-44 rounded-full bg-white/20 blur-[2px]" />
-          <span aria-hidden="true" className="absolute right-16 top-16 h-16 w-16 rounded-full bg-[#ffd3a8]/60" />
-          <span aria-hidden="true" className="absolute -bottom-16 right-1/3 h-40 w-40 rounded-full bg-[#ff9a4d]/40 blur-sm" />
+          <span aria-hidden="true" className="absolute right-16 top-16 h-16 w-16 rounded-full bg-white/10" />
+          <span aria-hidden="true" className="absolute -bottom-16 right-1/3 h-40 w-40 rounded-full bg-black/15 blur-sm" />
           <div className="relative flex items-center gap-4">
             {me && <EmployeeAvatar employee={me} size={56} className="ring-4 ring-white/50" />}
             <div className="min-w-0">
@@ -203,14 +203,14 @@ export default function DashboardPage() {
                 label={t("dash.received")}
                 value={formatMoney(data.receivedThisMonth, locale)}
                 icon={Wallet}
-                tone="peach"
+                tone="sand"
               />
               <Link href="/bills" className="block">
                 <StatTile
                   label={t("dash.toCollect")}
                   value={formatMoney(data.toCollect, locale)}
                   icon={Clock3}
-                  tone="lilac"
+                  tone="taupe"
                 />
               </Link>
               <Link href="/bills/new" className="block">
@@ -249,7 +249,7 @@ export default function DashboardPage() {
               href="/pending"
               className="mx-4 flex items-center gap-3 press rounded-3xl bg-card p-4 shadow-sm ring-1 ring-white hover:bg-card-2 md:mx-0"
             >
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-lilac-soft text-lilac-ink">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-taupe-soft text-taupe-ink">
                 <ListTodo size={20} />
               </span>
               <span className="min-w-0 flex-1">

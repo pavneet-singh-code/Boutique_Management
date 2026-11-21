@@ -1,35 +1,36 @@
 @import "tailwindcss";
 
 /*
- * Fab_art "bubbly" look: warm cream background with soft peach / lilac glows,
- * bright orange actions, deep plum text, big round corners and soft shadows.
+ * Fab_art look: soft warm-grey background, cocoa-brown actions, near-black
+ * text, white cards and stone / taupe accents (calm, handcrafted, like an
+ * artisan shop) - with big round corners and soft shadows.
  * Phones keep the app-like layout (chat lists, floating tab bar, round + button);
  * tablets / laptops get a floating sidebar.
  * Components only ever use these tokens (bg-card, text-ink, ...), so the whole
  * app follows this file.
  */
 :root {
-  --bg: #fff7f1;
+  --bg: #ebe9e6;
   --card: #ffffff;
-  --card-2: #fff0e6;
-  --line: #f6e3d6;
-  --ink: #3b2339;
-  --ink-2: #5b3f57;
-  --muted: #8a7186;
-  --accent: #ec6a22;
-  --accent-hover: #d85a14;
-  --accent-ink: #c2530f;
-  --accent-soft: #ffe7d6;
-  --accent-soft-ink: #9c420c;
-  --lilac: #8c74d8;
-  --lilac-soft: #efe9ff;
-  --lilac-ink: #58429f;
-  --warn-soft: #fff1d1;
-  --warn-ink: #8a5300;
-  --danger: #d1453b;
-  --danger-soft: #ffe9e5;
-  --wallpaper: #fff3ea;
-  --bubble-out: #ffe7d6;
+  --card-2: #f4f2ef;
+  --line: #e2ded9;
+  --ink: #1c1917;
+  --ink-2: #3d3732;
+  --muted: #736b65;
+  --accent: #54443b;
+  --accent-hover: #43362f;
+  --accent-ink: #54443b;
+  --accent-soft: #e9e2db;
+  --accent-soft-ink: #4a3b32;
+  --taupe: #9a8a80;
+  --taupe-soft: #e2dbd4;
+  --taupe-ink: #5a4c43;
+  --warn-soft: #f6ecd9;
+  --warn-ink: #7a5513;
+  --danger: #b4423a;
+  --danger-soft: #f6e4e1;
+  --wallpaper: #efedea;
+  --bubble-out: #e9e2db;
   --bubble-in: #ffffff;
 
   --font-stack: var(--font-body), var(--font-deva), ui-sans-serif, system-ui, sans-serif;
@@ -49,9 +50,9 @@
   --color-accent-ink: var(--accent-ink);
   --color-accent-soft: var(--accent-soft);
   --color-accent-soft-ink: var(--accent-soft-ink);
-  --color-lilac: var(--lilac);
-  --color-lilac-soft: var(--lilac-soft);
-  --color-lilac-ink: var(--lilac-ink);
+  --color-taupe: var(--taupe);
+  --color-taupe-soft: var(--taupe-soft);
+  --color-taupe-ink: var(--taupe-ink);
   --color-warn-soft: var(--warn-soft);
   --color-warn-ink: var(--warn-ink);
   --color-danger: var(--danger);
@@ -72,10 +73,10 @@
   --radius-2xl: 1.6rem;
   --radius-3xl: 2.1rem;
 
-  /* Soft, warm shadows instead of hard borders. */
-  --shadow-sm: 0 2px 4px -2px rgb(59 35 57 / 0.05), 0 8px 24px -10px rgb(214 110 50 / 0.22);
-  --shadow-md: 0 4px 10px -4px rgb(59 35 57 / 0.07), 0 16px 36px -14px rgb(214 110 50 / 0.3);
-  --shadow-lg: 0 8px 18px -8px rgb(59 35 57 / 0.1), 0 24px 56px -18px rgb(214 110 50 / 0.35);
+  /* Soft cocoa-tinted shadows instead of hard borders. */
+  --shadow-sm: 0 2px 4px -2px rgb(28 25 23 / 0.05), 0 8px 24px -10px rgb(84 68 59 / 0.2);
+  --shadow-md: 0 4px 10px -4px rgb(28 25 23 / 0.07), 0 16px 36px -14px rgb(84 68 59 / 0.26);
+  --shadow-lg: 0 8px 18px -8px rgb(28 25 23 / 0.1), 0 24px 56px -18px rgb(84 68 59 / 0.32);
 }
 
 * {
@@ -92,11 +93,10 @@ body {
 body {
   color: var(--ink);
   font-family: var(--font-stack);
-  /* Cream with a peach glow top-right and a lilac glow on the left. */
+  /* Warm grey with a soft light glow top-right and a sand glow on the left. */
   background:
-    radial-gradient(42rem 30rem at 105% -8%, #ffd6bd 0%, transparent 62%),
-    radial-gradient(36rem 30rem at -18% 38%, #ece3ff 0%, transparent 60%),
-    radial-gradient(30rem 24rem at 60% 115%, #ffe1cf 0%, transparent 60%),
+    radial-gradient(42rem 30rem at 105% -8%, #f7f5f2 0%, transparent 62%),
+    radial-gradient(36rem 30rem at -18% 38%, #e2dbd3 0%, transparent 60%),
     var(--bg);
   background-attachment: fixed;
 }
@@ -112,15 +112,15 @@ html[lang="hi"] body {
 
 /* ---------------- Bubbly surfaces ---------------- */
 
-/* The bright orange of the Home banner, Login header and main buttons. */
-.bg-sunset {
-  background-image: linear-gradient(135deg, #ffb36b 0%, #f7853a 45%, #e85d1c 100%);
+/* The cocoa brown of the Home banner, Login header and main buttons. */
+.bg-cocoa {
+  background-image: linear-gradient(135deg, #7a6558 0%, #5c4a40 50%, #3f322b 100%);
 }
-.bg-lilac-glow {
-  background-image: linear-gradient(135deg, #d9ccff 0%, #a994ea 55%, #8c74d8 100%);
+.bg-taupe-glow {
+  background-image: linear-gradient(135deg, #ebe5df 0%, #c7bbb0 55%, #9a8a80 100%);
 }
-.bg-peach {
-  background-image: linear-gradient(160deg, #fff3ea 0%, #ffe2cf 100%);
+.bg-sand {
+  background-image: linear-gradient(160deg, #f9f7f4 0%, #ebe5de 100%);
 }
 
 /* A soft film grain, like the reference's illustrations (decorative only). */
@@ -142,7 +142,7 @@ html[lang="hi"] body {
 
 /* Frosted bars (headers, floating tab bar). */
 .glass {
-  background: rgb(255 255 255 / 0.78);
+  background: rgb(255 255 255 / 0.82);
   -webkit-backdrop-filter: saturate(1.4) blur(16px);
   backdrop-filter: saturate(1.4) blur(16px);
 }
@@ -158,10 +158,10 @@ html[lang="hi"] body {
   scrollbar-width: none;
 }
 
-/* Chat background for the customer timeline: tiny peach dots. */
+/* Chat background for the customer timeline: tiny cocoa dots. */
 .chat-wallpaper {
   background-color: var(--wallpaper);
-  background-image: radial-gradient(rgb(236 106 34 / 0.09) 1.2px, transparent 1.2px);
+  background-image: radial-gradient(rgb(84 68 59 / 0.08) 1.2px, transparent 1.2px);
   background-size: 18px 18px;
 }
 

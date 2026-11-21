@@ -20,7 +20,7 @@ export function cx(...classes) {
 
 const buttonVariants = {
   primary:
-    "bg-sunset text-white font-semibold shadow-md shadow-accent/25 hover:brightness-105 disabled:opacity-50",
+    "bg-cocoa text-white font-semibold shadow-md shadow-accent/25 hover:brightness-105 disabled:opacity-50",
   secondary:
     "bg-card text-ink-2 font-semibold shadow-sm ring-1 ring-line hover:bg-card-2 disabled:opacity-50",
   danger: "bg-danger text-white font-semibold shadow-sm hover:opacity-90 disabled:opacity-50",
@@ -112,9 +112,9 @@ export function PageHeading({ eyebrow, title, subtitle, actions }) {
 // Each tile tone: background, label colour, icon bubble.
 const TILE_TONES = {
   default: ["bg-card shadow-sm border border-white", "text-muted", "bg-accent-soft text-accent-ink", "text-ink"],
-  accent: ["bg-sunset grain shadow-md shadow-accent/25", "text-white/85", "bg-white/25 text-white", "text-white"],
-  peach: ["bg-peach shadow-sm border border-white", "text-accent-soft-ink/80", "bg-white text-accent-ink", "text-ink"],
-  lilac: ["bg-lilac-soft shadow-sm border border-white", "text-lilac-ink/80", "bg-white text-lilac-ink", "text-ink"],
+  accent: ["bg-cocoa grain shadow-md shadow-accent/25", "text-white/85", "bg-white/25 text-white", "text-white"],
+  sand: ["bg-sand shadow-sm border border-white", "text-accent-soft-ink/80", "bg-white text-accent-ink", "text-ink"],
+  taupe: ["bg-taupe-soft shadow-sm border border-white", "text-taupe-ink/80", "bg-white text-taupe-ink", "text-ink"],
 };
 
 /** A number with a label, as a soft rounded tile (like "Energy 80" in the reference). */
@@ -210,7 +210,7 @@ export function Chip({ active, children, ...props }) {
       className={cx(
         "press h-9 shrink-0 whitespace-nowrap rounded-full px-4 text-sm font-semibold",
         active
-          ? "bg-sunset text-white shadow-sm shadow-accent/30"
+          ? "bg-cocoa text-white shadow-sm shadow-accent/30"
           : "bg-card text-ink-2 shadow-sm ring-1 ring-line hover:bg-card-2"
       )}
       {...props}
@@ -398,7 +398,7 @@ export function LanguageToggle({ className, size = "md" }) {
             "rounded-full font-semibold transition",
             size === "lg" ? "px-5 py-2 text-base" : "px-3.5 py-1.5 text-sm",
             lang === option.value
-              ? "bg-sunset text-white shadow-sm shadow-accent/30"
+              ? "bg-cocoa text-white shadow-sm shadow-accent/30"
               : "text-muted hover:text-ink"
           )}
         >

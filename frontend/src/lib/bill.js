@@ -115,7 +115,7 @@ export async function billImageFile(bill, settings, t, locale) {
   // Paper
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = "#ec6a22";
+  ctx.fillStyle = "#54443b";
   ctx.fillRect(0, 0, W, 14);
 
   let y = 92;
@@ -167,7 +167,7 @@ export async function billImageFile(bill, settings, t, locale) {
       if (picture) {
         drawRoundedSquare(ctx, picture, pad, top, photoSize, 14);
       } else {
-        ctx.fillStyle = "#fff0e6";
+        ctx.fillStyle = "#f4f2ef";
         if (ctx.roundRect) {
           ctx.beginPath();
           ctx.roundRect(pad, top, photoSize, photoSize, 14);
@@ -177,7 +177,7 @@ export async function billImageFile(bill, settings, t, locale) {
         }
       }
       const textX = pad + photoSize + 22;
-      ctx.fillStyle = "#c2530f";
+      ctx.fillStyle = "#54443b";
       ctx.font = `600 24px ${font}`;
       ctx.fillText(number, textX, y - rowH / 2 - 8);
       ctx.fillStyle = "#111b21";
@@ -187,7 +187,7 @@ export async function billImageFile(bill, settings, t, locale) {
       ctx.font = `600 28px ${font}`;
       ctx.fillText(formatMoney(line.final_total, locale), W - pad, y - rowH / 2 + 10);
     } else {
-      ctx.fillStyle = "#c2530f";
+      ctx.fillStyle = "#54443b";
       ctx.font = `600 24px ${font}`;
       ctx.fillText(number, pad, y - 18);
       ctx.fillStyle = "#111b21";
