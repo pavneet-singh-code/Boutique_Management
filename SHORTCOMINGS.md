@@ -38,6 +38,13 @@ One line is enough. Screenshots help.
 - [ ] **A real photo upload hasn't been confirmed yet** on the live app, with the Cloudinary key in Render.
   Test: add a photo to an order, and add one while creating an order.
 
+### Bills on WhatsApp
+- [ ] **Bills can't go to a customer's chat fully automatically.** "Send to … on WhatsApp" gets as close as a
+  website can: on phones it opens WhatsApp with the bill picture and message (you pick WhatsApp Business, then
+  the customer); on laptops it copies the picture and opens their chat (you paste and send).
+  Sending a picture straight to one number with no taps needs the paid **WhatsApp Business Platform API**
+  (Meta approval, an approved message template, roughly ₹0.15–0.80 per message; check Meta's current rate card).
+
 ### Calendar
 - [ ] **Orders have dates but no times,** so the Week view has rows for deliveries / trials / work instead of hours.
   If trials have fixed times, we could add a time to trials and show them by hour.

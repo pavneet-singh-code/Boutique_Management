@@ -820,6 +820,16 @@ const en = {
   "customers.addTitle": "New customer",
   "customers.addHelp": "Save them once, and next time their name and phone fill in by themselves.",
   "customers.phoneTaken": "This phone number already belongs to another customer. Search for them instead.",
+  // Bill on WhatsApp, order card
+  "bills.sendTo": "Send to {name} on WhatsApp",
+  "bills.sendHelpPhone": "Opens WhatsApp with the bill picture and the message. Choose WhatsApp Business, then {name}.",
+  "bills.sendHelpLaptop": "Copies the bill picture and opens {name}'s chat with the message. Paste the picture (Ctrl+V) and send.",
+  "bills.messageOnly": "Message only",
+  "toast.billCopied": "Bill picture copied",
+  "toast.billCopiedBody": "Paste it in {name}'s chat (Ctrl+V), then send.",
+  "toast.billChatOpened": "{name}'s chat is open",
+  "toast.billChatOpenedBody": "To send the picture too, use \"Share bill picture\".",
+  "order.progress": "{value}% done",
 };
 
 const hi = {
@@ -1619,6 +1629,16 @@ const hi = {
   "customers.addTitle": "नया ग्राहक",
   "customers.addHelp": "एक बार सेव करें, अगली बार नाम और फ़ोन अपने-आप भर जाएँगे।",
   "customers.phoneTaken": "यह फ़ोन नंबर पहले से किसी दूसरे ग्राहक का है। उन्हें खोजकर चुनें।",
+  // Bill on WhatsApp, order card
+  "bills.sendTo": "{name} को WhatsApp पर भेजें",
+  "bills.sendHelpPhone": "बिल की फ़ोटो और मैसेज के साथ WhatsApp खुलेगा। WhatsApp Business चुनें, फिर {name}।",
+  "bills.sendHelpLaptop": "बिल की फ़ोटो कॉपी होगी और {name} की चैट मैसेज के साथ खुलेगी। फ़ोटो पेस्ट करें (Ctrl+V) और भेजें।",
+  "bills.messageOnly": "सिर्फ़ मैसेज",
+  "toast.billCopied": "बिल की फ़ोटो कॉपी हो गई",
+  "toast.billCopiedBody": "इसे {name} की चैट में पेस्ट करें (Ctrl+V), फिर भेजें।",
+  "toast.billChatOpened": "{name} की चैट खुल गई",
+  "toast.billChatOpenedBody": "फ़ोटो भी भेजने के लिए \"बिल की फ़ोटो भेजें\" दबाएँ।",
+  "order.progress": "{value}% पूरा",
 };
 
 export const dictionaries = { en, hi };

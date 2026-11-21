@@ -273,3 +273,41 @@ export async function shareBillImage(bill, settings, t, locale) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
   return "downloaded";
 }
+
+/**
+ * "Send to the customer on WhatsApp", as close to direct as a website can get.
+ * (A picture can only go straight into one chosen chat with the paid WhatsApp
+ * Business Platform API; websites can open a chat with text only.)
+ * - Phones: the share sheet with the bill picture AND the message; choose
+ *   WhatsApp Business, then the customer.
+ * - Laptops: the picture is copied, and the customer's chat opens with the
+ *   message typed in; paste the picture (Ctrl+V) and send.
+ * Returns "shared" | "cancelled" | "copied" | "opened".
+ */
+export async function sendBillOnWhatsApp(bill, settings, t, locale) {
+  const text = billMessage(bill, settings, t, locale);
+  const file = await billImageFile(bill, settings, t, locale);
+  const touch = window.matchMedia?.("(pointer: coarse)").matches;
+
+  if (touch && navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], text });
+      return "shared";
+    } catch (err) {
+      if (err?.name === "AbortError") return "cancelled";
+      // Sharing not allowed here: fall back to copy + open the chat.
+    }
+  }
+
+  let copied = false;
+  try {
+    if (navigator.clipboard?.write && window.ClipboardItem) {
+      await navigator.clipboard.write([new window.ClipboardItem({ "image/png": file })]);
+      copied = true;
+    }
+  } catch {
+    copied = false;
+  }
+  window.open(whatsappLink(bill.customer?.phone, text), "_blank", "noopener");
+  return copied ? "copied" : "opened";
+}

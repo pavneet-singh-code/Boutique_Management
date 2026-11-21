@@ -30,7 +30,8 @@ import {
   markBillSent,
   markBillUnpaid,
 } from "../../../lib/api";
-import { billMessage, shareBillImage, whatsappLink } from "../../../lib/bill";
+import { billMessage, sendBillOnWhatsApp, shareBillImage, whatsappLink } from "../../../lib/bill";
+import { showToast } from "../../../lib/toast";
 import { useI18n } from "../../../lib/i18n";
 import { toISODate } from "../../../lib/orders";
 import { useResource } from "../../../lib/useResource";
@@ -85,6 +86,26 @@ export default function BillPage() {
     }
   };
 
+  // The main button: the bill picture to this customer on WhatsApp.
+  const sendToCustomer = async () => {
+    setBusy(true);
+    setActionError("");
+    try {
+      const result = await sendBillOnWhatsApp(bill, settings || {}, t, locale);
+      if (result === "cancelled") return;
+      markSentIfDraft();
+      if (result === "copied") {
+        showToast({ title: t("toast.billCopied"), body: t("toast.billCopiedBody", { name: bill.customer.name }) });
+      } else if (result === "opened") {
+        showToast({ title: t("toast.billChatOpened", { name: bill.customer.name }), body: t("toast.billChatOpenedBody") });
+      }
+    } catch (err) {
+      setActionError(tError(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const sendText = () => {
     const link = whatsappLink(bill.customer.phone, billMessage(bill, settings || {}, t, locale));
     window.open(link, "_blank", "noopener");
@@ -107,6 +128,7 @@ export default function BillPage() {
   }
 
   const paid = bill.status === "paid";
+  const touchScreen = typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches;
 
   return (
     <AppShell
@@ -162,6 +184,16 @@ export default function BillPage() {
           <>
             <BillDocument bill={bill} settings={settings || {}} />
 
+            <div className="print:hidden">
+              <Button size="lg" className="w-full" onClick={sendToCustomer} disabled={busy}>
+                <MessageCircle size={20} />
+                {t("bills.sendTo", { name: bill.customer.name })}
+              </Button>
+              <p className="mt-2 px-2 text-center text-xs text-muted">
+                {touchScreen ? t("bills.sendHelpPhone", { name: bill.customer.name }) : t("bills.sendHelpLaptop", { name: bill.customer.name })}
+              </p>
+            </div>
+
             <div className="grid grid-cols-3 gap-2 print:hidden">
               <Button variant="secondary" onClick={shareImage} disabled={busy} className="!h-auto flex-col !rounded-2xl py-3 text-[13px]">
                 <ImageIcon size={20} />
@@ -169,7 +201,7 @@ export default function BillPage() {
               </Button>
               <Button variant="secondary" onClick={sendText} disabled={busy} className="!h-auto flex-col !rounded-2xl py-3 text-[13px]">
                 <MessageCircle size={20} />
-                {t("bills.whatsapp")}
+                {t("bills.messageOnly")}
               </Button>
               <Button variant="secondary" onClick={() => window.print()} className="!h-auto flex-col !rounded-2xl py-3 text-[13px]">
                 <Printer size={20} />
