@@ -19,11 +19,21 @@ import {
   parseDate,
 } from "../lib/orders";
 import { Avatar, ReviewBadge, cx } from "./ui";
+import { CoverThumb } from "./Photos";
+import { coverPhoto } from "../lib/photos";
 import { LateChip, ProgressBar, StageChip } from "./Work";
 import { ReelBadge } from "./Content";
 import { isLate, isOpen } from "../lib/work";
 
 /** Short "delivery" hint: "3 days left" / "Due today" / date. */
+/** The order's photo in a circle (like a WhatsApp chat), or the customer's initials. */
+export function OrderAvatar({ order, size = 48 }) {
+  if (coverPhoto(order.photos)) {
+    return <CoverThumb photos={order.photos} size={size} round />;
+  }
+  return <Avatar name={rawName(order)} seed={avatarSeed(order)} size={size} />;
+}
+
 export function DeliveryHint({ order, className }) {
   const { t, locale } = useI18n();
   const date = parseDate(order.deliver_date);
@@ -58,7 +68,7 @@ export function OrderRow({ order, showDelivery = true, rightText }) {
         href={orderPath(order)}
         className="flex items-center gap-3 px-4 py-3 transition hover:bg-card-2 active:bg-card-2"
       >
-        <Avatar name={rawName(order)} seed={avatarSeed(order)} />
+        <OrderAvatar order={order} size={48} />
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline justify-between gap-2">
             <p className="truncate text-[16.5px] font-medium text-ink">
@@ -176,11 +186,7 @@ export function OrdersTable({ orders }) {
               </td>
               <td className="px-4 py-3.5">
                 <div className="flex items-center gap-3">
-                  <Avatar
-                    name={rawName(order)}
-                    seed={avatarSeed(order)}
-                    size={34}
-                  />
+                  <OrderAvatar order={order} size={34} />
                   <div className="min-w-0">
                     <p className="max-w-[180px] truncate text-sm font-medium text-ink">
                       {displayName(order, t)}

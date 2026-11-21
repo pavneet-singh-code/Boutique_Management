@@ -43,6 +43,7 @@ def content_order(order):
         "current_step": order.current_step,
         "ok_to_post": order.ok_to_post,
         "deliver_date": order.deliver_date,
+        "photos": [schemas.PhotoOut.model_validate(p) for p in order.photos],
     }
 
 

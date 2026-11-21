@@ -81,6 +81,9 @@ export function LanguageProvider({ children }) {
         phone_in_use: "team.phoneInUse",
         phone_needed: "profile.phoneNeeded",
         last_owner: "team.lastOwner",
+        photos_not_configured: "error.photosNotSetUp",
+        too_many_photos: "error.tooManyPhotos",
+        photo_not_verified: "error.photoUpload",
       };
       if (known[error?.code]) {
         return t(known[error.code], { minutes: error.minutes ?? 15 });

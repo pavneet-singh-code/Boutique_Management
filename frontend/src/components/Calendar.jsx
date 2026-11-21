@@ -9,6 +9,8 @@ import { clean, daysBetween, displayName, toISODate } from "../lib/orders";
 import { daysPushed } from "../lib/work";
 import { EmployeeAvatar, cx } from "./ui";
 import { LateChip, ProgressBar, PushedChip, StageChip } from "./Work";
+import { CoverThumb } from "./Photos";
+import { isUnfinished } from "../lib/photos";
 
 /* ---------------- One calendar item ---------------- */
 
@@ -72,6 +74,8 @@ export function CalendarItem({ item, linkOrders }) {
           </div>
         )}
       </div>
+      {/* While the suit is being made, show what it should look like. */}
+      {isUnfinished(order) && <CoverThumb photos={order.photos} size={48} />}
     </>
   );
 

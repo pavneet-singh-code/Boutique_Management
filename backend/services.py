@@ -111,6 +111,7 @@ def bill_response(bill: models.Bill) -> dict:
             "order_date": o.order_date,
             "final_total": o.final_total or 0,
             "advance_amount": o.advance_amount or 0,
+            "photo_url": o.cover_photo.bill_url if o.cover_photo else None,
         }
         for o in orders
     ]

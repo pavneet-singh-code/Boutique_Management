@@ -59,13 +59,27 @@ function fitText(ctx, text, maxWidth) {
   return `${cut}…`;
 }
 
-function loadImage(src) {
+function loadImage(src, { remote = false } = {}) {
   return new Promise((resolve, reject) => {
     const image = new Image();
+    // Pictures from Cloudinary must be loaded with CORS, or the canvas can't be saved.
+    if (remote) image.crossOrigin = "anonymous";
     image.onload = () => resolve(image);
     image.onerror = reject;
     image.src = src;
   });
+}
+
+/** Draws `image` cropped to a square with rounded corners. */
+function drawRoundedSquare(ctx, image, x, y, size, radius) {
+  ctx.save();
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(x, y, size, size, radius);
+  else ctx.rect(x, y, size, size);
+  ctx.clip();
+  const side = Math.min(image.width, image.height);
+  ctx.drawImage(image, (image.width - side) / 2, (image.height - side) / 2, side, side, x, y, size, size);
+  ctx.restore();
 }
 
 /**
@@ -77,9 +91,18 @@ export async function billImageFile(bill, settings, t, locale) {
   const font = getComputedStyle(document.body).fontFamily;
   const W = 900;
   const pad = 56;
-  const rowH = 64;
   const link = upiLink(settings, bill);
   const qr = link ? await loadImage(await upiQrDataUrl(link, 360)) : null;
+
+  // A small picture of each suit, when it has one (a missing picture is fine).
+  const pictures = await Promise.all(
+    bill.lines.map((line) =>
+      line.photo_url ? loadImage(line.photo_url, { remote: true }).catch(() => null) : null
+    )
+  );
+  const withPictures = pictures.some(Boolean);
+  const rowH = withPictures ? 112 : 64;
+  const photoSize = 84;
 
   const extraRows = (bill.discount ? 1 : 0) + 3;
   const H = 360 + bill.lines.length * rowH + extraRows * 52 + (qr ? 420 : 40) + 120;
@@ -133,23 +156,53 @@ export async function billImageFile(bill, settings, t, locale) {
   ctx.moveTo(pad, y);
   ctx.lineTo(W - pad, y);
   ctx.stroke();
-  for (const line of bill.lines) {
+  bill.lines.forEach((line, index) => {
     y += rowH;
-    ctx.fillStyle = "#8a5644";
-    ctx.font = `600 24px ${font}`;
-    ctx.fillText(`#${line.order_number || line.order_id}`, pad, y - 18);
-    ctx.fillStyle = "#111b21";
-    ctx.font = `400 26px ${font}`;
-    ctx.fillText(fitText(ctx, clean(line.what_to_design) || "—", W - pad * 2 - 260), pad + 150, y - 18);
-    ctx.textAlign = "right";
-    ctx.font = `600 28px ${font}`;
-    ctx.fillText(formatMoney(line.final_total, locale), W - pad, y - 18);
+    const number = `#${line.order_number || line.order_id}`;
+    const design = clean(line.what_to_design) || "—";
+    if (withPictures) {
+      // Picture on the left, order number above the design, price on the right.
+      const picture = pictures[index];
+      const top = y - rowH + (rowH - photoSize) / 2;
+      if (picture) {
+        drawRoundedSquare(ctx, picture, pad, top, photoSize, 14);
+      } else {
+        ctx.fillStyle = "#f3eee9";
+        if (ctx.roundRect) {
+          ctx.beginPath();
+          ctx.roundRect(pad, top, photoSize, photoSize, 14);
+          ctx.fill();
+        } else {
+          ctx.fillRect(pad, top, photoSize, photoSize);
+        }
+      }
+      const textX = pad + photoSize + 22;
+      ctx.fillStyle = "#8a5644";
+      ctx.font = `600 24px ${font}`;
+      ctx.fillText(number, textX, y - rowH / 2 - 8);
+      ctx.fillStyle = "#111b21";
+      ctx.font = `400 26px ${font}`;
+      ctx.fillText(fitText(ctx, design, W - pad - textX - 200), textX, y - rowH / 2 + 28);
+      ctx.textAlign = "right";
+      ctx.font = `600 28px ${font}`;
+      ctx.fillText(formatMoney(line.final_total, locale), W - pad, y - rowH / 2 + 10);
+    } else {
+      ctx.fillStyle = "#8a5644";
+      ctx.font = `600 24px ${font}`;
+      ctx.fillText(number, pad, y - 18);
+      ctx.fillStyle = "#111b21";
+      ctx.font = `400 26px ${font}`;
+      ctx.fillText(fitText(ctx, design, W - pad * 2 - 260), pad + 150, y - 18);
+      ctx.textAlign = "right";
+      ctx.font = `600 28px ${font}`;
+      ctx.fillText(formatMoney(line.final_total, locale), W - pad, y - 18);
+    }
     ctx.textAlign = "left";
     ctx.beginPath();
     ctx.moveTo(pad, y);
     ctx.lineTo(W - pad, y);
     ctx.stroke();
-  }
+  });
 
   // Totals
   const total = (label, value, strong = false) => {

@@ -33,14 +33,15 @@ from customer_routes import router as customer_router
 from employee_routes import router as employee_router
 from work_routes import roll_over_tasks, router as work_router, set_stage
 from content_routes import router as content_router
+from photo_routes import delete_order_photos, router as photo_router
 
 
 # ---------------------------------------------------------
 # DATABASE VERSION CHECK
 # Tables are created / changed by migrations, not on startup:
 #   cd backend && alembic upgrade head
-# The app needs at least migration 0006 (social media content plan).
-# 0007 (unique order numbers) runs once duplicates are fixed in the app.
+# The app needs at least migration 0007 (photos on orders).
+# 0008 (unique order numbers) runs once duplicates are fixed in the app.
 # ---------------------------------------------------------
 
 def current_migration():
@@ -52,15 +53,16 @@ def current_migration():
 
 DB_REVISION = current_migration()
 
-if DB_REVISION not in ("0006", "0007"):
+if DB_REVISION not in ("0007", "0008"):
     if IS_SQLITE:
         raise RuntimeError(
             "The database needs to be upgraded. Back up boutique.db, then run "
             "'alembic upgrade head' in the backend folder and reload the app."
         )
     raise RuntimeError(
-        f"The Postgres database is at version {DB_REVISION!r}, not 0006/0007. If it is new "
-        "and empty, fill it with: python migrate_to_postgres.py path/to/boutique.db"
+        f"The Postgres database is at version {DB_REVISION!r}, not 0007/0008. Run "
+        "'alembic upgrade head' with DATABASE_URL set to it; if it is new and empty, "
+        "fill it first with: python migrate_to_postgres.py path/to/boutique.db"
     )
 
 
@@ -87,6 +89,9 @@ app.include_router(work_router)
 
 # Social media content plan
 app.include_router(content_router)
+
+# Photos on orders (stored on Cloudinary)
+app.include_router(photo_router)
 
 
 # CORS
@@ -494,7 +499,7 @@ def data_check(
             date_problems.append({"order": as_dict(order), "reasons": reasons})
 
     return {
-        "unique_enforced": DB_REVISION == "0007",
+        "unique_enforced": DB_REVISION == "0008",
         "duplicates": duplicates,
         "missing": missing,
         "unusual_format": unusual,
@@ -771,7 +776,9 @@ def delete_order(
         db, current_user, "order", order.id, "deleted",
         label=activity.order_label(order),
         design=order.what_to_design,
+        photos=len(order.photos) or None,
     )
+    delete_order_photos(order)
     db.delete(order)
     db.commit()
 

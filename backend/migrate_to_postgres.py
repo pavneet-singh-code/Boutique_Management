@@ -65,9 +65,9 @@ def main():
 
     print()
     print(f"Done. Database version {revision}, {sum(copied.values())} rows copied, all counts match.")
-    if revision == "0006":
+    if revision != "0008":
         print("Order numbers are not unique yet: fix them on the 'Order number check' screen,")
-        print("then run 'alembic upgrade head' with DATABASE_URL set to the Neon address.")
+        print("then run 'alembic upgrade head' (it also adds the photos table if missing) with DATABASE_URL set to the Neon address.")
 
 
 if __name__ == "__main__":

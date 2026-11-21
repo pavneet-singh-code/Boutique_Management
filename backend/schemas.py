@@ -198,6 +198,43 @@ class CustomerBrief(BaseModel):
     phone: Optional[str] = None
 
 
+class PhotoOut(BaseModel):
+    """A photo on an order. The urls point to Cloudinary (resized there)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    order_id: int
+    kind: str
+    note: Optional[str] = None
+    url: Optional[str] = None
+    thumb_url: Optional[str] = None
+    width: Optional[int] = None
+    height: Optional[int] = None
+    created_at: Optional[datetime] = None
+
+
+PHOTO_KIND_PATTERN = "^(fabric|design|finished|other)$"
+
+
+class PhotoCreate(BaseModel):
+    """What the phone sends back after uploading to Cloudinary."""
+
+    public_id: str = Field(min_length=1, max_length=300)
+    version: int
+    signature: str = Field(min_length=1, max_length=100)
+    width: Optional[int] = None
+    height: Optional[int] = None
+    bytes: Optional[int] = None
+    kind: str = Field("fabric", pattern=PHOTO_KIND_PATTERN)
+    note: Optional[str] = Field(None, max_length=200)
+
+
+class PhotoUpdate(BaseModel):
+    kind: Optional[str] = Field(None, pattern=PHOTO_KIND_PATTERN)
+    note: Optional[str] = Field(None, max_length=200)
+
+
 class OrderResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -237,6 +274,7 @@ class OrderResponse(BaseModel):
     tasks: List["TaskOut"] = []
     ok_to_post: bool = False
     content: List["ContentBrief"] = []
+    photos: List[PhotoOut] = []
 
     needs_review: bool = False
     import_notes: Optional[str] = None
@@ -322,6 +360,7 @@ class BillLine(BaseModel):
     order_date: Optional[date] = None
     final_total: int
     advance_amount: int
+    photo_url: Optional[str] = None  # small picture of the suit, for the bill
 
 
 class BillResponse(BaseModel):
@@ -508,6 +547,7 @@ class WorkOrder(BaseModel):
     status: str
     progress: int
     current_step: Optional[str] = None
+    photos: List[PhotoOut] = []
 
 
 class WaitingStep(BaseModel):
@@ -629,6 +669,7 @@ class ContentOrder(BaseModel):
     current_step: Optional[str] = None
     ok_to_post: bool
     deliver_date: Optional[date] = None
+    photos: List[PhotoOut] = []
 
 
 class ContentOut(ContentBrief):

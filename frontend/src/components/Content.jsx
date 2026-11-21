@@ -25,6 +25,8 @@ import { useCan, useMe } from "../lib/roles";
 import { useOrders } from "../lib/useOrders";
 import { useResource } from "../lib/useResource";
 import { Button, Card, ConfirmDialog, EmployeeAvatar, Notice, cx } from "./ui";
+import { PhotoStrip } from "./Photos";
+import { sortFinishedFirst } from "../lib/photos";
 import { StageChip } from "./Work";
 
 // What can be posted where (same list as the server's PLATFORM_FORMATS).
@@ -494,6 +496,8 @@ export function ReadyToShoot({ orders }) {
       <div className="no-scrollbar flex gap-3 overflow-x-auto px-4 pb-1 md:px-0">
         {orders.map((order) => (
           <div key={order.id} className="w-60 shrink-0 rounded-2xl border border-line bg-card p-3.5 shadow-sm">
+            {/* Finished-piece photos first: what the outfit looks like now. */}
+            <PhotoStrip photos={sortFinishedFirst(order.photos)} size={52} max={4} className="mb-2.5" />
             <p className="truncate text-[15px] font-semibold text-ink">{order.customer_name || "—"}</p>
             <p className="truncate text-sm text-muted">
               #{order.order_number || order.id} · {clean(order.what_to_design) || "—"}

@@ -31,6 +31,8 @@ import { clean, daysBetween, formatDate, parseDate, toISODate } from "../lib/ord
 import { useResource } from "../lib/useResource";
 import { STAGES, TASK_TYPES, TEMPLATES, daysPushed, isLate } from "../lib/work";
 import { Button, ConfirmDialog, EmployeeAvatar, Notice, cx } from "./ui";
+import { PhotoStrip } from "./Photos";
+import { sortForWork } from "../lib/photos";
 
 /* ---------------- Small pieces ---------------- */
 
@@ -635,6 +637,8 @@ export function TaskCard({ task, onChanged }) {
         {clean(order.what_to_design) || "—"}
         {clean(order.additional_info) && <span className="block text-sm text-muted">{clean(order.additional_info)}</span>}
       </p>
+      {/* What to make: design and fabric photos first. */}
+      <PhotoStrip photos={sortForWork(order.photos)} size={64} max={4} className="mt-3" />
       {task.note && <p className="mt-2 text-[15px] text-ink-2">📝 {task.note}</p>}
 
       <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-ink-2">

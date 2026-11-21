@@ -12,6 +12,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from database import Base
+import photos as photo_service
 
 
 class Customer(Base):
@@ -51,7 +52,7 @@ class Order(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     filename = Column(String, nullable=True)
-    # Unique once migration 0007 has run (after duplicates are cleaned up).
+    # Unique once migration 0008 has run (after duplicates are cleaned up).
     order_number = Column(String, index=True, unique=True, nullable=True)
     customer_id = Column(Integer, ForeignKey("customers.id"), nullable=True, index=True)
     # Name / phone exactly as written on the order form.
@@ -100,6 +101,24 @@ class Order(Base):
         cascade="all, delete-orphan",
         order_by="[OrderTask.position, OrderTask.id]",
     )
+
+    # Loaded together with the order everywhere (lists, work, bills, calendar).
+    photos = relationship(
+        "OrderPhoto",
+        back_populates="order",
+        cascade="all, delete-orphan",
+        order_by="OrderPhoto.id",
+        lazy="selectin",
+    )
+
+    @property
+    def cover_photo(self):
+        """The one photo to show when there's room for only one."""
+        for kind in photo_service.COVER_ORDER:
+            for photo in self.photos:
+                if photo.kind == kind:
+                    return photo
+        return None
 
     @property
     def progress(self):
@@ -333,3 +352,39 @@ class ContentItem(Base):
     order = relationship("Order", back_populates="content")
     person = relationship("Employee", foreign_keys=[assigned_to])
     creator = relationship("Employee", foreign_keys=[created_by])
+
+
+# ---------------------------------------------------------------- Photos
+
+class OrderPhoto(Base):
+    """A picture on an order (fabric, design reference, finished piece).
+    The picture itself lives on Cloudinary; only its id is kept here."""
+
+    __tablename__ = "order_photos"
+
+    id = Column(Integer, primary_key=True, index=True)
+    order_id = Column(Integer, ForeignKey("orders.id", ondelete="CASCADE"), nullable=False, index=True)
+    kind = Column(String, nullable=False, default="fabric")  # see photos.PHOTO_KINDS
+    note = Column(String, nullable=True)
+    public_id = Column(String, nullable=False, unique=True)  # Cloudinary id
+    version = Column(Integer, nullable=False)
+    width = Column(Integer, nullable=True)
+    height = Column(Integer, nullable=True)
+    bytes = Column(Integer, nullable=True)
+    uploaded_by = Column(Integer, ForeignKey("employees.id"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    order = relationship("Order", back_populates="photos")
+    uploader = relationship("Employee")
+
+    @property
+    def url(self):
+        return photo_service.url(self.public_id, self.version, photo_service.FULL)
+
+    @property
+    def thumb_url(self):
+        return photo_service.url(self.public_id, self.version, photo_service.THUMB)
+
+    @property
+    def bill_url(self):
+        return photo_service.url(self.public_id, self.version, photo_service.BILL)

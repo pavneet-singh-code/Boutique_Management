@@ -106,6 +106,17 @@ export function BillDocument({ bill, settings }) {
             {bill.lines.map((line) => (
               <tr key={line.order_id} className="border-t border-[#e9edef]">
                 <td className="whitespace-nowrap py-3 pr-3 align-top text-sm font-semibold text-[#8a5644]">
+                  {line.photo_url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={line.photo_url}
+                      alt=""
+                      width={56}
+                      height={56}
+                      loading="lazy"
+                      className="mb-1.5 h-14 w-14 rounded-lg object-cover"
+                    />
+                  )}
                   #{line.order_number || line.order_id}
                 </td>
                 <td className="py-3 pr-3 align-top">

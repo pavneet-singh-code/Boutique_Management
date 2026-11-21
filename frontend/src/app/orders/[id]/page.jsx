@@ -10,6 +10,7 @@ import {
   ChevronRight,
   CircleCheck,
   FileText,
+  Images,
   IndianRupee,
   MessageCircle,
   Pencil,
@@ -22,6 +23,7 @@ import AppShell, { HeaderIconButton } from "../../../components/AppShell";
 import { PaymentSteps } from "../../../components/Bills";
 import { WorkSection } from "../../../components/Work";
 import { ContentStageChip, ReelBadge } from "../../../components/Content";
+import { OrderPhotos } from "../../../components/Photos";
 import {
   Avatar,
   Button,
@@ -280,6 +282,12 @@ function OrderDetailContent() {
             {clean(order.what_to_design) || "—"}
           </p>
         </Section>
+
+        {((order.photos || []).length > 0 || canEdit) && (
+          <Section icon={Images} title={t("photo.section")}>
+            <OrderPhotos order={order} canEdit={canEdit} />
+          </Section>
+        )}
 
         <Section icon={BriefcaseBusiness} title={t("work.title")}>
           <WorkSection order={order} canEdit={canEdit} canAssign={canAssign} canBill={canBill} />

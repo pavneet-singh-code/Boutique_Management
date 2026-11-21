@@ -337,6 +337,7 @@ def my_tasks(db: Session = Depends(get_db), user=Depends(ANYONE)):
                 "status": order.status,
                 "progress": order.progress,
                 "current_step": order.current_step,
+                "photos": [schemas.PhotoOut.model_validate(p) for p in order.photos],
             },
         })
     return result

@@ -15,7 +15,9 @@ from sqlalchemy import DateTime, inspect, text
 import models  # noqa: F401  (registers every table on Base.metadata)
 from database import Base
 
-SUPPORTED_REVISIONS = ("0006", "0007")
+SUPPORTED_REVISIONS = ("0006", "0007", "0008")
+# Tables that a database at this version doesn't have yet.
+TABLES_ADDED_AFTER = {"0006": {"order_photos"}}
 BATCH = 500
 
 
@@ -36,12 +38,15 @@ def create_schema(engine, revision):
             "The target database already has boutique tables (" + ", ".join(sorted(existing)) + "). "
             "Use an empty database so nothing is overwritten."
         )
+    missing = TABLES_ADDED_AFTER.get(revision, set())
     with engine.begin() as connection:
-        Base.metadata.create_all(connection)
-        if revision == "0006":
-            # Before migration 0007, order numbers may still be missing or repeated
+        Base.metadata.create_all(
+            connection, tables=[t for t in Base.metadata.sorted_tables if t.name not in missing]
+        )
+        if revision != "0008":
+            # Before migration 0008, order numbers may still be missing or repeated
             # (they are fixed on the "Order number check" screen), so the index
-            # must not be unique yet. 0007 makes it unique later.
+            # must not be unique yet. 0008 makes it unique later.
             connection.execute(text("DROP INDEX ix_orders_order_number"))
             connection.execute(text("CREATE INDEX ix_orders_order_number ON orders (order_number)"))
         connection.execute(text(
@@ -72,7 +77,10 @@ def copy_rows(source_engine, target_engine, log=print):
         source_connection = source_connection.execution_options(isolation_level="REPEATABLE READ")
 
     with source_connection, target_engine.begin() as target:
+        target_tables = set(inspect(target).get_table_names())
         for table in Base.metadata.sorted_tables:  # parents before children
+            if table.name not in target_tables:
+                continue  # not at this database version (e.g. photos before 0007)
             if not source_inspector.has_table(table.name):
                 log(f"  {table.name}: not in the source, skipped")
                 counts[table.name] = 0
@@ -116,7 +124,7 @@ def copy_rows(source_engine, target_engine, log=print):
         if target_engine.dialect.name == "postgresql":
             # New rows must get ids after the copied ones.
             for table in Base.metadata.sorted_tables:
-                if "id" in table.columns and table.c.id.primary_key:
+                if table.name in target_tables and "id" in table.columns and table.c.id.primary_key:
                     target.execute(text(
                         f"SELECT setval(pg_get_serial_sequence('{table.name}', 'id'), "
                         f"COALESCE((SELECT MAX(id) FROM {table.name}), 1), "
@@ -127,9 +135,11 @@ def copy_rows(source_engine, target_engine, log=print):
 
 def count_rows(engine):
     with engine.connect() as connection:
+        present = set(inspect(connection).get_table_names())
         return {
             table.name: connection.execute(text(f"SELECT COUNT(*) FROM {table.name}")).scalar()
             for table in Base.metadata.sorted_tables
+            if table.name in present
         }
 
 

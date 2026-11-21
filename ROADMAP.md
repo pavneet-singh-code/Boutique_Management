@@ -404,8 +404,9 @@ every database change.**
    - `0004` adds employees and the activity log (Phase 2).
    - `0005` adds order stages, trial dates and work tasks (Phase 3).
    - `0006` adds the social media content plan and "customer OK to post" (Phase 5).
-   - `0007` makes order numbers unique and required. It is the **last** step on purpose: it waits until the
-     duplicates have been fixed in the app, and the app needs `0006` to run.
+   - `0007` adds photos on orders (the pictures themselves are stored on Cloudinary).
+   - `0008` makes order numbers unique and required. It is the **last** step on purpose: it waits until the
+     duplicates have been fixed in the app, and the app needs `0007` to run.
    - The backend refuses to start until at least `0006` has run, with a clear message.
 2. ✅ **Order numbers fixed automatically where it is safe:**
    - The `/` misread: `26/025` → `261025`.
@@ -418,7 +419,7 @@ every database change.**
 4. ✅ **Order numbers required and unique:**
    - The backend refuses duplicate or missing numbers on upload, add and edit.
    - The upload screen blocks saving and says which page has the problem.
-   - The database rule is switched on by `0007`, once the check screen shows "All clear".
+   - The database rule is switched on by `0008`, once the check screen shows "All clear".
    - Links now use the order number (`/orders/261023`). Old links using the internal id still work.
 5. ✅ **Proper types:**
    - Dates are real dates.
@@ -433,7 +434,7 @@ every database change.**
    - `cd ~/Boutique_Management && git pull`
    - `cd backend && pip install -r requirements.txt` (use your virtualenv if you have one)
    - `alembic upgrade head`
-   - It runs `0002` to `0006`, then stops at `0007` and lists the duplicates. **That's expected.**
+   - It runs `0002` to `0007`, then stops at `0008` and lists the duplicates. **That's expected.**
 3. **Reload the web app** on the Web tab, then deploy the new frontend.
 4. **Owner login:**
    - Log in with **"Log in with the owner password"** (the same password as today). You are `FA-001`.
@@ -653,7 +654,7 @@ They are ordered by value for the effort involved.
 | 4 | **Share PDFs from Notewise straight into the app** | Once the app is installed on the phone, Android's *Share* menu can list "Fab_art" (Web Share Target API, Chrome on Android 76+). Share the note and it opens the upload screen with the PDF already attached. This doesn't work on iPhone. | Medium |
 | 5 | **Send the bill as an image or PDF on WhatsApp**, with a **UPI payment link / QR** | This fits payment step 2. The customer gets a neat bill and can pay in one tap. A UPI `upi://pay` link and a QR code are free, with no payment gateway needed. | Small–medium |
 | 6 | **WhatsApp messages: start free, automate later** | The free `wa.me` links that already exist are enough for now. Automatic "order ready" or "trial tomorrow" messages need the **WhatsApp Business Platform**. "Utility" messages cost roughly ₹0.12–0.15 each in India. Vendor blogs say these are charged even inside the 24-hour window from Oct 2026. Check Meta's rate card before deciding. | Large |
-| 7 | **Photos on orders:** a reference photo of the design and a photo of the finished piece | Workers see exactly what to make. The social media manager gets material for posts, and customers can be shown past work. | Medium |
+| 7 | **Photos on orders** — ✅ built (Cloudinary): a reference photo of the design and a photo of the finished piece | Workers see exactly what to make. The social media manager gets material for posts, and customers can be shown past work. | Medium |
 | 8 | **Reminders on the owner's Home screen:** trials today, deliveries tomorrow, bills not sent, balance unpaid for over 7 days | It turns the dashboard into a to-do list, and later into phone push notifications for the installed app. | Small |
 | 9 | **Database backups to your PC** — ✅ done in Phase 0 (see section 10) | Today a single file holds the whole business. One mistake or a server problem could lose everything. Backups are kept on your Desktop, not on PythonAnywhere. | Done |
 | 10 | **Customer consent before posting** (`ok_to_post`) | Bridal and custom outfits are personal. Asking first protects the boutique's reputation. | Small (part of Phase 5) |

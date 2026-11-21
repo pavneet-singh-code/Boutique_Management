@@ -1,4 +1,5 @@
 import { clearResourceCache } from "./useResource";
+import { shrinkImage } from "./photos";
 // All calls to the FastAPI backend go through here.
 // Errors thrown use translation keys ("error.network", "error.session")
 // when we know the cause, so the UI can show them in Hindi or English.
@@ -290,6 +291,69 @@ export async function updateOrder(id, orderData) {
 export async function deleteOrder(id) {
   await request(`/orders/${id}`, { method: "DELETE" });
   updateCache((list) => list.filter((o) => String(o.id) !== String(id)));
+}
+
+/* ---------------- Photos on orders (stored on Cloudinary) ---------------- */
+
+function setOrderPhotos(orderId, change) {
+  updateCache((list) =>
+    list.map((o) => (o.id === orderId ? { ...o, photos: change(o.photos || []) } : o))
+  );
+  customersCache = null;
+}
+
+/**
+ * Shrinks the picture on the phone, uploads it straight to Cloudinary
+ * (with a one-time permission from our server), then saves it on the order.
+ */
+export async function uploadOrderPhoto(orderId, file, { kind, note } = {}) {
+  const { blob, width, height } = await shrinkImage(file);
+  const sign = await request(`/orders/${orderId}/photos/upload-signature`, { method: "POST" });
+
+  const form = new FormData();
+  form.append("file", blob, "photo.jpg");
+  form.append("api_key", sign.api_key);
+  form.append("timestamp", String(sign.timestamp));
+  form.append("public_id", sign.public_id);
+  form.append("signature", sign.signature);
+
+  let uploaded;
+  try {
+    const response = await fetch(sign.upload_url, { method: "POST", body: form });
+    uploaded = await response.json();
+    if (!response.ok) throw new Error(uploaded?.error?.message || "error.photoUpload");
+  } catch (err) {
+    throw new Error(err?.message?.startsWith("error.") ? err.message : "error.photoUpload");
+  }
+
+  const photo = await request(`/orders/${orderId}/photos`, {
+    method: "POST",
+    body: {
+      public_id: uploaded.public_id,
+      version: uploaded.version,
+      signature: uploaded.signature,
+      width: uploaded.width ?? width,
+      height: uploaded.height ?? height,
+      bytes: uploaded.bytes ?? blob.size,
+      kind: kind || "fabric",
+      note: note || null,
+    },
+  });
+  setOrderPhotos(orderId, (photos) =>
+    photos.some((p) => p.id === photo.id) ? photos : [...photos, photo]
+  );
+  return photo;
+}
+
+export async function updatePhoto(photo, data) {
+  const updated = await request(`/photos/${photo.id}`, { method: "PATCH", body: data });
+  setOrderPhotos(photo.order_id, (photos) => photos.map((p) => (p.id === updated.id ? updated : p)));
+  return updated;
+}
+
+export async function deletePhoto(photo) {
+  await request(`/photos/${photo.id}`, { method: "DELETE" });
+  setOrderPhotos(photo.order_id, (photos) => photos.filter((p) => p.id !== photo.id));
 }
 
 export async function saveOrders(orders) {

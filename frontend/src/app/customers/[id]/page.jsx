@@ -30,18 +30,39 @@ import {
 } from "../../../lib/orders";
 import { useResource } from "../../../lib/useResource";
 import { useCan } from "../../../lib/roles";
+import { coverPhoto } from "../../../lib/photos";
 
 /** An order, shown as a sent chat message. */
 function OrderBubble({ order }) {
   const { t, locale } = useI18n();
   const value = orderValue(order);
   const date = orderDate(order);
+  const cover = coverPhoto(order.photos);
+  const photoCount = (order.photos || []).length;
 
   return (
     <Link
       href={orderPath(order)}
       className="relative ml-auto block w-fit min-w-[210px] max-w-[85%] rounded-xl rounded-tr-sm bg-bubble-out px-3 pb-1.5 pt-2 shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] transition active:opacity-80 md:max-w-[60%]"
     >
+      {cover && (
+        // Like a photo message in WhatsApp: the suit's main photo on top.
+        <span className="relative -mx-1 mb-1.5 block overflow-hidden rounded-lg">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={cover.thumb_url}
+            alt={t(`photo.kind.${cover.kind}`)}
+            loading="lazy"
+            decoding="async"
+            className="aspect-[4/3] w-full object-cover"
+          />
+          {photoCount > 1 && (
+            <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-medium text-white">
+              {t("photo.count", { count: photoCount })}
+            </span>
+          )}
+        </span>
+      )}
       <p className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-accent-ink">
         #{clean(order.order_number) || order.id}
         {order.needs_review && (
