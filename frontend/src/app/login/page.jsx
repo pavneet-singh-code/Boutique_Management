@@ -9,6 +9,7 @@ import { login } from "../../lib/api";
 import { homeFor } from "../../lib/roles";
 import { useI18n } from "../../lib/i18n";
 import { Notice, cx } from "../../components/ui";
+import { ScissorsDoodle, SparkleDoodle, SpoolDoodle } from "../../components/Doodles";
 
 function LanguageChoice() {
   const { lang, setLang } = useI18n();
@@ -91,6 +92,10 @@ function LoginForm() {
         <div className="bg-cocoa grain relative overflow-hidden rounded-b-[3rem] px-6 pb-24 pt-6 text-white md:rounded-[2.5rem]">
           <span aria-hidden="true" className="absolute -right-12 -top-10 h-48 w-48 rounded-full bg-white/20" />
           <span aria-hidden="true" className="absolute -bottom-20 -left-10 h-52 w-52 rounded-full bg-black/15 blur-sm" />
+          <ScissorsDoodle tone="cream" className="absolute left-4 top-24 w-16 -rotate-[30deg] opacity-50" />
+          <SpoolDoodle tone="cream" className="absolute right-6 top-24 w-14 rotate-12 opacity-45" />
+          <SparkleDoodle tone="cream" className="absolute right-20 top-16 w-4 opacity-70" />
+          <SparkleDoodle tone="cream" className="absolute bottom-32 right-10 w-5 opacity-60" />
           <Link
             href="/"
             className="press relative inline-flex h-10 items-center gap-2 rounded-full bg-white px-4 text-sm font-bold text-ink shadow-sm"

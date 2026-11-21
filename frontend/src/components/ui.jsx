@@ -12,6 +12,7 @@ import {
 import { useI18n } from "../lib/i18n";
 import { avatarColors, initials } from "../lib/orders";
 import { employeeColor } from "../lib/colors";
+import { ButtonDoodle, NeedleDoodle, ScissorsDoodle, SparkleDoodle, SpoolDoodle } from "./Doodles";
 
 export function cx(...classes) {
   return classes.filter(Boolean).join(" ");
@@ -96,8 +97,9 @@ export function PageHeading({ eyebrow, title, subtitle, actions }) {
             {eyebrow}
           </p>
         )}
-        <h1 className="mt-2 font-display text-4xl font-bold leading-tight tracking-tight text-ink lg:text-[2.75rem]">
+        <h1 className="mt-2 flex items-center gap-3 font-display text-4xl font-bold leading-tight tracking-tight text-ink lg:text-[2.75rem]">
           {title}
+          <NeedleDoodle className="h-11 w-11 shrink-0 -rotate-12" />
         </h1>
         {subtitle && (
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
@@ -225,7 +227,7 @@ export function Spinner({ label }) {
   const { t } = useI18n();
   return (
     <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
-      <LoaderCircle size={26} className="animate-spin text-accent" />
+      <ButtonDoodle className="h-10 w-10 animate-spin [animation-duration:1.6s] motion-reduce:animate-none" />
       <p className="text-sm text-muted">{label || t("common.loading")}</p>
     </div>
   );
@@ -235,8 +237,13 @@ export function EmptyState({ icon: Icon, title, help, action }) {
   return (
     <div className="flex flex-col items-center px-6 py-14 text-center">
       {Icon && (
-        <div className="rounded-full bg-card-2 p-4 text-muted">
-          <Icon size={28} strokeWidth={1.5} />
+        <div className="relative flex items-end gap-1">
+          <ScissorsDoodle className="mb-1 w-14 -rotate-12 opacity-80" />
+          <div className="rounded-full bg-card-2 p-4 text-muted">
+            <Icon size={28} strokeWidth={1.5} />
+          </div>
+          <SpoolDoodle className="w-11 rotate-6 opacity-80" />
+          <SparkleDoodle className="absolute -top-2 left-1/2 w-4" />
         </div>
       )}
       <h3 className="mt-4 font-medium text-ink">{title}</h3>

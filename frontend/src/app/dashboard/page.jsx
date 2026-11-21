@@ -24,6 +24,7 @@ import {
   Wallet,
 } from "lucide-react";
 import AppShell, { HeaderIconButton } from "../../components/AppShell";
+import { ScissorsDoodle, SparkleDoodle, SpoolDoodle } from "../../components/Doodles";
 import { OrderChatList } from "../../components/OrderList";
 import {
   Card,
@@ -157,6 +158,10 @@ export default function DashboardPage() {
           <span aria-hidden="true" className="absolute -right-10 -top-12 h-44 w-44 rounded-full bg-white/20 blur-[2px]" />
           <span aria-hidden="true" className="absolute right-16 top-16 h-16 w-16 rounded-full bg-white/10" />
           <span aria-hidden="true" className="absolute -bottom-16 right-1/3 h-40 w-40 rounded-full bg-black/15 blur-sm" />
+          {/* Sewing doodles in cream (decoration only) */}
+          <ScissorsDoodle tone="cream" className="absolute bottom-4 right-6 w-20 -rotate-12 opacity-60 md:bottom-6 md:right-16 md:w-28" />
+          <SpoolDoodle tone="cream" className="absolute right-24 top-4 hidden w-14 rotate-12 opacity-45 sm:block md:right-48 md:w-16" />
+          <SparkleDoodle tone="cream" className="absolute right-36 top-20 w-4 opacity-70 md:right-72" />
           <div className="relative flex items-center gap-4">
             {me && <EmployeeAvatar employee={me} size={56} className="ring-4 ring-white/50" />}
             <div className="min-w-0">
