@@ -22,7 +22,7 @@ import {
   formatMonth,
   groupCustomers,
   monthRange,
-  orderDate,
+  orderMonthKey,
   pad,
   receivedBetween,
   summarise,
@@ -36,10 +36,10 @@ export default function YearlyReviewPage() {
   const [year, setYear] = useState(() => new Date().getFullYear());
 
   const report = useMemo(() => {
-    const inYear = orders.filter((order) => orderDate(order)?.getFullYear() === year);
+    const inYear = orders.filter((order) => orderMonthKey(order)?.startsWith(`${year}-`));
     const months = Array.from({ length: 12 }, (_, index) => {
       const key = `${year}-${pad(index + 1)}`;
-      const list = inYear.filter((order) => orderDate(order).getMonth() === index);
+      const list = inYear.filter((order) => Number(orderMonthKey(order).slice(5, 7)) === index + 1);
       // Money received in this month (by payment dates), whatever the order date.
       const received = receivedBetween(orders, ...monthRange(key));
       return { key, list, stats: summarise(list), received };

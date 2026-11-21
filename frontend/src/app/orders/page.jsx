@@ -32,6 +32,7 @@ import {
   formatMonth,
   orderDate,
   orderMonthKey,
+  orderNumberValue,
   parseDate,
   searchText,
   shiftMonth,
@@ -57,7 +58,7 @@ function OrdersContent() {
   const [allMonths, setAllMonths] = useState(() => searchParams.get("allMonths") === "true");
   const [review, setReview] = useState(() => searchParams.get("review") || "all");
   const [stage, setStage] = useState(() => searchParams.get("stage") || "all");
-  const [sortBy, setSortBy] = useState(() => searchParams.get("sort") || "newest");
+  const [sortBy, setSortBy] = useState(() => searchParams.get("sort") || "number");
   const [page, setPage] = useState(() => Math.max(1, Number(searchParams.get("page")) || 1));
 
   // Any filter change goes back to page 1.
@@ -91,7 +92,9 @@ function OrdersContent() {
       if (sortBy === "customer") {
         return String(a.customer_name || "").localeCompare(String(b.customer_name || ""));
       }
-      return time(orderDate(b), 0) - time(orderDate(a), 0) || b.id - a.id;
+      if (sortBy === "newest") return time(orderDate(b), 0) - time(orderDate(a), 0) || b.id - a.id;
+      // Default: biggest order number first (261103 above 261102); no number goes last.
+      return orderNumberValue(b) - orderNumberValue(a) || b.id - a.id;
     });
   }, [orders, search, month, allMonths, review, stage, sortBy]);
 
@@ -103,7 +106,7 @@ function OrdersContent() {
     if (allMonths) params.set("allMonths", "true");
     if (review !== "all") params.set("review", review);
     if (stage !== "all") params.set("stage", stage);
-    if (sortBy !== "newest") params.set("sort", sortBy);
+    if (sortBy !== "number") params.set("sort", sortBy);
     if (page > 1) params.set("page", String(page));
     const query = params.toString();
     const next = query ? `/orders?${query}` : "/orders";
@@ -128,6 +131,7 @@ function OrdersContent() {
         aria-label={t("orders.sort")}
         className="h-8 appearance-none rounded-full bg-card-2 pl-8 pr-3 text-sm text-ink-2 outline-none md:h-10 md:rounded-xl md:border md:border-line md:bg-card"
       >
+        <option value="number">{t("orders.sortNumber")}</option>
         <option value="newest">{t("orders.sortNewest")}</option>
         <option value="oldest">{t("orders.sortOldest")}</option>
         <option value="delivery">{t("orders.sortDelivery")}</option>

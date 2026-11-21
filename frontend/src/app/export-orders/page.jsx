@@ -43,7 +43,7 @@ export default function ExportOrdersPage() {
   const selected = useMemo(() => {
     const list = orders.filter((order) => {
       if (range === "month") return orderMonthKey(order) === month;
-      if (range === "year") return orderDate(order)?.getFullYear() === year;
+      if (range === "year") return orderMonthKey(order)?.startsWith(`${year}-`);
       return true;
     });
     return list.sort((a, b) => (orderDate(a)?.getTime() ?? 0) - (orderDate(b)?.getTime() ?? 0));

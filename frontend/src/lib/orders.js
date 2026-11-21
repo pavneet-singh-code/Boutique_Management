@@ -67,8 +67,33 @@ export function orderDate(order) {
   return parseDate(order.order_date) || parseDate(order.created_at);
 }
 
+/**
+ * Order numbers are YY MM NN: "261103" = 2026, November, 3rd order of the month.
+ * Returns { year, month, seq }, or null when the number doesn't follow that
+ * pattern (e.g. a misread "26019").
+ */
+export function parseOrderNumber(value) {
+  const match = /^(\d{2})(\d{2})(\d{2,3})$/.exec(String(value ?? "").trim());
+  if (!match) return null;
+  const month = Number(match[2]);
+  if (month < 1 || month > 12) return null;
+  return { year: 2000 + Number(match[1]), month, seq: Number(match[3]) };
+}
+
+/**
+ * The month an order belongs to ("2026-11"): taken from its order number,
+ * else from its order date (or when it was saved).
+ */
 export function orderMonthKey(order) {
+  const number = parseOrderNumber(order.order_number);
+  if (number) return `${number.year}-${pad(number.month)}`;
   return monthKeyOf(orderDate(order));
+}
+
+/** For sorting: the order number as a number (missing / odd numbers go last). */
+export function orderNumberValue(order) {
+  const digits = String(order.order_number ?? "").trim();
+  return /^\d+$/.test(digits) ? Number(digits) : -1;
 }
 
 export function currentMonthKey() {

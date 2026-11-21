@@ -803,6 +803,7 @@ const en = {
   "dash.inWork": "Still being made",
   "dash.unpaid": "Bills not paid yet",
   "dash.unpaidNote": "Suits billed, waiting for payment",
+  "orders.sortNumber": "Order number (biggest first)",
 };
 
 const hi = {
@@ -1585,6 +1586,7 @@ const hi = {
   "dash.inWork": "अभी बन रहे हैं",
   "dash.unpaid": "बिल जिनका भुगतान बाकी है",
   "dash.unpaidNote": "बिल भेजा, भुगतान का इंतज़ार",
+  "orders.sortNumber": "ऑर्डर नंबर (सबसे बड़ा पहले)",
 };
 
 export const dictionaries = { en, hi };
