@@ -105,7 +105,7 @@ function NewOrderContent() {
               )}
             </Notice>
           )}
-          <OrderForm value={form} onChange={onChange} />
+          <OrderForm value={form} onChange={onChange} matchMonth />
           <div className="mt-4">
             <PendingPhotos photos={photos} onChange={setPhotos} />
           </div>

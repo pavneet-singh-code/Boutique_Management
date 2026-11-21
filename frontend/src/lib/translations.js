@@ -832,6 +832,9 @@ const en = {
   "order.progress": "{value}% done",
   "number.dateMismatch": "Order number {number} is from {month}, but this date is in {dateMonth}. Check the date.",
   "check.reason.date_number_mismatch": "Order date is not in the month of the order number",
+  "number.useNumberMonth": "Change to {date}",
+  "number.dateMoved": "Order date moved to {date}, the month of this order number.",
+  "check.fixDate": "Change date to {date}",
 };
 
 const hi = {
@@ -1643,6 +1646,9 @@ const hi = {
   "order.progress": "{value}% पूरा",
   "number.dateMismatch": "ऑर्डर नंबर {number} {month} का है, पर यह तारीख {dateMonth} की है। तारीख जाँचें।",
   "check.reason.date_number_mismatch": "ऑर्डर की तारीख ऑर्डर नंबर वाले महीने की नहीं है",
+  "number.useNumberMonth": "{date} कर दें",
+  "number.dateMoved": "ऑर्डर की तारीख {date} कर दी गई, जो इस ऑर्डर नंबर का महीना है।",
+  "check.fixDate": "तारीख {date} कर दें",
 };
 
 export const dictionaries = { en, hi };

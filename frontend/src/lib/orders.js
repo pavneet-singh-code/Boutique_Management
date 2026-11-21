@@ -389,3 +389,18 @@ export function numberDateMismatch(orderNumber, orderDate) {
   const fromNumber = `${number.year}-${pad(number.month)}`;
   return fromNumber === monthKeyOf(date) ? null : fromNumber;
 }
+
+/**
+ * The order date moved into the order number's month, keeping the day
+ * (261033 dated 21 Nov 2026 -> "2026-10-21"); the month's last day if that
+ * day doesn't exist. Null when the date is already in that month, or the
+ * number / date can't be read.
+ */
+export function dateInNumberMonth(orderNumber, orderDate) {
+  const number = parseOrderNumber(orderNumber);
+  const date = parseDate(orderDate);
+  if (!number || !date) return null;
+  if (number.year === date.getFullYear() && number.month === date.getMonth() + 1) return null;
+  const lastDay = new Date(number.year, number.month, 0).getDate();
+  return `${number.year}-${pad(number.month)}-${pad(Math.min(date.getDate(), lastDay))}`;
+}

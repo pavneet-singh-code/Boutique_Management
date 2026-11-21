@@ -31,7 +31,7 @@ import {
   updateOrder,
 } from "../../../lib/api";
 import { useI18n } from "../../../lib/i18n";
-import { clean, customerKey, displayName, formatDate } from "../../../lib/orders";
+import { clean, customerKey, dateInNumberMonth, displayName, formatDate } from "../../../lib/orders";
 
 /** One order with an inline "new order number" box. */
 function ProblemOrder({ order, onChanged, onDelete, showNumberEdit = true, reasons }) {
@@ -57,6 +57,23 @@ function ProblemOrder({ order, onChanged, onDelete, showNumberEdit = true, reaso
   };
 
   const name = displayName(order, t);
+  // Order date in another month than the order number: one tap moves it (same day).
+  const fixedDate = reasons?.includes("date_number_mismatch")
+    ? dateInNumberMonth(order.order_number, order.order_date)
+    : null;
+  const fixDate = async () => {
+    setSaving(true);
+    setError("");
+    try {
+      await updateOrder(order.id, { order_date: fixedDate });
+      setSaved(true);
+      onChanged();
+    } catch (err) {
+      setError(tError(err));
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <li className="px-4 py-3.5 md:px-5">
@@ -91,6 +108,16 @@ function ProblemOrder({ order, onChanged, onDelete, showNumberEdit = true, reaso
             <p className="mt-1 text-xs text-muted">
               {t("order.cleanupNote")}: {order.import_notes}
             </p>
+          )}
+          {fixedDate && !saved && (
+            <button
+              type="button"
+              onClick={fixDate}
+              disabled={saving}
+              className="press mt-2 inline-flex h-9 items-center rounded-full bg-cocoa px-4 text-sm font-bold text-white shadow-sm disabled:opacity-50"
+            >
+              {t("check.fixDate", { date: formatDate(fixedDate, locale) })}
+            </button>
           )}
         </div>
         {onDelete && (

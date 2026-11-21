@@ -1,10 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { TriangleAlert } from "lucide-react";
 import { useI18n } from "../lib/i18n";
 import {
   amount,
   clean,
+  dateInNumberMonth,
+  formatDate,
   formatMoney,
   formatMonth,
   isUnclear,
@@ -95,8 +98,13 @@ function Group({ title, children }) {
  * Editable order details.
  * original: the raw order (to point out values the scanner couldn't read).
  */
-export default function OrderForm({ value, onChange, original = {} }) {
+/**
+ * `matchMonth`: when the order number is typed, move the order date into the
+ * number's month (Add Order). Without it (scans), a one-tap button is offered.
+ */
+export default function OrderForm({ value, onChange, original = {}, matchMonth = false }) {
   const { t, locale } = useI18n();
+  const [movedTo, setMovedTo] = useState(null); // date the order date was just moved to
 
   const scanName = { advance_amount: "advance_payment", estimated_total: "total_amount" };
   const warnFor = (field) => {
@@ -120,13 +128,36 @@ export default function OrderForm({ value, onChange, original = {} }) {
 
   // The order number says which month the order belongs to (261033 = October 2026).
   const mismatchMonth = numberDateMismatch(value.order_number, value.order_date);
-  const dateMismatch = mismatchMonth
-    ? t("number.dateMismatch", {
+  const fixedDate = dateInNumberMonth(value.order_number, value.order_date);
+  const dateMismatch = mismatchMonth ? (
+    <span className="block">
+      {t("number.dateMismatch", {
         number: clean(value.order_number),
         month: formatMonth(mismatchMonth, locale),
         dateMonth: formatMonth(monthKeyOf(parseDate(value.order_date)), locale),
-      })
-    : null;
+      })}
+      {fixedDate && (
+        <button
+          type="button"
+          onClick={() => onChange("order_date", fixedDate)}
+          className="press mt-1.5 inline-flex h-8 items-center rounded-full bg-card px-3 text-xs font-bold text-accent-ink shadow-sm ring-1 ring-line"
+        >
+          {t("number.useNumberMonth", { date: formatDate(fixedDate, locale) })}
+        </button>
+      )}
+    </span>
+  ) : null;
+
+  // Typing the order number moves the date into its month (Add Order only).
+  const changeNumber = (next) => {
+    onChange("order_number", next);
+    if (!matchMonth) return;
+    const moved = dateInNumberMonth(next, value.order_date);
+    if (moved) {
+      onChange("order_date", moved);
+      setMovedTo(moved);
+    }
+  };
 
   const estimate = amount(value.estimated_total);
   const advance = amount(value.advance_amount) ?? 0;
@@ -154,8 +185,12 @@ export default function OrderForm({ value, onChange, original = {} }) {
       </Group>
 
       <Group title={t("edit.orderSection")}>
-        <Field label={t("field.orderNumber")} warn={warnFor("order_number")}>
-          {text("order_number", { inputMode: "numeric" })}
+        <Field
+          label={t("field.orderNumber")}
+          warn={warnFor("order_number")}
+          hint={movedTo && movedTo === value.order_date ? t("number.dateMoved", { date: formatDate(movedTo, locale) }) : null}
+        >
+          {text("order_number", { inputMode: "numeric", onChange: (event) => changeNumber(event.target.value) })}
         </Field>
         <div className="hidden sm:block" />
         <Field label={t("field.orderDate")} warn={warnFor("order_date") || dateMismatch}>
